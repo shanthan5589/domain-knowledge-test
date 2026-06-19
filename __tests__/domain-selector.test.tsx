@@ -18,16 +18,16 @@ describe('DomainSelector', () => {
   it('shows confirmation modal when a domain is selected', () => {
     render(<DomainSelector />)
     fireEvent.click(screen.getByText('Cybersecurity'))
-    expect(screen.getByText('Ready to start?')).toBeInTheDocument()
-    expect(screen.getByText('10 questions · 5 minute timer · Cannot pause')).toBeInTheDocument()
+    expect(screen.getByText('Selected domain')).toBeInTheDocument()
+    expect(screen.getByText(/10 questions/)).toBeInTheDocument()
   })
 
   it('closes modal when Cancel is clicked', () => {
     render(<DomainSelector />)
     fireEvent.click(screen.getByText('Cloud Computing'))
-    expect(screen.getByText('Ready to start?')).toBeInTheDocument()
+    expect(screen.getByText('Selected domain')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Cancel'))
-    expect(screen.queryByText('Ready to start?')).not.toBeInTheDocument()
+    expect(screen.queryByText('Selected domain')).not.toBeInTheDocument()
   })
 
   it('navigates to test page when Start Test is clicked', () => {

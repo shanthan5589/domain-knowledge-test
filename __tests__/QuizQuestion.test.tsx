@@ -72,16 +72,16 @@ describe('QuizQuestion', () => {
     expect(onSelect).toHaveBeenCalledWith('D')
   })
 
-  it('highlights the selected option with blue border', () => {
+  it('highlights the selected option with neutral border', () => {
     render(<QuizQuestion {...defaultProps} selected="B" />)
     const optionB = screen.getByRole('button', { name: /Option B/i })
-    expect(optionB).toHaveClass('border-blue-500')
+    expect(optionB).toHaveClass('border-neutral-900')
   })
 
-  it('non-selected options do not have blue border', () => {
+  it('non-selected options do not have neutral-900 border', () => {
     render(<QuizQuestion {...defaultProps} selected="B" />)
     const optionA = screen.getByRole('button', { name: /Option A/i })
-    expect(optionA).not.toHaveClass('border-blue-500')
+    expect(optionA).not.toHaveClass('border-neutral-900')
   })
 
   it('shows updated question number when questionNumber prop changes', () => {
