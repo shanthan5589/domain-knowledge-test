@@ -8,31 +8,31 @@ const DOMAINS = [
     id: 'ai',
     name: 'Artificial Intelligence & Generative AI',
     description: 'LLMs, prompt engineering, model APIs, AI concepts',
-    icon: '🤖',
+    abbr: 'AI',
   },
   {
     id: 'cloud',
     name: 'Cloud Computing',
     description: 'AWS, Azure, GCP services and architecture',
-    icon: '☁️',
+    abbr: 'CC',
   },
   {
     id: 'cybersecurity',
     name: 'Cybersecurity',
     description: 'Threats, tools, protocols, and best practices',
-    icon: '🔒',
+    abbr: 'CS',
   },
   {
     id: 'devops',
     name: 'DevOps & CI/CD',
     description: 'Pipelines, containers, Kubernetes, automation',
-    icon: '⚙️',
+    abbr: 'DO',
   },
   {
     id: 'data_science',
     name: 'Data Science, Analytics & Big Data',
     description: 'ML, data pipelines, SQL, visualization tools',
-    icon: '📊',
+    abbr: 'DS',
   },
 ]
 
@@ -59,46 +59,47 @@ export default function DomainSelector() {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {DOMAINS.map((domain) => (
           <button
             key={domain.id}
             onClick={() => handleSelect(domain.id)}
-            className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-blue-400 hover:shadow-md transition-all group"
+            className="bg-white border border-neutral-200 rounded-lg p-5 text-left hover:border-neutral-400 hover:shadow-sm transition-all group"
           >
-            <div className="text-3xl mb-3">{domain.icon}</div>
-            <h2 className="font-semibold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">
+            <div className="w-8 h-8 bg-neutral-100 rounded-md flex items-center justify-center mb-3">
+              <span className="text-[10px] font-bold text-neutral-600">{domain.abbr}</span>
+            </div>
+            <h2 className="text-sm font-semibold text-neutral-800 mb-1 leading-snug">
               {domain.name}
             </h2>
-            <p className="text-sm text-gray-500">{domain.description}</p>
+            <p className="text-xs text-neutral-500 leading-relaxed">{domain.description}</p>
           </button>
         ))}
       </div>
 
       {/* Confirmation modal */}
       {confirming && selectedDomain && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl">
-            <div className="text-4xl mb-4 text-center">{selectedDomain.icon}</div>
-            <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
-              Ready to start?
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-50 px-4">
+          <div className="bg-white border border-neutral-200 rounded-lg p-8 max-w-sm w-full shadow-lg">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-3">
+              Selected domain
+            </p>
+            <h2 className="text-lg font-bold text-neutral-900 mb-1">
+              {selectedDomain.name}
             </h2>
-            <p className="text-gray-600 text-center mb-1">
-              <span className="font-medium">{selectedDomain.name}</span>
+            <p className="text-sm text-neutral-500 mb-6">
+              10 questions &middot; 5 minute timer &middot; Cannot pause
             </p>
-            <p className="text-gray-500 text-sm text-center mb-6">
-              10 questions · 5 minute timer · Cannot pause
-            </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
               <button
                 onClick={handleCancel}
-                className="flex-1 border border-gray-300 rounded-lg py-3 text-gray-700 font-medium hover:bg-gray-50 transition"
+                className="flex-1 border border-neutral-200 rounded-lg py-2.5 text-sm text-neutral-700 font-medium hover:bg-neutral-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700 transition"
+                className="flex-1 bg-neutral-900 hover:bg-black text-white rounded-lg py-2.5 text-sm font-medium transition"
               >
                 Start Test
               </button>
