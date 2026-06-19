@@ -5,6 +5,25 @@ import type { SubmitResultPayload, Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 
+export async function GET() {
+  const session = await auth()
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data: results, error } = await supabaseAdmin
+    .from('test_results')
+    .select('domain, score, time_taken_seconds, completed_at')
+    .eq('user_email', session.user.email)
+    .order('completed_at', { ascending: false })
+
+  if (error) {
+    return NextResponse.json({ error: 'Failed to fetch results' }, { status: 500 })
+  }
+
+  return NextResponse.json({ results: results ?? [] })
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.email) {
