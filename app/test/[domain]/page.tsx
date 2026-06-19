@@ -62,8 +62,9 @@ export default function TestPage() {
             answers: finalAnswers,
           }),
         })
+        if (!res.ok) throw new Error('Failed to save results')
         const data = await res.json()
-        setScore(data.score)
+        setScore(typeof data.score === 'number' ? data.score : 0)
         setPhase('results')
       } catch {
         setErrorMessage('Could not save results. Please try again.')
