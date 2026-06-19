@@ -55,13 +55,13 @@ describe('QuizTimer', () => {
   it('applies urgent styling when 60 seconds or less remain', () => {
     render(<QuizTimer totalSeconds={62} onExpire={jest.fn()} />)
     advanceSeconds(2)
-    expect(screen.getByTestId('quiz-timer')).toHaveClass('text-red-600')
+    expect(screen.getByTestId('quiz-timer')).toHaveClass('text-red-500')
   })
 
   it('does not apply urgent styling when more than 60 seconds remain', () => {
     render(<QuizTimer totalSeconds={300} onExpire={jest.fn()} />)
-    expect(screen.getByTestId('quiz-timer')).toHaveClass('text-gray-700')
-    expect(screen.getByTestId('quiz-timer')).not.toHaveClass('text-red-600')
+    expect(screen.getByTestId('quiz-timer')).toHaveClass('text-neutral-700')
+    expect(screen.getByTestId('quiz-timer')).not.toHaveClass('text-red-500')
   })
 
   it('displays single digit minutes correctly', () => {
