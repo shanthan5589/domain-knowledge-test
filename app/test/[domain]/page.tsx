@@ -6,7 +6,7 @@ import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
 
-const TOTAL_SECONDS = 300 // 5 minutes
+const TOTAL_SECONDS = 300
 
 const DOMAIN_LABELS: Record<Domain, string> = {
   ai: 'Artificial Intelligence & Generative AI',
@@ -57,13 +57,14 @@ export default function TestPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             domain,
-            score: 0, // server calculates actual score
+            score: 0,
             time_taken_seconds: Math.min(timeTaken, TOTAL_SECONDS),
             answers: finalAnswers,
           }),
         })
+        if (!res.ok) throw new Error('Failed to save results')
         const data = await res.json()
-        setScore(data.score)
+        setScore(typeof data.score === 'number' ? data.score : 0)
         setPhase('results')
       } catch {
         setErrorMessage('Could not save results. Please try again.')
@@ -96,8 +97,8 @@ export default function TestPage() {
   // Loading
   if (phase === 'loading') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg animate-pulse">Loading questions…</p>
+      <main className="min-h-screen bg-neutral-100 flex items-center justify-center">
+        <p className="text-neutral-500 text-sm animate-pulse">Loading questions…</p>
       </main>
     )
   }
@@ -105,12 +106,12 @@ export default function TestPage() {
   // Error
   if (phase === 'error') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <main className="min-h-screen bg-neutral-100 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-red-600 font-medium mb-4">{errorMessage}</p>
+          <p className="text-red-500 text-sm font-medium mb-4">{errorMessage}</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="bg-neutral-900 hover:bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium transition"
           >
             Back to Dashboard
           </button>
@@ -123,30 +124,34 @@ export default function TestPage() {
   if (phase === 'results' && score !== null) {
     const passed = score >= 7
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="text-6xl mb-4">{passed ? '🎉' : '📚'}</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Test Complete!</h1>
-          <p className="text-gray-500 mb-6">{DOMAIN_LABELS[domain]}</p>
-          <div className="mb-8">
-            <span className="text-7xl font-black text-blue-600">{score}</span>
-            <span className="text-3xl font-bold text-gray-400"> / 10</span>
-          </div>
-          <p className="text-gray-600 mb-8">
-            {passed
-              ? 'Great job! You have a solid understanding of this domain.'
-              : 'Keep practicing — review the concepts and try again!'}
+      <main className="min-h-screen bg-neutral-100 flex items-center justify-center px-4">
+        <div className="bg-white border border-neutral-200 rounded-lg shadow-sm p-10 max-w-sm w-full text-center">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400 mb-6">
+            Test complete
           </p>
-          <div className="flex gap-3">
+          <div className="mb-2">
+            <span className="text-7xl font-black text-neutral-900">{score}</span>
+            <span className="text-2xl font-bold text-neutral-400"> / 10</span>
+          </div>
+          <p className={`text-sm font-semibold mb-1 ${passed ? 'text-emerald-700' : 'text-red-500'}`}>
+            {passed ? 'Passed' : 'Needs improvement'}
+          </p>
+          <p className="text-xs text-neutral-500 mb-2">{DOMAIN_LABELS[domain]}</p>
+          <p className="text-sm text-neutral-600 mb-8">
+            {passed
+              ? 'Solid understanding of this domain.'
+              : 'Review the concepts and try again.'}
+          </p>
+          <div className="flex gap-2.5">
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex-1 border border-gray-300 rounded-lg py-3 text-gray-700 font-medium hover:bg-gray-50 transition"
+              className="flex-1 border border-neutral-200 rounded-lg py-2.5 text-sm text-neutral-700 font-medium hover:bg-neutral-50 transition"
             >
-              Back to Dashboard
+              Dashboard
             </button>
             <button
               onClick={() => router.push(`/test/${domain}`)}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700 transition"
+              className="flex-1 bg-neutral-900 hover:bg-black text-white rounded-lg py-2.5 text-sm font-medium transition"
             >
               Try Again
             </button>
@@ -159,8 +164,8 @@ export default function TestPage() {
   // Submitting
   if (phase === 'submitting') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg animate-pulse">Submitting your answers…</p>
+      <main className="min-h-screen bg-neutral-100 flex items-center justify-center">
+        <p className="text-neutral-500 text-sm animate-pulse">Submitting your answers…</p>
       </main>
     )
   }
@@ -168,18 +173,18 @@ export default function TestPage() {
   // Quiz
   return (
     <main
-      className="min-h-screen bg-gray-50"
+      className="min-h-screen bg-neutral-100"
       onCopy={(e) => e.preventDefault()}
       onCut={(e) => e.preventDefault()}
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* Header bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-5 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-600 hidden sm:inline">
+          <span className="text-xs font-bold uppercase tracking-widest text-neutral-500 hidden sm:inline">
             {DOMAIN_LABELS[domain]}
           </span>
-          <span className="text-sm text-gray-400">
+          <span className="text-xs text-neutral-400">
             {currentIndex + 1} / {questions.length}
           </span>
         </div>
@@ -187,16 +192,16 @@ export default function TestPage() {
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 bg-gray-200">
+      <div className="h-0.5 bg-neutral-200">
         <div
-          className="h-1 bg-blue-500 transition-all duration-300"
+          className="h-0.5 bg-neutral-900 transition-all duration-300"
           style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
         />
       </div>
 
       {/* Question card */}
       <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white rounded-lg border border-neutral-200 shadow-sm p-8">
           {currentQuestion && (
             <QuizQuestion
               question={currentQuestion}
@@ -211,7 +216,7 @@ export default function TestPage() {
             <button
               onClick={handleNext}
               disabled={!selectedAnswer}
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition"
+              className="bg-neutral-900 hover:bg-black text-white px-8 py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {isLastQuestion ? 'Submit Test' : 'Next Question'}
             </button>
