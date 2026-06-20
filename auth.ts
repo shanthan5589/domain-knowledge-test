@@ -22,7 +22,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const { data: user } = await supabaseAdmin
           .from('profiles')
           .select('*')
-          .eq('email', credentials.email)
+          .eq('email', (credentials.email as string).toLowerCase())
           .single()
 
         if (!user || !user.password_hash) return null
@@ -50,7 +50,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!existing) {
           await supabaseAdmin.from('profiles').insert({
-            id: user.id,
             email: user.email,
             full_name: user.name,
           })

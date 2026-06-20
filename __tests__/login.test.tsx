@@ -21,7 +21,7 @@ describe('LoginPage', () => {
 
   it('renders the login page with Google button and form', () => {
     render(<LoginPage />)
-    expect(screen.getByText('Domain Knowledge Test')).toBeInTheDocument()
+    expect(screen.getByText('Sign In')).toBeInTheDocument()
     expect(screen.getByText('Continue with Google')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument()
