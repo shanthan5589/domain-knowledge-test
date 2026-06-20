@@ -9,11 +9,13 @@ jest.mock('next-auth/react', () => ({
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: jest.fn(() => ({ push: jest.fn() })),
 }))
 
 import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 const mockSignIn = signIn as jest.Mock
+const mockUseRouter = useRouter as jest.Mock
 
 describe('LoginPage', () => {
   beforeEach(() => {
@@ -53,7 +55,7 @@ describe('LoginPage', () => {
 
   it('redirects to dashboard on successful login', async () => {
     const push = jest.fn()
-    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({ push })
+    mockUseRouter.mockReturnValue({ push })
     mockSignIn.mockResolvedValueOnce({ error: null })
 
     render(<LoginPage />)
