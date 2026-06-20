@@ -8,31 +8,26 @@ const DOMAINS = [
     id: 'ai',
     name: 'Artificial Intelligence & Generative AI',
     description: 'LLMs, prompt engineering, model APIs, AI concepts',
-    icon: '🤖',
   },
   {
     id: 'cloud',
     name: 'Cloud Computing',
     description: 'AWS, Azure, GCP services and architecture',
-    icon: '☁️',
   },
   {
     id: 'cybersecurity',
     name: 'Cybersecurity',
     description: 'Threats, tools, protocols, and best practices',
-    icon: '🔒',
   },
   {
     id: 'devops',
     name: 'DevOps & CI/CD',
     description: 'Pipelines, containers, Kubernetes, automation',
-    icon: '⚙️',
   },
   {
     id: 'data_science',
     name: 'Data Science, Analytics & Big Data',
     description: 'ML, data pipelines, SQL, visualization tools',
-    icon: '📊',
   },
 ]
 
@@ -66,8 +61,7 @@ export default function DomainSelector() {
             onClick={() => handleSelect(domain.id)}
             className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-blue-400 hover:shadow-md transition-all group"
           >
-            <div className="text-3xl mb-3">{domain.icon}</div>
-            <h2 className="font-semibold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">
+            <h2 className="font-semibold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors min-h-[48px] flex items-start">
               {domain.name}
             </h2>
             <p className="text-sm text-gray-500">{domain.description}</p>
@@ -79,7 +73,6 @@ export default function DomainSelector() {
       {confirming && selectedDomain && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl">
-            <div className="text-4xl mb-4 text-center">{selectedDomain.icon}</div>
             <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
               Ready to start?
             </h2>

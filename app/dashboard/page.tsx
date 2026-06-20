@@ -15,6 +15,13 @@ const DOMAIN_LABELS: Record<Domain, string> = {
 
 const ALL_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 
+function getScoreTier(score: number) {
+  if (score >= 9) return { label: 'Excellent', scoreColor: 'text-green-600', labelColor: 'text-green-600' }
+  if (score >= 7) return { label: 'Good', scoreColor: 'text-violet-600', labelColor: 'text-violet-600' }
+  if (score >= 5) return { label: 'Average', scoreColor: 'text-yellow-500', labelColor: 'text-yellow-500' }
+  return { label: 'Needs improvement', scoreColor: 'text-red-500', labelColor: 'text-red-500' }
+}
+
 interface ResultRow {
   domain: string
   score: number
@@ -70,9 +77,9 @@ export default async function DashboardPage() {
               {ALL_DOMAINS.map((domain) => {
                 const result = latestByDomain[domain]
                 if (!result) return null
-                const passed = result.score >= 7
                 const mins = Math.floor(result.time_taken_seconds / 60)
                 const secs = result.time_taken_seconds % 60
+                const { label, scoreColor, labelColor } = getScoreTier(result.score)
                 return (
                   <div
                     key={domain}
@@ -82,20 +89,20 @@ export default async function DashboardPage() {
                       {DOMAIN_LABELS[domain]}
                     </p>
                     <div className="flex items-end gap-1 mb-1">
-                      <span className={`text-4xl font-black ${passed ? 'text-blue-600' : 'text-gray-700'}`}>
+                      <span className={`text-4xl font-black ${scoreColor}`}>
                         {result.score}
                       </span>
                       <span className="text-lg font-bold text-gray-400 mb-1">/ 10</span>
                     </div>
                     <p className="text-xs text-gray-400">
-                      {mins}m {secs}s &middot;{' '}
+                      Completed in {mins > 0 ? `${mins}m ${secs}s` : `${secs}s`} &middot;{' '}
                       {new Date(result.completed_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                       })}
                     </p>
-                    <div className={`mt-2 text-xs font-medium ${passed ? 'text-green-600' : 'text-orange-500'}`}>
-                      {passed ? 'Passed' : 'Needs improvement'}
+                    <div className={`mt-2 text-xs font-medium ${labelColor}`}>
+                      {label}
                     </div>
                   </div>
                 )
