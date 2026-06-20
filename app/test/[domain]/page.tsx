@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
@@ -22,8 +23,13 @@ export default function TestPage() {
   const params = useParams()
   const router = useRouter()
   const domain = params.domain as Domain
+  const { data: session, status } = useSession()
 
   const [phase, setPhase] = useState<Phase>('loading')
+
+  useEffect(() => {
+    if (status === 'unauthenticated') router.push('/login')
+  }, [status, router])
   const [questions, setQuestions] = useState<ClientQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, CorrectAnswer>>({})
@@ -94,7 +100,16 @@ export default function TestPage() {
   const selectedAnswer = currentQuestion ? answers[currentQuestion.id] ?? null : null
   const isLastQuestion = currentIndex === questions.length - 1
 
-  // Loading
+  // Auth loading or redirecting
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500 text-lg animate-pulse">Loading…</p>
+      </main>
+    )
+  }
+
+  // Loading questions
   if (phase === 'loading') {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center">

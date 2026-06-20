@@ -4,6 +4,7 @@ import LoginPage from '@/app/login/page'
 // Mock next-auth
 jest.mock('next-auth/react', () => ({
   signIn: jest.fn(),
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
 }))
 
 // Mock next/navigation
