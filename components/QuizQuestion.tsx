@@ -72,7 +72,7 @@ export default function QuizQuestion({
                 className={`text-gray-700 text-sm transition-all duration-200 ${
                   isSelected
                     ? 'opacity-100'
-                    : 'opacity-0 group-hover:opacity-100'
+                    : '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
                 }`}
                 style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                 aria-label={`Option ${key}: ${optionText}`}

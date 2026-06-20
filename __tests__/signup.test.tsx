@@ -2,15 +2,18 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SignupPage from '@/app/signup/page'
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: jest.fn(() => ({ push: jest.fn() })),
 }))
 
 jest.mock('next-auth/react', () => ({
   signIn: jest.fn(),
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
 }))
 
 import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 const mockSignIn = signIn as jest.Mock
+const mockUseRouter = useRouter as jest.Mock
 
 global.fetch = jest.fn()
 const mockFetch = fetch as jest.Mock
@@ -73,7 +76,7 @@ describe('SignupPage', () => {
 
   it('calls signIn after successful signup and redirects to dashboard', async () => {
     const push = jest.fn()
-    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({ push })
+    mockUseRouter.mockReturnValue({ push })
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: true }),
@@ -99,7 +102,7 @@ describe('SignupPage', () => {
 
   it('redirects to login if auto-login fails after signup', async () => {
     const push = jest.fn()
-    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({ push })
+    mockUseRouter.mockReturnValue({ push })
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: true }),
