@@ -26,12 +26,14 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
+  // Fetch this user's most recent attempt per domain
   const { data: rawResults } = await supabaseAdmin
     .from('test_results')
     .select('domain, score, time_taken_seconds, completed_at')
     .eq('user_email', session.user?.email)
     .order('completed_at', { ascending: false })
 
+  // Keep only the latest result per domain
   const latestByDomain: Partial<Record<Domain, ResultRow>> = {}
   for (const row of (rawResults ?? []) as ResultRow[]) {
     const d = row.domain as Domain
@@ -39,29 +41,22 @@ export default async function DashboardPage() {
   }
 
   const hasAnyResult = Object.keys(latestByDomain).length > 0
-  const firstName = session.user?.name?.split(' ')[0] ?? session.user?.email
 
   return (
-    <main className="min-h-screen bg-neutral-100">
+    <main className="min-h-screen bg-gray-50">
       {/* Top nav */}
-      <div className="bg-white border-b border-neutral-200 px-6 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 bg-neutral-900 rounded-md flex items-center justify-center shrink-0">
-            <span className="text-white text-[9px] font-bold">DK</span>
-          </div>
-          <span className="text-sm font-bold text-neutral-900">Domain Knowledge Test</span>
-        </div>
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-800">Domain Knowledge Test</span>
         <LogoutButton />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-10">
-        {/* Header */}
-        <div className="mb-8">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1">
-            Welcome back
-          </p>
-          <h1 className="text-2xl font-bold text-neutral-900">{firstName}</h1>
-          <p className="text-sm text-neutral-500 mt-1">Select a domain to begin your assessment</p>
+        {/* Welcome header */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome, {session.user?.name?.split(' ')[0] ?? session.user?.email}!
+          </h1>
+          <p className="text-gray-500">Select a domain to begin your assessment</p>
         </div>
 
         {/* Domain selector */}
@@ -69,11 +64,9 @@ export default async function DashboardPage() {
 
         {/* Results history */}
         {hasAnyResult && (
-          <div className="mt-12">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-4">
-              Your results
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="mt-14">
+            <h2 className="text-xl font-bold text-gray-900 mb-5">Your Results</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {ALL_DOMAINS.map((domain) => {
                 const result = latestByDomain[domain]
                 if (!result) return null
@@ -83,25 +76,27 @@ export default async function DashboardPage() {
                 return (
                   <div
                     key={domain}
-                    className="bg-white border border-neutral-200 rounded-lg shadow-sm p-5"
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-5"
                   >
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-3">
+                    <p className="text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
                       {DOMAIN_LABELS[domain]}
                     </p>
-                    <div className="flex items-end gap-1 mb-2">
-                      <span className="text-4xl font-black text-neutral-900">{result.score}</span>
-                      <span className="text-base font-bold text-neutral-400 mb-1">/ 10</span>
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className={`text-4xl font-black ${passed ? 'text-blue-600' : 'text-gray-700'}`}>
+                        {result.score}
+                      </span>
+                      <span className="text-lg font-bold text-gray-400 mb-1">/ 10</span>
                     </div>
-                    <p className="text-xs text-neutral-400">
+                    <p className="text-xs text-gray-400">
                       {mins}m {secs}s &middot;{' '}
                       {new Date(result.completed_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                       })}
                     </p>
-                    <p className={`mt-2 text-xs font-semibold ${passed ? 'text-emerald-700' : 'text-red-500'}`}>
+                    <div className={`mt-2 text-xs font-medium ${passed ? 'text-green-600' : 'text-orange-500'}`}>
                       {passed ? 'Passed' : 'Needs improvement'}
-                    </p>
+                    </div>
                   </div>
                 )
               })}
