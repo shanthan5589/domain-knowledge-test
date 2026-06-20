@@ -1,5 +1,4 @@
 /** @jest-environment node */
-import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/results/route'
 
 jest.mock('@/auth', () => ({
@@ -17,10 +16,6 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 const mockAuth = auth as jest.Mock
 const mockFrom = supabaseAdmin.from as jest.Mock
-
-function makeReq() {
-  return new NextRequest('http://localhost/api/results', { method: 'GET' })
-}
 
 function mockSupabase(data: unknown, error: unknown = null) {
   const chain = {

@@ -1,9 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import DomainSelector from '@/components/DomainSelector'
+import { useRouter } from 'next/navigation'
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: jest.fn(() => ({ push: jest.fn() })),
 }))
+
+const mockUseRouter = useRouter as jest.Mock
 
 describe('DomainSelector', () => {
   it('renders all 5 domains', () => {
@@ -32,7 +35,7 @@ describe('DomainSelector', () => {
 
   it('navigates to test page when Start Test is clicked', () => {
     const push = jest.fn()
-    jest.spyOn(require('next/navigation'), 'useRouter').mockReturnValue({ push })
+    mockUseRouter.mockReturnValue({ push })
     render(<DomainSelector />)
     fireEvent.click(screen.getByText('DevOps & CI/CD'))
     fireEvent.click(screen.getByText('Start Test'))

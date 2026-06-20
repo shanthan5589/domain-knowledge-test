@@ -10,7 +10,10 @@ interface QuizTimerProps {
 export default function QuizTimer({ totalSeconds, onExpire }: QuizTimerProps) {
   const [remaining, setRemaining] = useState(totalSeconds)
   const onExpireRef = useRef(onExpire)
-  onExpireRef.current = onExpire
+
+  useEffect(() => {
+    onExpireRef.current = onExpire
+  }, [onExpire])
 
   useEffect(() => {
     if (remaining <= 0) {
