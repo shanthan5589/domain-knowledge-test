@@ -29,8 +29,8 @@ export default function QuizTimer({ totalSeconds, onExpire }: QuizTimerProps) {
   return (
     <div
       data-testid="quiz-timer"
-      className={`font-mono text-xl font-bold tabular-nums ${
-        isUrgent ? 'text-red-500 animate-pulse' : 'text-neutral-700'
+      className={`font-mono text-2xl font-bold tabular-nums ${
+        isUrgent ? 'text-red-600 animate-pulse' : 'text-gray-700'
       }`}
     >
       {display}

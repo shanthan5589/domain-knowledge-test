@@ -37,23 +37,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-100">
-      <div className="bg-white border border-neutral-200 rounded-lg shadow-sm p-8 w-full max-w-sm">
-        {/* Brand */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-8 h-8 bg-neutral-900 rounded-md mb-4">
-            <span className="text-white text-xs font-bold">DK</span>
-          </div>
-          <h1 className="text-lg font-bold text-neutral-900">Domain Knowledge Test</h1>
-          <p className="text-xs text-neutral-500 mt-1">Sign in to start your assessment</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
+          Sign In
+        </h1>
+        <p className="text-center text-gray-500 mb-8 text-sm">
+          Sign in to start your assessment
+        </p>
 
         {/* Google Login */}
         <button
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-2.5 border border-neutral-200 rounded-lg px-4 py-2.5 text-sm text-neutral-700 font-medium hover:bg-neutral-50 transition mb-5"
+          className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition mb-6"
         >
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
@@ -62,55 +60,51 @@ export default function LoginPage() {
           Continue with Google
         </button>
 
-        <div className="flex items-center gap-3 mb-5">
-          <hr className="flex-1 border-neutral-200" />
-          <span className="text-neutral-400 text-xs">or</span>
-          <hr className="flex-1 border-neutral-200" />
+        <div className="flex items-center gap-3 mb-6">
+          <hr className="flex-1 border-gray-200" />
+          <span className="text-gray-400 text-sm">or</span>
+          <hr className="flex-1 border-gray-200" />
         </div>
 
         {/* Credentials Login */}
         <form onSubmit={handleCredentialsLogin} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1.5">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-neutral-200 rounded-lg px-3 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent placeholder:text-neutral-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-widest text-neutral-500 mb-1.5">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full border border-neutral-200 rounded-lg px-3 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent placeholder:text-neutral-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-red-500 text-xs">{error}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-neutral-900 hover:bg-black text-white rounded-lg px-4 py-2.5 text-sm font-medium transition disabled:opacity-50 mt-1"
+            className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
-        <p className="text-center text-xs text-neutral-500 mt-6">
+        <p className="text-center text-sm text-gray-500 mt-6">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-neutral-900 font-medium hover:underline">
+          <Link href="/signup" className="text-blue-600 font-medium hover:underline">
             Sign up
           </Link>
         </p>
