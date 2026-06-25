@@ -130,4 +130,26 @@ describe('POST /api/results', () => {
     const res = await POST(makeRequest({ ...validPayload, time_taken_seconds: -5 }))
     expect(res.status).toBe(400)
   })
+
+  it('returns 400 when answers field is missing', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    const { answers: _, ...noAnswers } = validPayload
+    const res = await POST(makeRequest(noAnswers))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Invalid answers')
+  })
+
+  it('returns 400 when answers is not an object', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    const res = await POST(makeRequest({ ...validPayload, answers: 'not-an-object' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Invalid answers')
+  })
+
+  it('returns 400 when answers is an array', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    const res = await POST(makeRequest({ ...validPayload, answers: ['A', 'B'] }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Invalid answers')
+  })
 })

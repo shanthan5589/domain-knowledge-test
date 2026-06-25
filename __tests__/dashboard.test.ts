@@ -97,7 +97,7 @@ describe('DashboardPage — profile completion gate', () => {
   it('allows access when profile_completed=true and all location fields are present', async () => {
     mockAuth.mockResolvedValue(authedSession)
     mockProfileSelect({ profile_completed: true, country: 'India', state_region: 'Telangana', city: 'Hyderabad' })
-    // Should not throw a redirect — just render normally
-    await expect(DashboardPage()).resolves.not.toThrow()
+    // Should resolve to a React element — no redirect thrown
+    await expect(DashboardPage()).resolves.toBeDefined()
   })
 })

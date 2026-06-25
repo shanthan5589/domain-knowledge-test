@@ -155,6 +155,15 @@ describe('CompleteProfilePage', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.objectContaining({ method: 'PATCH' }))
       expect(push).toHaveBeenCalledWith('/dashboard')
     })
+
+    // Verify the body contains human-readable location names (not ISO codes)
+    const [, fetchOptions] = mockFetch.mock.calls[0]
+    const body = JSON.parse(fetchOptions.body)
+    expect(body.country).toBe('India')
+    expect(body.state_region).toBe('Telangana')
+    expect(body.city).toBe('Hyderabad')
+    expect(body.years_of_experience).toBe('1-3 years')
+    expect(body.designation).toBe('Software Engineer')
   })
 
   it('shows error message when API returns error', async () => {
