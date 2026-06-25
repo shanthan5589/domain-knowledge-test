@@ -33,14 +33,19 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  // Enforce profile completion — check DB directly so it's always current
+  // Enforce profile completion — check DB directly so it's always current.
+  // Also check new location fields so existing users with the old location column
+  // are required to re-complete their profile with country/state/city.
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('profile_completed')
+    .select('profile_completed, country, state_region, city')
     .eq('email', session.user?.email)
     .single()
 
-  if (!profile?.profile_completed) redirect('/profile/complete')
+  const profileComplete =
+    profile?.profile_completed && profile?.country && profile?.state_region && profile?.city
+
+  if (!profileComplete) redirect('/profile/complete')
 
   // Fetch this user's most recent attempt per domain
   const { data: rawResults } = await supabaseAdmin
