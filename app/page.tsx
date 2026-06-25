@@ -36,26 +36,26 @@ export default async function Home() {
         {/* Left — marketing */}
         <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-20">
 
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-4">
-            How well do you actually use AI?
+          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-5">
+            How well do you<br />actually use AI?
           </h1>
 
-          <p className="text-base text-gray-600 leading-relaxed max-w-md mb-6">
+          <p className="text-lg font-medium text-gray-700 leading-relaxed max-w-md mb-3">
             Most professionals have access to the same AI tools. What separates them is knowing
             how to use those tools to get real work done. This quiz shows you where you actually stand.
           </p>
 
-          <p className="text-sm text-gray-400 leading-relaxed max-w-md mb-8">
+          <p className="text-sm text-gray-400 leading-relaxed max-w-md mb-10">
             The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
             situations. Not theory, not definitions. Just practical scenarios where you have to pick
             the right tool, the right approach, or the right call. It takes five minutes and gives
             you an honest score at the end.
           </p>
 
-          <div className="space-y-5 max-w-md">
+          <div className="space-y-6 max-w-md">
             {PILLARS.map((p) => (
-              <div key={p.title}>
-                <p className="text-sm font-semibold text-gray-800 mb-1">{p.title}</p>
+              <div key={p.title} className="pl-4 border-l-2 border-blue-500">
+                <p className="text-sm font-bold text-gray-900 mb-1">{p.title}</p>
                 <p className="text-sm text-gray-400 leading-relaxed">{p.body}</p>
               </div>
             ))}
