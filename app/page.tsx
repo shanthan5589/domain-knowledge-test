@@ -34,38 +34,50 @@ export default async function Home() {
       <div className="flex-1 flex flex-col lg:flex-row">
 
         {/* Left — marketing */}
-        <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-24">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-3 max-w-lg">
-            AI won&apos;t replace you. Someone who knows how to use it will.
+        <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-24 max-w-2xl">
+
+          {/* Headline block */}
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-snug tracking-tight">
+            AI won&apos;t replace you.
           </h1>
-          <p className="text-xl font-semibold text-gray-700 mb-5">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-snug tracking-tight mb-2">
+            Someone who knows how to use it will.
+          </h1>
+          <p className="text-base font-semibold text-gray-600 mb-6">
             Find out if that someone is you.
           </p>
-          <p className="text-sm text-gray-500 max-w-md mb-8 leading-relaxed">
+
+          {/* Body */}
+          <p className="text-sm text-gray-500 max-w-sm mb-6 leading-relaxed">
             This isn&apos;t a quiz on AI theory. It tests whether you can actually use AI tools to get real work done — the way employers and clients expect you to in 2025. Ten questions. Five minutes. A score that&apos;s honest.
           </p>
 
-          <div className="space-y-4 max-w-md mb-8">
+          {/* Bullets */}
+          <div className="space-y-3 mb-8">
             {PILLARS.map((p) => (
-              <div key={p.title} className="flex gap-4">
-                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                <div>
-                  <span className="text-sm font-semibold text-gray-800">{p.title}</span>
-                  <span className="text-sm text-gray-400"> — {p.body}</span>
-                </div>
+              <div key={p.title} className="flex gap-3 items-start">
+                <div className="mt-2 w-1 h-1 rounded-full bg-blue-500 flex-shrink-0" />
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold text-gray-800">{p.title}</span>
+                  {' — '}{p.body}
+                </p>
               </div>
             ))}
           </div>
 
-          <a
-            href="/signup"
-            className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-blue-700 transition text-sm mb-3"
-          >
-            Take the Test — It&apos;s Free
-          </a>
-          <p className="text-xs text-gray-400">
-            5 minutes. Instant results. No prep needed — that&apos;s the point.
-          </p>
+          {/* CTA */}
+          <div>
+            <a
+              href="/signup"
+              className="inline-block bg-blue-600 text-white font-semibold px-7 py-3 rounded-lg hover:bg-blue-700 transition text-sm mb-2"
+            >
+              Take the Test — It&apos;s Free
+            </a>
+            <p className="text-xs text-gray-400">
+              5 minutes. Instant results. No prep needed — that&apos;s the point.
+            </p>
+          </div>
+
         </div>
 
         {/* Right — signup form */}
