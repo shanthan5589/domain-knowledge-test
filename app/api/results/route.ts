@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
   if (typeof time_taken_seconds !== 'number' || time_taken_seconds < 0) {
     return NextResponse.json({ error: 'Invalid time' }, { status: 400 })
   }
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+    return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
+  }
 
   // Verify answers server-side against the actual correct answers
   const questionIds = Object.keys(answers)

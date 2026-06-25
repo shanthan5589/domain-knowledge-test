@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import DomainSelector from '@/components/DomainSelector'
-import LogoutButton from '@/components/LogoutButton'
+import UserMenu from '@/components/UserMenu'
 import type { Domain } from '@/lib/types'
 
 const DOMAIN_LABELS: Record<Domain, string> = {
@@ -33,6 +33,20 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
+  // Enforce profile completion — check DB directly so it's always current.
+  // Also check new location fields so existing users with the old location column
+  // are required to re-complete their profile with country/state/city.
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('profile_completed, country, state_region, city')
+    .eq('email', session.user?.email)
+    .single()
+
+  const profileComplete =
+    profile?.profile_completed && profile?.country && profile?.state_region && profile?.city
+
+  if (!profileComplete) redirect('/profile/complete')
+
   // Fetch this user's most recent attempt per domain
   const { data: rawResults } = await supabaseAdmin
     .from('test_results')
@@ -54,7 +68,7 @@ export default async function DashboardPage() {
       {/* Top nav */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-800">Domain Knowledge Test</span>
-        <LogoutButton />
+        <UserMenu />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-10">
