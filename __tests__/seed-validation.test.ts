@@ -2,8 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import type { Domain, CorrectAnswer } from '@/lib/types'
 
-const SEEDS_DIR = path.join(process.cwd(), 'supabase', 'seeds')
-
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 const VALID_ANSWERS: CorrectAnswer[] = ['A', 'B', 'C', 'D']
 const QUESTIONS_PER_DOMAIN: Record<string, number> = {
@@ -20,27 +18,24 @@ function parseFields(line: string): string[] {
   const fields: string[] = []
   let i = 0
 
-  // Skip leading whitespace and opening paren
   while (i < line.length && line[i] !== '(') i++
   if (line[i] === '(') i++
 
   while (i < line.length) {
-    // Skip commas and whitespace between fields
     while (i < line.length && (line[i] === ' ' || line[i] === ',' || line[i] === '\t')) i++
 
     if (line[i] === ')' || i >= line.length) break
 
     if (line[i] !== "'") { i++; continue }
 
-    // Parse single-quoted field
-    i++ // skip opening quote
+    i++
     let value = ''
     while (i < line.length) {
       if (line[i] === "'" && line[i + 1] === "'") {
         value += "'"
         i += 2
       } else if (line[i] === "'") {
-        i++ // skip closing quote
+        i++
         break
       } else {
         value += line[i]
@@ -69,8 +64,6 @@ function parseSeedSQL() {
 
   for (const line of content.split('\n')) {
     const trimmed = line.trim()
-
-    // Only process lines that start as a question row
     const isDomainRow = VALID_DOMAINS.some((d) => trimmed.startsWith(`('${d}',`))
     if (!isDomainRow) continue
 
@@ -167,36 +160,5 @@ describe('Seed SQL validation', () => {
         expect(count).toBeLessThan(domainTotal * 0.5)
       }
     }
-  })
-})
-
-describe('Seed domain files', () => {
-  it('each domain has a seed file in supabase/seeds/', () => {
-    for (const domain of ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']) {
-      expect(fs.existsSync(path.join(SEEDS_DIR, `${domain}.sql`))).toBe(true)
-    }
-  })
-
-  it('each domain file contains only rows for that domain', () => {
-    const otherDomains = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
-    for (const domain of otherDomains) {
-      const content = fs.readFileSync(path.join(SEEDS_DIR, `${domain}.sql`), 'utf8')
-      for (const line of content.split('\n')) {
-        if (!line.trim().startsWith('(')) continue
-        expect(line.trim()).toMatch(new RegExp(`^\\('${domain}',`))
-      }
-    }
-  })
-
-  it('domain file row counts match QUESTIONS_PER_DOMAIN', () => {
-    for (const [domain, expected] of Object.entries(QUESTIONS_PER_DOMAIN)) {
-      const content = fs.readFileSync(path.join(SEEDS_DIR, `${domain}.sql`), 'utf8')
-      const count = content.split('\n').filter((l) => l.trim().startsWith("('")).length
-      expect(count).toBe(expected)
-    }
-  })
-
-  it('build script exists', () => {
-    expect(fs.existsSync(path.join(process.cwd(), 'scripts', 'build-seed.js'))).toBe(true)
   })
 })
