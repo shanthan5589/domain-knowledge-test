@@ -31,10 +31,10 @@ export default async function Home() {
       </header>
 
       {/* Split layout */}
-      <div className="flex-1 flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col lg:flex-row lg:gap-8">
 
         {/* Left — marketing */}
-        <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-20 lg:pr-12">
+        <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-20">
 
           <h1 className="text-5xl sm:text-6xl font-black leading-none tracking-tight mb-6">
             <span className="text-gray-900">How well do</span><br />
@@ -42,19 +42,19 @@ export default async function Home() {
             <span className="text-gray-900">use AI?</span>
           </h1>
 
-          <p className="text-base font-semibold text-gray-700 leading-relaxed mb-3">
+          <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-xl mb-3">
             Most professionals have access to the same AI tools. What separates them is knowing
             how to use those tools to get real work done. This quiz shows you where you actually stand.
           </p>
 
-          <p className="text-sm text-gray-400 leading-relaxed mb-10">
+          <p className="text-sm text-gray-400 leading-relaxed max-w-xl mb-10">
             The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
             situations. Not theory, not definitions. Just practical scenarios where you have to pick
             the right tool, the right approach, or the right call. It takes five minutes and gives
             you an honest score at the end.
           </p>
 
-          <div className="space-y-5">
+          <div className="space-y-5 max-w-xl">
             {PILLARS.map((p) => (
               <div key={p.title} className="flex gap-4 items-start">
                 <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
@@ -69,7 +69,7 @@ export default async function Home() {
         </div>
 
         {/* Right — signup form */}
-        <div className="lg:w-[520px] flex items-start justify-start px-8 pt-20 pb-12">
+        <div className="lg:w-[600px] flex items-start justify-start pl-2 pr-12 pt-20 pb-12">
           <HomeSignupForm />
         </div>
 
