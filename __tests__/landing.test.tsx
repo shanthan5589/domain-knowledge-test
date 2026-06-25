@@ -12,7 +12,8 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('@/auth', () => ({ auth: jest.fn() }))
-jest.mock('next/link', () => ({ __esModule: true, default: ({ href, children }: { href: string; children: React.ReactNode }) => children }))
+jest.mock('next/link', () => ({ __esModule: true, default: ({ children }: { href: string; children: React.ReactNode }) => children }))
+jest.mock('@/components/HomeSignupForm', () => ({ __esModule: true, default: () => null }))
 
 import Home from '@/app/page'
 import { auth } from '@/auth'
