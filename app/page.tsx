@@ -36,10 +36,8 @@ export default async function Home() {
         {/* Left — marketing */}
         <div className="flex-1 flex flex-col justify-center px-8 py-8 lg:px-16 xl:px-20">
 
-          <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-6">
-            <span className="text-gray-900">How well do</span><br />
-            <span className="text-gray-900">you actually</span><br />
-            <span className="text-gray-900">use AI?</span>
+          <h1 className="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-6 text-gray-900">
+            How well do you actually<br />use AI?
           </h1>
 
           <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-xl mb-3">

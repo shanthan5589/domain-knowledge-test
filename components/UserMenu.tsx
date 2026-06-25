@@ -90,7 +90,7 @@ export default function UserMenu() {
 
           {/* Sign out */}
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => signOut({ callbackUrl: '/' })}
             className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
           >
             Sign out

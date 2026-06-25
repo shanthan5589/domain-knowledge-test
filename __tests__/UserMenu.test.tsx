@@ -59,11 +59,11 @@ describe('UserMenu', () => {
     expect(mockPush).toHaveBeenCalledWith('/profile')
   })
 
-  it('calls signOut with /login callbackUrl when Sign out is clicked', () => {
+  it('calls signOut with / callbackUrl when Sign out is clicked', () => {
     render(<UserMenu />)
     fireEvent.click(screen.getByRole('button', { name: /user menu/i }))
     fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
-    expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: '/login' })
+    expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: '/' })
   })
 
   it('closes dropdown when Profile is clicked', () => {
