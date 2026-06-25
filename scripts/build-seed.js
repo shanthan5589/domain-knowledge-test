@@ -8,20 +8,25 @@ const DOMAIN_ORDER = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 const SEEDS_DIR = path.join(__dirname, '..', 'supabase', 'seeds')
 const OUT_FILE = path.join(__dirname, '..', 'supabase', 'seed.sql')
 
+const DOMAIN_LABEL = {
+  ai:            'AI / GenAI',
+  cloud:         'Cloud Computing (AWS, Azure, GCP)',
+  cybersecurity: 'Cybersecurity',
+  devops:        'DevOps & CI/CD',
+  data_science:  'Data Science, Analytics & Big Data',
+}
+
 const sections = DOMAIN_ORDER.map((domain) => {
   const file = path.join(SEEDS_DIR, `${domain}.sql`)
   if (!fs.existsSync(file)) throw new Error(`Missing seed file: ${file}`)
-  return fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n').trimEnd()
+  const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+  // Keep only data rows (lines starting with '(') — strip comments from domain files
+  const rows = raw.split('\n').filter((l) => l.trim().startsWith('(')).join('\n')
+  const count = (rows.match(/^\s*\('/gm) || []).length
+  return { domain, rows, count }
 })
 
-// Each section ends with trailing comma on last row — join sections with newline
-// Then strip the very last trailing comma before the closing semicolon
-const allRows = sections.join('\n\n') // blank line between domains
-const withoutTrailingComma = allRows.replace(/,\s*$/, '')
-
-const totalQuestions = sections.reduce((sum, s) => {
-  return sum + (s.match(/^\s*\('/gm) || []).length
-}, 0)
+const totalQuestions = sections.reduce((sum, s) => sum + s.count, 0)
 
 const header = [
   `-- Domain Knowledge Test Platform — Seed Data`,
@@ -31,15 +36,19 @@ const header = [
   `TRUNCATE TABLE questions RESTART IDENTITY;`,
   ``,
   `INSERT INTO questions (domain, question, option_a, option_b, option_c, option_d, correct_answer) VALUES`,
-  ``,
 ].join('\n')
 
-const output = header + withoutTrailingComma + ';\n'
+const body = sections.map(({ domain, rows, count }) => {
+  const sep = '-- ============================================================'
+  return [sep, `-- ${DOMAIN_LABEL[domain]} (${count})`, sep, rows].join('\n')
+}).join('\n\n')
+
+// Strip trailing comma from the very last row, then close with semicolon
+const bodyFinal = body.replace(/,\s*$/, '')
+
+const output = header + '\n\n' + bodyFinal + ';\n'
 
 fs.writeFileSync(OUT_FILE, output, 'utf8')
 
 console.log(`seed.sql written — ${totalQuestions} questions total`)
-DOMAIN_ORDER.forEach((domain) => {
-  const count = (sections[DOMAIN_ORDER.indexOf(domain)].match(/^\s*\('/gm) || []).length
-  console.log(`  ${domain}: ${count}`)
-})
+sections.forEach(({ domain, count }) => console.log(`  ${domain}: ${count}`))

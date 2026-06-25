@@ -5,9 +5,10 @@
 TRUNCATE TABLE questions RESTART IDENTITY;
 
 INSERT INTO questions (domain, question, option_a, option_b, option_c, option_d, correct_answer) VALUES
--- AI / GenAI
--- 65 total — tool awareness, practical scenarios, responsible use
--- Edit this file then run: npm run seed:build
+
+-- ============================================================
+-- AI / GenAI (65)
+-- ============================================================
 ('ai','You mainly work in Google Docs, Sheets, and Gmail and want AI embedded directly into those apps. Which tool is the best default choice?','ChatGPT in the browser','Claude in a separate tab','Gemini integrated with Google Workspace','Perplexity in a separate tab','C'),
 ('ai','You need research-style answers with citations when exploring a new technical topic. Which AI assistant is specifically optimized for search and fact-based answers?','Claude','Perplexity','Midjourney','ChatGPT','B'),
 ('ai','Your manager uploads a 150-page policy PDF and wants a deep summary plus the ability to ask follow-up questions about specific sections. Which assistant is best known for handling very long documents reliably?','DALL·E 3','Stable Diffusion','ChatGPT Free with no file upload','Claude with long-context document analysis','D'),
@@ -74,9 +75,9 @@ INSERT INTO questions (domain, question, option_a, option_b, option_c, option_d,
 ('ai','Which situation is the clearest example of over-reliance on generative AI at work?','Using Perplexity to find starting points for research','Using ChatGPT to draft meeting summaries you then edit','Using Claude to rewrite a paragraph for clarity','Letting Gemini make final decisions on hiring with no human review','D'),
 ('ai','You want to test how different AIs answer the same complex question (e.g., ChatGPT vs Claude vs Gemini). What is the main benefit of doing this?','It guarantees one of them is always correct','It helps you see different perspectives and spot mistakes or hallucinations','It makes all models faster over time','It removes the need to verify information','B'),
 
--- Cloud Computing (AWS/Azure/GCP)
--- 50 total
--- Edit this file then run: npm run seed:build
+-- ============================================================
+-- Cloud Computing (AWS, Azure, GCP) (50)
+-- ============================================================
 ('cloud','Your Lambda function times out after 3 seconds even though the task takes 10 seconds. What do you fix?','Increase the Lambda timeout (default 3s, max 15 min)','Increase the Lambda memory','Add more concurrent executions','Switch to an EC2 instance','A'),
 ('cloud','Your EC2 instance cannot reach the internet even though it has a public IP. What is missing?','A larger instance type','An Internet Gateway attached to the VPC with a route in the route table','An Elastic IP address','A NAT Gateway','B'),
 ('cloud','You accidentally deleted an S3 object. Versioning was enabled. How do you recover it?','It is gone permanently even with versioning','Contact AWS Support','Delete the delete marker to restore the previous version','Restore from the S3 recycle bin','C'),
@@ -128,9 +129,9 @@ INSERT INTO questions (domain, question, option_a, option_b, option_c, option_d,
 ('cloud','Your Azure VM cannot reach the internet and no NSG is blocking outbound traffic. What else do you check?','Whether the subnet has a route to an internet gateway or NAT gateway','The VM size','The Azure region','The OS firewall settings','A'),
 ('cloud','You want to run a one-off data migration job in Kubernetes that completes and exits. What resource do you create?','A Kubernetes Job','A Deployment with replicas: 1','A CronJob','A DaemonSet','B'),
 
--- Cybersecurity
--- 50 total
--- Edit this file then run: npm run seed:build
+-- ============================================================
+-- Cybersecurity (50)
+-- ============================================================
 ('cybersecurity','You run nmap against a target and all ports show as filtered. What does this most likely mean?','A firewall is blocking your scan packets','The target has no open ports','The target is offline','nmap is misconfigured','A'),
 ('cybersecurity','You intercept a session cookie in Burp Suite. What is the first security test you run?','Delete the cookie and see if you still get access','Modify the cookie value to another user ID to test for IDOR','Decode it with base64','Check if it is signed with HMAC','B'),
 ('cybersecurity','A web app reflects your input in the HTML without sanitizing it. You submit a script tag and the alert fires. What vulnerability is this?','CSRF','Stored XSS','Reflected XSS','DOM XSS','C'),
@@ -182,9 +183,9 @@ INSERT INTO questions (domain, question, option_a, option_b, option_c, option_d,
 ('cybersecurity','Your scan finds port 3306 open on an external-facing server. What is the first concern?','MySQL is directly exposed to the internet and could be attacked remotely','Port 3306 is safe to expose','The port is only used for monitoring','Port 3306 is encrypted by default','A'),
 ('cybersecurity','You want to test if a company enforces HTTPS. You visit the HTTP version and check what happens. What are you testing for?','HTTP to HTTPS redirect and HSTS header enforcement','SQL Injection','Certificate pinning','Server version disclosure','B'),
 
--- DevOps & CI/CD
--- 50 total
--- Edit this file then run: npm run seed:build
+-- ============================================================
+-- DevOps & CI/CD (50)
+-- ============================================================
 ('devops','Your production deployment is broken. You need to immediately revert to the last working version. What command?','kubectl rollout undo deployment/myapp','kubectl restart deployment myapp','kubectl delete deployment myapp then apply old yaml','kubectl set image deployment/myapp myapp=old-image','A'),
 ('devops','Your Docker container builds fine but crashes immediately when you run it. What is the first command you run?','docker inspect mycontainer','docker logs mycontainer','docker stats mycontainer','docker exec -it mycontainer sh','B'),
 ('devops','Your GitHub Actions workflow downloads npm packages every run, taking 8 minutes. What do you add to fix this?','Run npm install --production only','Use a smaller runner','Use the actions/cache action to cache node_modules between runs','Run npm ci instead of npm install','C'),
@@ -236,9 +237,9 @@ INSERT INTO questions (domain, question, option_a, option_b, option_c, option_d,
 ('devops','You want to run a one-time data migration job in Kubernetes that completes and exits. What resource do you create?','A Kubernetes Job','A Deployment with replicas: 1','A CronJob','A DaemonSet','A'),
 ('devops','You notice pods are only scheduled on 3 out of 10 Ready nodes. What do you check?','Node OS versions','Whether the pods have node selectors, affinity rules, or taints limiting scheduling','Network plugin configuration','Kubernetes version on each node','B'),
 
--- Data Science, Analytics & Big Data
--- 50 total
--- Edit this file then run: npm run seed:build
+-- ============================================================
+-- Data Science, Analytics & Big Data (50)
+-- ============================================================
 ('data_science','Your model gets 99% accuracy on training data but 55% on test data. What is happening and what do you do first?','The model is overfitting — try regularization, reduce complexity, or add more training data','The model is underfitting — add more features','The test data is wrong — reshuffle and retry','The accuracy metric is incorrect — switch to F1','A'),
 ('data_science','You load a CSV and a column has 40% NaN values. What do you do before deciding how to handle it?','Drop it immediately','Check if the missingness is random or related to other features before deciding to impute or drop','Fill all NaN with 0','Fill all NaN with the mean','B'),
 ('data_science','You have a dataset with 95% class 0 and 5% class 1. Your model predicts 0 for everything and gets 95% accuracy. What metric do you actually need?','Accuracy is fine for this task','Use MSE instead','Precision, recall, F1-score or AUC-ROC which account for class imbalance','Accuracy with a threshold of 0.5','C'),
