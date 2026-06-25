@@ -18,7 +18,9 @@ const mockFrom = supabaseAdmin.from as jest.Mock
 const authedSession = { user: { email: 'test@test.com', id: 'uid-1' } }
 
 const validPatch = {
-  location: 'Hyderabad, India',
+  country: 'India',
+  state_region: 'Telangana',
+  city: 'Hyderabad',
   years_of_experience: '1-3 years',
   designation: 'Software Engineer',
   linkedin_url: 'https://linkedin.com/in/test',
@@ -49,7 +51,7 @@ describe('GET /api/profile', () => {
       select: jest.fn().mockReturnValue({
         eq: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
-            data: { full_name: 'Test User', email: 'test@test.com', location: 'Hyderabad', profile_completed: true },
+            data: { full_name: 'Test User', email: 'test@test.com', country: 'India', state_region: 'Telangana', city: 'Hyderabad', profile_completed: true },
             error: null,
           }),
         }),
@@ -59,7 +61,9 @@ describe('GET /api/profile', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.profile.email).toBe('test@test.com')
-    expect(body.profile.location).toBe('Hyderabad')
+    expect(body.profile.country).toBe('India')
+    expect(body.profile.state_region).toBe('Telangana')
+    expect(body.profile.city).toBe('Hyderabad')
   })
 
   it('returns 500 on database error', async () => {
@@ -87,11 +91,25 @@ describe('PATCH /api/profile', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 400 when location is missing', async () => {
+  it('returns 400 when country is missing', async () => {
     mockAuth.mockResolvedValue(authedSession)
-    const res = await PATCH(makePatchRequest({ ...validPatch, location: '' }))
+    const res = await PATCH(makePatchRequest({ ...validPatch, country: '' }))
     expect(res.status).toBe(400)
-    expect((await res.json()).error).toBe('Location is required')
+    expect((await res.json()).error).toBe('Country is required')
+  })
+
+  it('returns 400 when state_region is missing', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, state_region: '' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('State/Region is required')
+  })
+
+  it('returns 400 when city is missing', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, city: '' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('City is required')
   })
 
   it('returns 400 when years_of_experience is missing', async () => {
@@ -139,6 +157,9 @@ describe('PATCH /api/profile', () => {
     expect(res.status).toBe(200)
     expect((await res.json()).success).toBe(true)
     expect(updatedData.profile_completed).toBe(true)
+    expect(updatedData.country).toBe('India')
+    expect(updatedData.state_region).toBe('Telangana')
+    expect(updatedData.city).toBe('Hyderabad')
   })
 
   it('returns 200 when linkedin_url is omitted (optional)', async () => {

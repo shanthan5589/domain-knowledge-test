@@ -10,7 +10,7 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('full_name, email, location, years_of_experience, designation, linkedin_url, profile_completed')
+    .select('full_name, email, country, state_region, city, years_of_experience, designation, linkedin_url, profile_completed')
     .eq('email', session.user.email)
     .single()
 
@@ -28,7 +28,9 @@ export async function PATCH(req: NextRequest) {
   }
 
   let body: {
-    location?: string
+    country?: string
+    state_region?: string
+    city?: string
     years_of_experience?: string
     designation?: string
     linkedin_url?: string
@@ -39,10 +41,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { location, years_of_experience, designation, linkedin_url } = body
+  const { country, state_region, city, years_of_experience, designation, linkedin_url } = body
 
-  if (!location?.trim()) {
-    return NextResponse.json({ error: 'Location is required' }, { status: 400 })
+  if (!country?.trim()) {
+    return NextResponse.json({ error: 'Country is required' }, { status: 400 })
+  }
+  if (!state_region?.trim()) {
+    return NextResponse.json({ error: 'State/Region is required' }, { status: 400 })
+  }
+  if (!city?.trim()) {
+    return NextResponse.json({ error: 'City is required' }, { status: 400 })
   }
   if (!years_of_experience?.trim()) {
     return NextResponse.json({ error: 'Years of experience is required' }, { status: 400 })
@@ -59,7 +67,9 @@ export async function PATCH(req: NextRequest) {
   const { error } = await supabaseAdmin
     .from('profiles')
     .update({
-      location: location.trim(),
+      country: country.trim(),
+      state_region: state_region.trim(),
+      city: city.trim(),
       years_of_experience,
       designation: designation.trim(),
       linkedin_url: linkedin_url?.trim() || null,
