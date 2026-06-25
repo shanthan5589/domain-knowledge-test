@@ -4,16 +4,16 @@ import HomeSignupForm from '@/components/HomeSignupForm'
 
 const PILLARS = [
   {
-    title: 'Practical knowledge',
-    body: 'Questions built around real workflows and decisions — not syntax, not theory.',
+    title: 'Real-world scenarios',
+    body: 'Drawn from actual tools and decisions — not definitions, not syntax.',
   },
   {
-    title: 'Timed & honest',
-    body: '5 minutes. 10 questions. You either know it or you don\'t.',
+    title: 'Timed. No pausing.',
+    body: '5 minutes. 10 questions. You know it or you look it up.',
   },
   {
-    title: 'Five domains',
-    body: 'AI, Cloud, DevOps, Cybersecurity, Data Science — pick what matters to you.',
+    title: 'Five core domains',
+    body: 'AI & GenAI, Cloud, DevOps, Cybersecurity, Data Science — you pick.',
   },
 ]
 
@@ -36,14 +36,13 @@ export default async function Home() {
         {/* Left — marketing */}
         <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-24">
           <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 mb-4">
-            A real-world readiness check
+            Know where you actually stand.
           </p>
           <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-4">
-            Not a coding test.
+            How deep does your knowledge go?
           </h1>
           <p className="text-lg text-gray-400 font-light max-w-md mb-12">
-            Test your knowledge across AI, Cloud, DevOps,
-            Cybersecurity, and Data Science.
+            A sharp, timed benchmark across the domains that define modern tech.
           </p>
 
           <div className="space-y-4 max-w-sm">
