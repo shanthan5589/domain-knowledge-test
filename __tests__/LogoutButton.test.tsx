@@ -15,9 +15,9 @@ describe('LogoutButton', () => {
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument()
   })
 
-  it('calls signOut with callbackUrl /login when clicked', () => {
+  it('calls signOut with callbackUrl / when clicked', () => {
     render(<LogoutButton />)
     fireEvent.click(screen.getByRole('button', { name: /log out/i }))
-    expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: '/login' })
+    expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: '/' })
   })
 })

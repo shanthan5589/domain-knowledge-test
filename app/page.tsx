@@ -1,11 +1,77 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import HomeSignupForm from '@/components/HomeSignupForm'
+
+const PILLARS = [
+  {
+    title: 'Tool awareness',
+    body: 'The AI landscape is crowded. Knowing the tools exist is not enough. These questions check whether you know which one to reach for, for which job, and why.',
+  },
+  {
+    title: 'Practical scenarios',
+    body: 'Every question is built around a real task someone in tech actually faces. You pick the best answer. There is no partial credit for almost knowing.',
+  },
+  {
+    title: 'Honest results',
+    body: 'No inflation. You get a score that reflects what you actually know, with a clear breakdown so you can see where your gaps are.',
+  },
+]
 
 export default async function Home() {
   const session = await auth()
-  if (session) {
-    redirect('/dashboard')
-  } else {
-    redirect('/login')
-  }
+  if (session) redirect('/dashboard')
+
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Nav */}
+      <header className="px-6 py-4 border-b border-gray-100">
+        <span className="text-sm font-semibold text-gray-900 tracking-tight">
+          Domain Knowledge Test
+        </span>
+      </header>
+
+      {/* Split layout */}
+      <div className="flex-1 flex flex-col lg:flex-row lg:gap-8">
+
+        {/* Left — marketing */}
+        <div className="flex-1 flex flex-col justify-center px-8 py-8 lg:px-16 xl:px-20">
+
+          <h1 className="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-6 text-gray-900">
+            How well do you actually<br />use AI?
+          </h1>
+
+          <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-xl mb-3">
+            Most professionals have access to the same AI tools. What separates them is knowing
+            how to use those tools to get real work done. This quiz shows you where you actually stand.
+          </p>
+
+          <p className="text-sm text-gray-400 leading-relaxed max-w-xl mb-10">
+            The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
+            situations. Not theory, not definitions. Just practical scenarios where you have to pick
+            the right tool, the right approach, or the right call. It takes five minutes and gives
+            you an honest score at the end.
+          </p>
+
+          <div className="space-y-5 max-w-xl">
+            {PILLARS.map((p) => (
+              <div key={p.title} className="flex gap-4 items-start">
+                <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-900 mb-1">{p.title}</p>
+                  <p className="text-xs text-gray-400 leading-relaxed">{p.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+
+        {/* Right — signup form */}
+        <div className="lg:w-[600px] flex items-start justify-start pl-2 pr-12 pt-20 pb-12">
+          <HomeSignupForm />
+        </div>
+
+      </div>
+    </div>
+  )
 }
