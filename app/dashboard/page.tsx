@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import DomainSelector from '@/components/DomainSelector'
-import LogoutButton from '@/components/LogoutButton'
+import UserMenu from '@/components/UserMenu'
 import type { Domain } from '@/lib/types'
 
 const DOMAIN_LABELS: Record<Domain, string> = {
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
       {/* Top nav */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-800">Domain Knowledge Test</span>
-        <LogoutButton />
+        <UserMenu />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-10">
