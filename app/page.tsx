@@ -31,32 +31,38 @@ export default async function Home() {
       </header>
 
       {/* Split layout */}
-      <div className="flex-1 flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col lg:flex-row lg:gap-16">
 
         {/* Left — marketing */}
         <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-20">
 
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-5">
-            How well do you<br />actually use AI?
+          <h1 className="text-5xl sm:text-6xl font-black leading-none tracking-tight mb-6">
+            <span className="text-gray-900">How well do</span><br />
+            <span className="text-gray-900">you actually</span><br />
+            <span className="text-gray-900">use </span>
+            <span className="text-blue-600">AI?</span>
           </h1>
 
-          <p className="text-lg font-medium text-gray-700 leading-relaxed max-w-md mb-3">
+          <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-sm mb-3">
             Most professionals have access to the same AI tools. What separates them is knowing
             how to use those tools to get real work done. This quiz shows you where you actually stand.
           </p>
 
-          <p className="text-sm text-gray-400 leading-relaxed max-w-md mb-10">
+          <p className="text-sm text-gray-400 leading-relaxed max-w-sm mb-10">
             The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
             situations. Not theory, not definitions. Just practical scenarios where you have to pick
             the right tool, the right approach, or the right call. It takes five minutes and gives
             you an honest score at the end.
           </p>
 
-          <div className="space-y-6 max-w-md">
+          <div className="space-y-5 max-w-sm">
             {PILLARS.map((p) => (
-              <div key={p.title} className="pl-4 border-l-2 border-blue-500">
-                <p className="text-sm font-bold text-gray-900 mb-1">{p.title}</p>
-                <p className="text-sm text-gray-400 leading-relaxed">{p.body}</p>
+              <div key={p.title} className="flex gap-4 items-start">
+                <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-900 mb-1">{p.title}</p>
+                  <p className="text-xs text-gray-400 leading-relaxed">{p.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -64,7 +70,7 @@ export default async function Home() {
         </div>
 
         {/* Right — signup form */}
-        <div className="lg:w-[640px] flex items-center justify-start pl-6 pr-16 py-12 lg:py-0">
+        <div className="lg:w-[600px] flex items-start justify-start pl-6 pr-16 pt-20 pb-12">
           <HomeSignupForm />
         </div>
 
