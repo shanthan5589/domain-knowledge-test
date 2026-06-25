@@ -49,7 +49,7 @@ export default function HomeSignupForm() {
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-sm">
       <h2 className="text-2xl font-bold text-center mb-2 text-gray-800">Create Account</h2>
       <p className="text-center text-gray-500 mb-8 text-sm">Sign up to start your assessment</p>
 
