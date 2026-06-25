@@ -39,23 +39,22 @@ export default async function Home() {
           <h1 className="text-5xl sm:text-6xl font-black leading-none tracking-tight mb-6">
             <span className="text-gray-900">How well do</span><br />
             <span className="text-gray-900">you actually</span><br />
-            <span className="text-gray-900">use </span>
-            <span className="text-blue-600">AI?</span>
+            <span className="text-gray-900">use AI?</span>
           </h1>
 
-          <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-sm mb-3">
+          <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-lg mb-3">
             Most professionals have access to the same AI tools. What separates them is knowing
             how to use those tools to get real work done. This quiz shows you where you actually stand.
           </p>
 
-          <p className="text-sm text-gray-400 leading-relaxed max-w-sm mb-10">
+          <p className="text-sm text-gray-400 leading-relaxed max-w-lg mb-10">
             The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
             situations. Not theory, not definitions. Just practical scenarios where you have to pick
             the right tool, the right approach, or the right call. It takes five minutes and gives
             you an honest score at the end.
           </p>
 
-          <div className="space-y-5 max-w-sm">
+          <div className="space-y-5 max-w-lg">
             {PILLARS.map((p) => (
               <div key={p.title} className="flex gap-4 items-start">
                 <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
