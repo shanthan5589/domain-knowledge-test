@@ -2,9 +2,18 @@ import fs from 'fs'
 import path from 'path'
 import type { Domain, CorrectAnswer } from '@/lib/types'
 
+const SEEDS_DIR = path.join(process.cwd(), 'supabase', 'seeds')
+
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 const VALID_ANSWERS: CorrectAnswer[] = ['A', 'B', 'C', 'D']
-const REQUIRED_PER_DOMAIN = 50
+const QUESTIONS_PER_DOMAIN: Record<string, number> = {
+  ai: 65,
+  cloud: 50,
+  cybersecurity: 50,
+  devops: 50,
+  data_science: 50,
+}
+const TOTAL_QUESTIONS = Object.values(QUESTIONS_PER_DOMAIN).reduce((a, b) => a + b, 0)
 
 // State-machine parser for a SQL VALUES row — handles escaped '' apostrophes correctly
 function parseFields(line: string): string[] {
@@ -97,14 +106,14 @@ describe('Seed SQL validation', () => {
     expect(fs.existsSync(path.join(process.cwd(), 'supabase', 'schema.sql'))).toBe(true)
   })
 
-  it('parses exactly 250 questions total', () => {
-    expect(questions).toHaveLength(250)
+  it(`parses exactly ${TOTAL_QUESTIONS} questions total`, () => {
+    expect(questions).toHaveLength(TOTAL_QUESTIONS)
   })
 
-  it('has exactly 50 questions per domain', () => {
+  it('has the correct question count per domain', () => {
     for (const domain of VALID_DOMAINS) {
       const count = questions.filter((q) => q.domain === domain).length
-      expect(count).toBe(REQUIRED_PER_DOMAIN)
+      expect(count).toBe(QUESTIONS_PER_DOMAIN[domain])
     }
   })
 
@@ -149,10 +158,45 @@ describe('Seed SQL validation', () => {
     }
   })
 
-  it('answer distribution — no single answer exceeds 70% of all questions', () => {
-    const answers = questions.map((q) => q.correct_answer)
-    for (const ans of VALID_ANSWERS) {
-      expect(answers.filter((a) => a === ans).length).toBeLessThan(175)
+  it('answer distribution — no single answer exceeds 50% of any domain', () => {
+    for (const domain of VALID_DOMAINS) {
+      const answers = questions.filter((q) => q.domain === domain).map((q) => q.correct_answer)
+      const domainTotal = answers.length
+      for (const ans of VALID_ANSWERS) {
+        const count = answers.filter((a) => a === ans).length
+        expect(count).toBeLessThan(domainTotal * 0.5)
+      }
     }
+  })
+})
+
+describe('Seed domain files', () => {
+  it('each domain has a seed file in supabase/seeds/', () => {
+    for (const domain of ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']) {
+      expect(fs.existsSync(path.join(SEEDS_DIR, `${domain}.sql`))).toBe(true)
+    }
+  })
+
+  it('each domain file contains only rows for that domain', () => {
+    const otherDomains = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+    for (const domain of otherDomains) {
+      const content = fs.readFileSync(path.join(SEEDS_DIR, `${domain}.sql`), 'utf8')
+      for (const line of content.split('\n')) {
+        if (!line.trim().startsWith('(')) continue
+        expect(line.trim()).toMatch(new RegExp(`^\\('${domain}',`))
+      }
+    }
+  })
+
+  it('domain file row counts match QUESTIONS_PER_DOMAIN', () => {
+    for (const [domain, expected] of Object.entries(QUESTIONS_PER_DOMAIN)) {
+      const content = fs.readFileSync(path.join(SEEDS_DIR, `${domain}.sql`), 'utf8')
+      const count = content.split('\n').filter((l) => l.trim().startsWith("('")).length
+      expect(count).toBe(expected)
+    }
+  })
+
+  it('build script exists', () => {
+    expect(fs.existsSync(path.join(process.cwd(), 'scripts', 'build-seed.js'))).toBe(true)
   })
 })
