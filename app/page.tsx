@@ -60,7 +60,7 @@ export default async function Home() {
         </div>
 
         {/* Right — signup form */}
-        <div className="lg:w-[600px] flex items-center justify-start pl-8 pr-12 py-12 lg:py-0">
+        <div className="lg:w-[640px] flex items-center justify-start pl-6 pr-16 py-12 lg:py-0">
           <HomeSignupForm />
         </div>
 
