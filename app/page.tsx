@@ -5,15 +5,15 @@ import HomeSignupForm from '@/components/HomeSignupForm'
 const PILLARS = [
   {
     title: 'Tool awareness',
-    body: 'Do you know which AI tool handles which job, and when to use it over another?',
+    body: 'The AI landscape is crowded. Knowing the tools exist is not enough. These questions check whether you know which one to reach for, for which job, and why.',
   },
   {
-    title: 'Practical judgment',
-    body: 'Given a real task, can you figure out the fastest, most effective way to use AI to complete it?',
+    title: 'Practical scenarios',
+    body: 'Every question is built around a real task someone in tech actually faces. You pick the best answer. There is no partial credit for almost knowing.',
   },
   {
-    title: 'No fluff',
-    body: 'No definitions, no trivia. Just situations you\'d actually face at work.',
+    title: 'Honest results',
+    body: 'No inflation. You get a score that reflects what you actually know, with a clear breakdown so you can see where your gaps are.',
   },
 ]
 
@@ -36,33 +36,27 @@ export default async function Home() {
         {/* Left — marketing */}
         <div className="flex-1 flex flex-col justify-center px-8 py-16 lg:px-16 xl:px-20">
 
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-2">
-            AI won&apos;t replace you.
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-4">
+            How well do you actually use AI?
           </h1>
-          <p className="text-xl sm:text-2xl font-bold text-gray-500 leading-tight mb-5">
-            Someone who knows how to use it will.
+
+          <p className="text-base text-gray-600 leading-relaxed max-w-md mb-6">
+            Most professionals have access to the same AI tools. What separates them is knowing
+            how to use those tools to get real work done. This quiz shows you where you actually stand.
           </p>
 
-          <p className="text-lg font-semibold text-blue-600 mb-8">
-            Find out if that someone is you.
+          <p className="text-sm text-gray-400 leading-relaxed max-w-md mb-8">
+            The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
+            situations. Not theory, not definitions. Just practical scenarios where you have to pick
+            the right tool, the right approach, or the right call. It takes five minutes and gives
+            you an honest score at the end.
           </p>
 
-          <p className="text-sm text-gray-500 leading-relaxed max-w-md mb-8">
-            This isn&apos;t a quiz on AI theory. It tests whether you can actually use AI tools
-            to get real work done — the way employers and clients expect you to in 2025.
-            Ten questions. Five minutes. A score that&apos;s honest.
-          </p>
-
-          <div className="space-y-4 max-w-md">
-            {PILLARS.map((p, i) => (
-              <div key={p.title} className="flex gap-4 items-start">
-                <span className="text-xs font-black text-blue-400 mt-0.5 w-5 flex-shrink-0">
-                  0{i + 1}
-                </span>
-                <p className="text-sm text-gray-500">
-                  <span className="font-semibold text-gray-800">{p.title}</span>
-                  {' — '}{p.body}
-                </p>
+          <div className="space-y-5 max-w-md">
+            {PILLARS.map((p) => (
+              <div key={p.title}>
+                <p className="text-sm font-semibold text-gray-800 mb-1">{p.title}</p>
+                <p className="text-sm text-gray-400 leading-relaxed">{p.body}</p>
               </div>
             ))}
           </div>
