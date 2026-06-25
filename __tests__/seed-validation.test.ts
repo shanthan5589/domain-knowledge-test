@@ -12,6 +12,8 @@ const QUESTIONS_PER_DOMAIN: Record<string, number> = {
   data_science: 50,
 }
 const TOTAL_QUESTIONS = Object.values(QUESTIONS_PER_DOMAIN).reduce((a, b) => a + b, 0)
+const MIN_QUESTION_LENGTH = 20
+const MIN_OPTION_LENGTH = 2
 
 // State-machine parser for a SQL VALUES row — handles escaped '' apostrophes correctly
 function parseFields(line: string): string[] {
@@ -23,23 +25,18 @@ function parseFields(line: string): string[] {
 
   while (i < line.length) {
     while (i < line.length && (line[i] === ' ' || line[i] === ',' || line[i] === '\t')) i++
-
     if (line[i] === ')' || i >= line.length) break
-
     if (line[i] !== "'") { i++; continue }
 
     i++
     let value = ''
     while (i < line.length) {
       if (line[i] === "'" && line[i + 1] === "'") {
-        value += "'"
-        i += 2
+        value += "'"; i += 2
       } else if (line[i] === "'") {
-        i++
-        break
+        i++; break
       } else {
-        value += line[i]
-        i++
+        value += line[i]; i++
       }
     }
     fields.push(value)
@@ -51,32 +48,21 @@ function parseFields(line: string): string[] {
 function parseSeedSQL() {
   const seedPath = path.join(process.cwd(), 'supabase', 'seed.sql')
   const content = fs.readFileSync(seedPath, 'utf-8')
-
   const rows: {
-    domain: string
-    question: string
-    option_a: string
-    option_b: string
-    option_c: string
-    option_d: string
+    domain: string; question: string
+    option_a: string; option_b: string; option_c: string; option_d: string
     correct_answer: string
   }[] = []
 
   for (const line of content.split('\n')) {
     const trimmed = line.trim()
-    const isDomainRow = VALID_DOMAINS.some((d) => trimmed.startsWith(`('${d}',`))
-    if (!isDomainRow) continue
-
+    if (!VALID_DOMAINS.some((d) => trimmed.startsWith(`('${d}',`))) continue
     const fields = parseFields(trimmed)
     if (fields.length < 7) continue
-
     rows.push({
-      domain: fields[0],
-      question: fields[1],
-      option_a: fields[2],
-      option_b: fields[3],
-      option_c: fields[4],
-      option_d: fields[5],
+      domain: fields[0], question: fields[1],
+      option_a: fields[2], option_b: fields[3],
+      option_c: fields[4], option_d: fields[5],
       correct_answer: fields[6],
     })
   }
@@ -84,31 +70,56 @@ function parseSeedSQL() {
   return rows
 }
 
-describe('Seed SQL validation', () => {
-  let questions: ReturnType<typeof parseSeedSQL>
-
-  beforeAll(() => {
-    questions = parseSeedSQL()
-  })
-
-  it('seed.sql file exists', () => {
+describe('Seed SQL — file structure', () => {
+  it('seed.sql exists', () => {
     expect(fs.existsSync(path.join(process.cwd(), 'supabase', 'seed.sql'))).toBe(true)
   })
 
-  it('schema.sql file exists', () => {
+  it('schema.sql exists', () => {
     expect(fs.existsSync(path.join(process.cwd(), 'supabase', 'schema.sql'))).toBe(true)
   })
 
-  it(`parses exactly ${TOTAL_QUESTIONS} questions total`, () => {
+  it('seed.sql contains TRUNCATE TABLE statement', () => {
+    const content = fs.readFileSync(path.join(process.cwd(), 'supabase', 'seed.sql'), 'utf-8')
+    expect(content).toMatch(/TRUNCATE TABLE questions/i)
+  })
+
+  it('seed.sql contains INSERT INTO statement', () => {
+    const content = fs.readFileSync(path.join(process.cwd(), 'supabase', 'seed.sql'), 'utf-8')
+    expect(content).toMatch(/INSERT INTO questions/i)
+  })
+
+  it('seed.sql has a section header for every domain', () => {
+    const content = fs.readFileSync(path.join(process.cwd(), 'supabase', 'seed.sql'), 'utf-8')
+    const domainLabels = ['AI', 'Cloud', 'Cybersecurity', 'DevOps', 'Data Science']
+    for (const label of domainLabels) {
+      expect(content).toContain(label)
+    }
+  })
+})
+
+describe('Seed SQL — question counts', () => {
+  let questions: ReturnType<typeof parseSeedSQL>
+
+  beforeAll(() => { questions = parseSeedSQL() })
+
+  it(`total is exactly ${TOTAL_QUESTIONS}`, () => {
     expect(questions).toHaveLength(TOTAL_QUESTIONS)
   })
 
-  it('has the correct question count per domain', () => {
-    for (const domain of VALID_DOMAINS) {
+  it.each(Object.entries(QUESTIONS_PER_DOMAIN))(
+    '%s domain has exactly %i questions',
+    (domain, expected) => {
       const count = questions.filter((q) => q.domain === domain).length
-      expect(count).toBe(QUESTIONS_PER_DOMAIN[domain])
+      expect(count).toBe(expected)
     }
-  })
+  )
+})
+
+describe('Seed SQL — data integrity', () => {
+  let questions: ReturnType<typeof parseSeedSQL>
+
+  beforeAll(() => { questions = parseSeedSQL() })
 
   it('all domains are valid', () => {
     for (const q of questions) {
@@ -122,18 +133,18 @@ describe('Seed SQL validation', () => {
     }
   })
 
-  it('no question text is empty', () => {
+  it(`every question is at least ${MIN_QUESTION_LENGTH} characters`, () => {
     for (const q of questions) {
-      expect(q.question.trim().length).toBeGreaterThan(0)
+      expect(q.question.trim().length).toBeGreaterThanOrEqual(MIN_QUESTION_LENGTH)
     }
   })
 
-  it('no option is empty', () => {
+  it(`every option is at least ${MIN_OPTION_LENGTH} characters`, () => {
     for (const q of questions) {
-      expect(q.option_a.trim().length).toBeGreaterThan(0)
-      expect(q.option_b.trim().length).toBeGreaterThan(0)
-      expect(q.option_c.trim().length).toBeGreaterThan(0)
-      expect(q.option_d.trim().length).toBeGreaterThan(0)
+      expect(q.option_a.trim().length).toBeGreaterThanOrEqual(MIN_OPTION_LENGTH)
+      expect(q.option_b.trim().length).toBeGreaterThanOrEqual(MIN_OPTION_LENGTH)
+      expect(q.option_c.trim().length).toBeGreaterThanOrEqual(MIN_OPTION_LENGTH)
+      expect(q.option_d.trim().length).toBeGreaterThanOrEqual(MIN_OPTION_LENGTH)
     }
   })
 
@@ -147,17 +158,43 @@ describe('Seed SQL validation', () => {
   it('no duplicate question texts within a domain', () => {
     for (const domain of VALID_DOMAINS) {
       const texts = questions.filter((q) => q.domain === domain).map((q) => q.question)
-      expect(new Set(texts).size).toBe(texts.length)
+      const unique = new Set(texts)
+      expect(unique.size).toBe(texts.length)
     }
   })
 
-  it('answer distribution — no single answer exceeds 50% of any domain', () => {
+  it('no field contains an unescaped SQL single-quote (would break INSERT)', () => {
+    const seedContent = fs.readFileSync(path.join(process.cwd(), 'supabase', 'seed.sql'), 'utf-8')
+    // Every data row must parse back to exactly 7 fields — if a raw ' broke the parser it returns fewer
+    for (const line of seedContent.split('\n')) {
+      const trimmed = line.trim()
+      if (!VALID_DOMAINS.some((d) => trimmed.startsWith(`('${d}',`))) continue
+      const fields = parseFields(trimmed)
+      expect(fields.length).toBe(7)
+    }
+  })
+})
+
+describe('Seed SQL — answer distribution', () => {
+  let questions: ReturnType<typeof parseSeedSQL>
+
+  beforeAll(() => { questions = parseSeedSQL() })
+
+  it('every domain has at least one question with each answer letter (A/B/C/D)', () => {
     for (const domain of VALID_DOMAINS) {
       const answers = questions.filter((q) => q.domain === domain).map((q) => q.correct_answer)
-      const domainTotal = answers.length
+      for (const ans of VALID_ANSWERS) {
+        expect(answers).toContain(ans)
+      }
+    }
+  })
+
+  it('no single answer letter exceeds 50% within any domain', () => {
+    for (const domain of VALID_DOMAINS) {
+      const answers = questions.filter((q) => q.domain === domain).map((q) => q.correct_answer)
       for (const ans of VALID_ANSWERS) {
         const count = answers.filter((a) => a === ans).length
-        expect(count).toBeLessThan(domainTotal * 0.5)
+        expect(count).toBeLessThan(answers.length * 0.5)
       }
     }
   })
