@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
 
 const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
 
@@ -17,7 +16,6 @@ interface Props {
 }
 
 export default function ProfileEditForm({ initialValues }: Props) {
-  const { update } = useSession()
   const [location, setLocation] = useState(initialValues.location)
   const [experience, setExperience] = useState(initialValues.years_of_experience)
   const [designation, setDesignation] = useState(initialValues.designation)
@@ -51,8 +49,6 @@ export default function ProfileEditForm({ initialValues }: Props) {
       return
     }
 
-    // Refresh token so profileCompleted stays in sync
-    await update()
     setSaved(true)
   }
 

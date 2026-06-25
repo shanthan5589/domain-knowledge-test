@@ -10,7 +10,7 @@ const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '
 const BASE_PROGRESS = 40
 
 export default function CompleteProfilePage() {
-  const { data: session, update } = useSession()
+  const { data: session } = useSession()
   const router = useRouter()
 
   const [location, setLocation] = useState('')
@@ -63,8 +63,6 @@ export default function CompleteProfilePage() {
       return
     }
 
-    // Refresh the JWT token so middleware sees profileCompleted = true
-    await update()
     router.push('/dashboard')
   }
 

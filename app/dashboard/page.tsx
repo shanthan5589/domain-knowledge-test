@@ -33,6 +33,15 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
+  // Enforce profile completion — check DB directly so it's always current
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('profile_completed')
+    .eq('email', session.user?.email)
+    .single()
+
+  if (!profile?.profile_completed) redirect('/profile/complete')
+
   // Fetch this user's most recent attempt per domain
   const { data: rawResults } = await supabaseAdmin
     .from('test_results')
