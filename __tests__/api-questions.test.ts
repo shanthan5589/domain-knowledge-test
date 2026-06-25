@@ -4,16 +4,9 @@
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/questions/[domain]/route'
 
-// Mock auth
-jest.mock('@/auth', () => ({
-  auth: jest.fn(),
-}))
-
-// Mock supabaseAdmin
+jest.mock('@/auth', () => ({ auth: jest.fn() }))
 jest.mock('@/lib/supabase-server', () => ({
-  supabaseAdmin: {
-    from: jest.fn(),
-  },
+  supabaseAdmin: { from: jest.fn() },
 }))
 
 import { auth } from '@/auth'
@@ -25,31 +18,40 @@ const mockFrom = supabaseAdmin.from as jest.Mock
 function makeRequest(domain: string) {
   return new NextRequest(`http://localhost/api/questions/${domain}`)
 }
-
 function makeParams(domain: string) {
   return { params: Promise.resolve({ domain }) }
 }
 
-const mockQuestions = Array.from({ length: 50 }, (_, i) => ({
-  id: `id-${i}`,
-  domain: 'devops',
-  question: `Question ${i}`,
-  option_a: `A${i}`,
-  option_b: `B${i}`,
-  option_c: `C${i}`,
-  option_d: `D${i}`,
-  correct_answer: 'B',
-}))
+function makeMockPool(size: number, domain = 'ai') {
+  return Array.from({ length: size }, (_, i) => ({
+    id: `id-${i}`,
+    domain,
+    question: `Question ${i}?`,
+    option_a: `Option A${i}`,
+    option_b: `Option B${i}`,
+    option_c: `Option C${i}`,
+    option_d: `Option D${i}`,
+    correct_answer: ['A', 'B', 'C', 'D'][i % 4],
+  }))
+}
 
-describe('GET /api/questions/[domain]', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
+function mockDB(data: object[], error: object | null = null) {
+  mockFrom.mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      eq: jest.fn().mockResolvedValue({ data, error }),
+    }),
   })
+}
+
+describe('GET /api/questions/[domain] — auth & validation', () => {
+  beforeEach(() => jest.clearAllMocks())
 
   it('returns 401 when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
-    const res = await GET(makeRequest('devops'), makeParams('devops'))
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
     expect(res.status).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBeDefined()
   })
 
   it('returns 400 for an invalid domain', async () => {
@@ -60,41 +62,40 @@ describe('GET /api/questions/[domain]', () => {
     expect(body.error).toBe('Invalid domain')
   })
 
-  it('returns 10 questions for a valid domain', async () => {
+  it('rejects empty domain string', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
-    mockFrom.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: mockQuestions, error: null }),
-      }),
-    })
+    const res = await GET(makeRequest(''), makeParams(''))
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 500 when Supabase returns an error', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockDB([], { message: 'DB error' })
     const res = await GET(makeRequest('devops'), makeParams('devops'))
+    expect(res.status).toBe(500)
+  })
+})
+
+describe('GET /api/questions/[domain] — accepts all valid domains', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  const domains = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+
+  it.each(domains)('returns 200 for domain: %s', async (domain) => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockDB(makeMockPool(50, domain))
+    const res = await GET(makeRequest(domain), makeParams(domain))
     expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.questions).toHaveLength(10)
   })
+})
 
-  it('strips correct_answer from returned questions', async () => {
-    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
-    mockFrom.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: mockQuestions, error: null }),
-      }),
-    })
-    const res = await GET(makeRequest('devops'), makeParams('devops'))
-    const body = await res.json()
-    for (const q of body.questions) {
-      expect(q).not.toHaveProperty('correct_answer')
-    }
-  })
+describe('GET /api/questions/[domain] — response shape', () => {
+  beforeEach(() => jest.clearAllMocks())
 
-  it('returned questions have required fields', async () => {
+  it('returned questions have all required fields', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
-    mockFrom.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: mockQuestions, error: null }),
-      }),
-    })
-    const res = await GET(makeRequest('devops'), makeParams('devops'))
+    mockDB(makeMockPool(50))
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
     const body = await res.json()
     for (const q of body.questions) {
       expect(q).toHaveProperty('id')
@@ -106,28 +107,78 @@ describe('GET /api/questions/[domain]', () => {
     }
   })
 
-  it('returns 500 when Supabase returns an error', async () => {
+  it('correct_answer is stripped from every returned question', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
-    mockFrom.mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: { message: 'DB error' } }),
-      }),
-    })
-    const res = await GET(makeRequest('devops'), makeParams('devops'))
-    expect(res.status).toBe(500)
+    mockDB(makeMockPool(50))
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
+    const body = await res.json()
+    for (const q of body.questions) {
+      expect(q).not.toHaveProperty('correct_answer')
+    }
   })
 
-  it('accepts all 5 valid domains', async () => {
-    const domains = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
-    for (const domain of domains) {
-      mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
-      mockFrom.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ data: mockQuestions, error: null }),
-        }),
-      })
-      const res = await GET(makeRequest(domain), makeParams(domain))
-      expect(res.status).toBe(200)
+  it('response wraps questions in a { questions } key', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockDB(makeMockPool(50))
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
+    const body = await res.json()
+    expect(body).toHaveProperty('questions')
+    expect(Array.isArray(body.questions)).toBe(true)
+  })
+})
+
+describe('GET /api/questions/[domain] — sampling', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('returns exactly 10 questions from a pool of 50', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockDB(makeMockPool(50))
+    const res = await GET(makeRequest('devops'), makeParams('devops'))
+    const body = await res.json()
+    expect(body.questions).toHaveLength(10)
+  })
+
+  it('returns exactly 10 questions from the AI pool of 65', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockDB(makeMockPool(65))
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
+    const body = await res.json()
+    expect(body.questions).toHaveLength(10)
+  })
+
+  it('all 10 returned questions come from the pool (no invented questions)', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    const pool = makeMockPool(65)
+    mockDB(pool)
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
+    const body = await res.json()
+    const poolIds = new Set(pool.map((q) => q.id))
+    for (const q of body.questions) {
+      expect(poolIds.has(q.id)).toBe(true)
     }
+  })
+
+  it('returned questions have no duplicates', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+    mockDB(makeMockPool(65))
+    const res = await GET(makeRequest('ai'), makeParams('ai'))
+    const body = await res.json()
+    const ids = body.questions.map((q: { id: string }) => q.id)
+    expect(new Set(ids).size).toBe(10)
+  })
+
+  it('shuffles questions — two calls return different order with high probability', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'test@test.com' } })
+
+    mockDB(makeMockPool(65))
+    const res1 = await GET(makeRequest('ai'), makeParams('ai'))
+    const ids1 = (await res1.json()).questions.map((q: { id: string }) => q.id)
+
+    mockDB(makeMockPool(65))
+    const res2 = await GET(makeRequest('ai'), makeParams('ai'))
+    const ids2 = (await res2.json()).questions.map((q: { id: string }) => q.id)
+
+    // With 65 questions choosing 10, same order by pure chance is astronomically unlikely
+    expect(ids1.join(',')).not.toBe(ids2.join(','))
   })
 })
