@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { Country, State, City } from 'country-state-city'
 
 const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
 
@@ -13,14 +14,16 @@ export default function CompleteProfilePage() {
   const { data: session } = useSession()
   const router = useRouter()
 
-  const [location, setLocation] = useState('')
+  const [country, setCountry] = useState('')
+  const [stateRegion, setStateRegion] = useState('')
+  const [city, setCity] = useState('')
   const [experience, setExperience] = useState('')
   const [designation, setDesignation] = useState('')
   const [linkedin, setLinkedin] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const locationFilled = location.trim().length > 0
+  const locationFilled = country.length > 0 && stateRegion.length > 0 && city.length > 0
   const experienceFilled = experience.length > 0
   const designationFilled = designation.trim().length > 0
   const linkedinFilled = linkedin.trim().length > 0
@@ -39,6 +42,9 @@ export default function CompleteProfilePage() {
     { label: 'LinkedIn', done: linkedinFilled, optional: true },
   ]
 
+  const states = State.getStatesOfCountry(country)
+  const cities = City.getCitiesOfState(country, stateRegion)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!allRequiredFilled) return
@@ -49,7 +55,9 @@ export default function CompleteProfilePage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        location,
+        country: Country.getCountryByCode(country)?.name ?? country,
+        state_region: State.getStateByCodeAndCountry(stateRegion, country)?.name ?? stateRegion,
+        city,
         years_of_experience: experience,
         designation,
         linkedin_url: linkedin,
@@ -134,18 +142,60 @@ export default function CompleteProfilePage() {
               onSubmit={handleSubmit}
               className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5"
             >
-              {/* Location */}
+              {/* Country */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Where are you located?
+                  Country
                 </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Hyderabad, India"
+                <select
+                  value={country}
+                  onChange={(e) => { setCountry(e.target.value); setStateRegion(''); setCity('') }}
+                  aria-label="Country"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select country</option>
+                  {Country.getAllCountries().map((c) => (
+                    <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* State / Region */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  State / Region
+                </label>
+                <select
+                  value={stateRegion}
+                  onChange={(e) => { setStateRegion(e.target.value); setCity('') }}
+                  disabled={!country}
+                  aria-label="State or Region"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Select state / region</option>
+                  {states.map((s) => (
+                    <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  City
+                </label>
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={!stateRegion}
+                  aria-label="City"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Select city</option>
+                  {cities.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Years of experience */}

@@ -12,16 +12,47 @@ jest.mock('next-auth/react', () => ({
   })),
 }))
 
+jest.mock('country-state-city', () => ({
+  Country: {
+    getAllCountries: jest.fn(() => [
+      { isoCode: 'IN', name: 'India' },
+      { isoCode: 'US', name: 'United States' },
+    ]),
+    getCountryByCode: jest.fn((code: string) =>
+      code === 'IN' ? { name: 'India' } : code === 'US' ? { name: 'United States' } : null
+    ),
+  },
+  State: {
+    getStatesOfCountry: jest.fn((code: string) =>
+      code === 'IN' ? [{ isoCode: 'TG', name: 'Telangana' }, { isoCode: 'KA', name: 'Karnataka' }] : []
+    ),
+    getStateByCodeAndCountry: jest.fn((stateCode: string, countryCode: string) =>
+      stateCode === 'TG' && countryCode === 'IN' ? { name: 'Telangana' } : null
+    ),
+  },
+  City: {
+    getCitiesOfState: jest.fn((countryCode: string, stateCode: string) =>
+      countryCode === 'IN' && stateCode === 'TG'
+        ? [{ name: 'Hyderabad' }, { name: 'Warangal' }]
+        : []
+    ),
+  },
+}))
+
 import { useRouter } from 'next/navigation'
 const mockUseRouter = useRouter as jest.Mock
 
 global.fetch = jest.fn()
 const mockFetch = fetch as jest.Mock
 
+function fillLocationFields() {
+  fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'IN' } })
+  fireEvent.change(screen.getByLabelText('State or Region'), { target: { value: 'TG' } })
+  fireEvent.change(screen.getByLabelText('City'), { target: { value: 'Hyderabad' } })
+}
+
 function fillRequiredFields() {
-  fireEvent.change(screen.getByPlaceholderText('Hyderabad, India'), {
-    target: { value: 'Hyderabad, India' },
-  })
+  fillLocationFields()
   fireEvent.click(screen.getByLabelText('1-3 years'))
   fireEvent.change(screen.getByPlaceholderText('e.g. Software Engineer'), {
     target: { value: 'Software Engineer' },
@@ -35,7 +66,9 @@ describe('CompleteProfilePage', () => {
 
   it('renders all form fields', () => {
     render(<CompleteProfilePage />)
-    expect(screen.getByPlaceholderText('Hyderabad, India')).toBeInTheDocument()
+    expect(screen.getByLabelText('Country')).toBeInTheDocument()
+    expect(screen.getByLabelText('State or Region')).toBeInTheDocument()
+    expect(screen.getByLabelText('City')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('e.g. Software Engineer')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('https://linkedin.com/in/yourname')).toBeInTheDocument()
     expect(screen.getByText('Years of Experience')).toBeInTheDocument()
@@ -68,11 +101,9 @@ describe('CompleteProfilePage', () => {
     expect(screen.getByTestId('progress-percent')).toHaveTextContent('40%')
   })
 
-  it('progress increases to 60% after filling location', () => {
+  it('progress increases to 60% after filling all location fields', () => {
     render(<CompleteProfilePage />)
-    fireEvent.change(screen.getByPlaceholderText('Hyderabad, India'), {
-      target: { value: 'Hyderabad' },
-    })
+    fillLocationFields()
     expect(screen.getByTestId('progress-percent')).toHaveTextContent('60%')
   })
 
@@ -82,12 +113,10 @@ describe('CompleteProfilePage', () => {
     expect(screen.getByTestId('progress-percent')).toHaveTextContent('100%')
   })
 
-  it('checklist shows ✗ for location initially and ✓ after typing', () => {
+  it('checklist shows ✗ for location initially and ✓ after filling all location fields', () => {
     render(<CompleteProfilePage />)
     expect(screen.getByTestId('check-location')).toHaveTextContent('✗')
-    fireEvent.change(screen.getByPlaceholderText('Hyderabad, India'), {
-      target: { value: 'Hyderabad' },
-    })
+    fillLocationFields()
     expect(screen.getByTestId('check-location')).toHaveTextContent('✓')
   })
 
