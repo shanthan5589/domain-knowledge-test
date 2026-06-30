@@ -1,77 +1,52 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import HomeSignupForm from '@/components/HomeSignupForm'
-
-const PILLARS = [
-  {
-    title: 'Tool awareness',
-    body: 'The AI landscape is crowded. Knowing the tools exist is not enough. These questions check whether you know which one to reach for, for which job, and why.',
-  },
-  {
-    title: 'Practical scenarios',
-    body: 'Every question is built around a real task someone in tech actually faces. You pick the best answer. There is no partial credit for almost knowing.',
-  },
-  {
-    title: 'Honest results',
-    body: 'No inflation. You get a score that reflects what you actually know, with a clear breakdown so you can see where your gaps are.',
-  },
-]
 
 export default async function Home() {
   const session = await auth()
   if (session) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Nav */}
-      <header className="px-6 py-4 border-b border-gray-100">
-        <span className="text-sm font-semibold text-gray-900 tracking-tight">
+      <header className="px-8 py-4 bg-white border-b border-gray-200 flex items-center justify-between">
+        <span className="text-base font-semibold text-gray-900 tracking-tight">
           Domain Knowledge Test
         </span>
+        <Link
+          href="/login"
+          className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
+        >
+          Sign in to your account →
+        </Link>
       </header>
 
       {/* Split layout */}
-      <div className="flex-1 flex flex-col lg:flex-row lg:gap-8">
+      <div className="flex-1 flex flex-col lg:flex-row lg:items-center gap-16 px-8 py-12 lg:px-16 xl:px-24 max-w-7xl mx-auto w-full">
 
-        {/* Left — marketing */}
-        <div className="flex-1 flex flex-col justify-center px-8 py-8 lg:px-16 xl:px-20">
-
-          <h1 className="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-6 text-gray-900">
-            How well do you actually<br />use AI?
+        {/* Left — headline + description */}
+        <div className="flex-1 flex flex-col">
+          <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight mb-6 text-gray-900">
+            How well do you actually use AI?
           </h1>
-
-          <p className="text-base font-semibold text-gray-700 leading-relaxed max-w-xl mb-3">
-            Most professionals have access to the same AI tools. What separates them is knowing
-            how to use those tools to get real work done. This quiz shows you where you actually stand.
+          <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
+            Most professionals have access to the same tools. The best ones drive actual work
+            results. Take the 3-minute assessment to see where you stand against global peers.
           </p>
-
-          <p className="text-sm text-gray-400 leading-relaxed max-w-xl mb-10">
-            The Domain Knowledge Test is a 10-question multiple choice quiz built around real work
-            situations. Not theory, not definitions. Just practical scenarios where you have to pick
-            the right tool, the right approach, or the right call. It takes five minutes and gives
-            you an honest score at the end.
-          </p>
-
-          <div className="space-y-5 max-w-xl">
-            {PILLARS.map((p) => (
-              <div key={p.title} className="flex gap-4 items-start">
-                <div className="mt-1 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-bold text-gray-900 mb-1">{p.title}</p>
-                  <p className="text-xs text-gray-400 leading-relaxed">{p.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
         </div>
 
-        {/* Right — signup form */}
-        <div className="lg:w-[600px] flex items-start justify-start pl-2 pr-12 pt-20 pb-12">
+        {/* Right — signup card */}
+        <div className="w-full lg:w-auto lg:flex-shrink-0">
           <HomeSignupForm />
         </div>
 
       </div>
+
+      {/* Footer */}
+      <footer className="py-5 border-t border-gray-200 text-center">
+        <p className="text-sm text-gray-400">© Copyright All rights reserved.</p>
+      </footer>
     </div>
   )
 }

@@ -49,14 +49,19 @@ export default function HomeSignupForm() {
   }
 
   return (
-    <div className="w-full max-w-lg">
-      <h2 className="text-2xl font-bold text-center mb-2 text-gray-800">Create Account</h2>
-      <p className="text-center text-gray-500 mb-8 text-sm">Sign up to start your assessment</p>
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-md p-8 w-full max-w-md">
+      <h2 className="text-xl font-bold text-center text-gray-900 mb-1">
+        Create your benchmark profile
+      </h2>
+      <p className="text-sm text-center text-gray-500 mb-6">
+        Track your proficiency gains over time.
+      </p>
 
+      {/* Google */}
       <button
         type="button"
         onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-        className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition mb-6"
+        className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition mb-5"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -67,13 +72,14 @@ export default function HomeSignupForm() {
         Continue with Google
       </button>
 
-      <div className="flex items-center gap-3 mb-6">
+      {/* Divider */}
+      <div className="flex items-center gap-3 mb-5">
         <hr className="flex-1 border-gray-200" />
-        <span className="text-gray-400 text-sm">or</span>
+        <span className="text-xs tracking-widest font-medium text-gray-400">OR EMAIL SIGNUP</span>
         <hr className="flex-1 border-gray-200" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex gap-3">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -129,13 +135,13 @@ export default function HomeSignupForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition disabled:opacity-50"
+          className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-semibold hover:bg-blue-700 transition disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-sm text-gray-500 mt-5">
         Already have an account?{' '}
         <Link href="/login" className="text-blue-600 font-medium hover:underline">
           Sign in
