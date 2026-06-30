@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
   }
 
-  // Check if email already exists
   const { data: existing } = await supabaseAdmin
     .from('profiles')
     .select('id')

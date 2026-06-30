@@ -156,4 +156,5 @@ describe('POST /api/auth/signup', () => {
     const res = await POST(makeRequest({ ...validBody, firstName: '   ' }))
     expect(res.status).toBe(400)
   })
+
 })

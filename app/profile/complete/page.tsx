@@ -7,6 +7,21 @@ import { Country, State, City } from 'country-state-city'
 
 const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
 
+const DESIGNATION_OPTIONS = [
+  'Software Engineer / Developer',
+  'Full-Stack Developer',
+  'Data Scientist',
+  'Cloud Architect / Engineer',
+  'DevOps Engineer',
+  'Cybersecurity Specialist',
+  'AI / Machine Learning Engineer',
+  'UI/UX Designer',
+  'IT Project Manager',
+  'Product Owner',
+  'Business Analyst',
+  'Other',
+]
+
 // Name + Email are always pre-filled from auth (2 of 5 trackable fields)
 const BASE_PROGRESS = 40
 
@@ -230,13 +245,17 @@ export default function CompleteProfilePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Designation
                 </label>
-                <input
-                  type="text"
+                <select
                   value={designation}
                   onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="e.g. Software Engineer"
+                  aria-label="Designation"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select designation</option>
+                  {DESIGNATION_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
               </div>
 
               {/* LinkedIn */}

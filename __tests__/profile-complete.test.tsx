@@ -54,8 +54,8 @@ function fillLocationFields() {
 function fillRequiredFields() {
   fillLocationFields()
   fireEvent.click(screen.getByLabelText('1-3 years'))
-  fireEvent.change(screen.getByPlaceholderText('e.g. Software Engineer'), {
-    target: { value: 'Software Engineer' },
+  fireEvent.change(screen.getByLabelText('Designation'), {
+    target: { value: 'Software Engineer / Developer' },
   })
 }
 
@@ -69,9 +69,29 @@ describe('CompleteProfilePage', () => {
     expect(screen.getByLabelText('Country')).toBeInTheDocument()
     expect(screen.getByLabelText('State or Region')).toBeInTheDocument()
     expect(screen.getByLabelText('City')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('e.g. Software Engineer')).toBeInTheDocument()
+    expect(screen.getByLabelText('Designation')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('https://linkedin.com/in/yourname')).toBeInTheDocument()
     expect(screen.getByText('Years of Experience')).toBeInTheDocument()
+  })
+
+  it('renders designation dropdown with all 12 options plus placeholder', () => {
+    render(<CompleteProfilePage />)
+    const select = screen.getByLabelText('Designation') as HTMLSelectElement
+    const options = Array.from(select.options).map((o) => o.value)
+    expect(options).toContain('')
+    expect(options).toContain('Software Engineer / Developer')
+    expect(options).toContain('Full-Stack Developer')
+    expect(options).toContain('Data Scientist')
+    expect(options).toContain('Cloud Architect / Engineer')
+    expect(options).toContain('DevOps Engineer')
+    expect(options).toContain('Cybersecurity Specialist')
+    expect(options).toContain('AI / Machine Learning Engineer')
+    expect(options).toContain('UI/UX Designer')
+    expect(options).toContain('IT Project Manager')
+    expect(options).toContain('Product Owner')
+    expect(options).toContain('Business Analyst')
+    expect(options).toContain('Other')
+    expect(options).toHaveLength(13)
   })
 
   it('renders all 5 experience radio options', () => {
@@ -120,11 +140,11 @@ describe('CompleteProfilePage', () => {
     expect(screen.getByTestId('check-location')).toHaveTextContent('✓')
   })
 
-  it('checklist shows ✗ for designation initially and ✓ after typing', () => {
+  it('checklist shows ✗ for designation initially and ✓ after selecting', () => {
     render(<CompleteProfilePage />)
     expect(screen.getByTestId('check-designation')).toHaveTextContent('✗')
-    fireEvent.change(screen.getByPlaceholderText('e.g. Software Engineer'), {
-      target: { value: 'Engineer' },
+    fireEvent.change(screen.getByLabelText('Designation'), {
+      target: { value: 'Data Scientist' },
     })
     expect(screen.getByTestId('check-designation')).toHaveTextContent('✓')
   })
@@ -163,7 +183,7 @@ describe('CompleteProfilePage', () => {
     expect(body.state_region).toBe('Telangana')
     expect(body.city).toBe('Hyderabad')
     expect(body.years_of_experience).toBe('1-3 years')
-    expect(body.designation).toBe('Software Engineer')
+    expect(body.designation).toBe('Software Engineer / Developer')
   })
 
   it('shows error message when API returns error', async () => {
