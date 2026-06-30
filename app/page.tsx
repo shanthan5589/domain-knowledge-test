@@ -31,8 +31,8 @@ export default async function Home() {
             How well do you actually use AI?
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
-            Most professionals have access to the same tools. The best ones drive actual work
-            results. Take the 3-minute assessment to see where you stand against global peers.
+            Most professionals have access to the same tools. The best ones use them to drive real
+            results. Take the 3-minute assessment to get an honest read on your AI skills.
           </p>
         </div>
 
