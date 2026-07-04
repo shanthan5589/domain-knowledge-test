@@ -42,6 +42,25 @@ function mockProfilesQuery(data: unknown, error: unknown = null) {
   })
 }
 
+// resolveEmailFilter's profiles query chains .eq() once per active filter before
+// being awaited, so the mock builder must stay chainable and thenable.
+function makeChainableResult(data: unknown, error: unknown = null) {
+  const builder: {
+    eq: jest.Mock
+    then: (resolve: (v: { data: unknown; error: unknown }) => void) => void
+  } = {
+    eq: jest.fn(() => builder),
+    then: (resolve) => resolve({ data, error }),
+  }
+  return builder
+}
+
+function mockFilterProfilesQuery(data: unknown, error: unknown = null) {
+  mockFrom.mockReturnValueOnce({
+    select: jest.fn().mockReturnValue(makeChainableResult(data, error)),
+  })
+}
+
 describe('GET /api/stats/leaderboard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -129,6 +148,46 @@ describe('GET /api/stats/leaderboard', () => {
     const res = await GET(makeRequest('?domain=ai'))
     const body = await res.json()
     expect(body.leaderboard[0].name).toBe('Anonymous')
+  })
+
+  it('restricts the leaderboard to the profile filter when one is supplied', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 6, completed_at: '2026-01-03' },
+      { user_email: 'b@test.com', score: 10, completed_at: '2026-01-02' },
+      { user_email: 'me@test.com', score: 8, completed_at: '2026-01-01' },
+    ])
+    // Only 'a' and 'me' match the designation filter — 'b' (the top scorer) is excluded
+    mockFilterProfilesQuery([{ email: 'a@test.com' }, { email: 'me@test.com' }])
+    mockProfilesQuery([
+      { email: 'a@test.com', full_name: 'Alice' },
+      { email: 'me@test.com', full_name: 'Me' },
+    ])
+
+    const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
+    const body = await res.json()
+    expect(body.leaderboard).toEqual([
+      { name: 'Me', score: 8, isYou: true },
+      { name: 'Alice', score: 6, isYou: false },
+    ])
+  })
+
+  it('returns an empty leaderboard when the profile filter matches nobody who has attempted', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ user_email: 'a@test.com', score: 6, completed_at: '2026-01-01' }])
+    mockFilterProfilesQuery([])
+
+    const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
+    const body = await res.json()
+    expect(body.leaderboard).toEqual([])
+  })
+
+  it('returns 500 when the profile filter fetch fails', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ user_email: 'a@test.com', score: 6, completed_at: '2026-01-01' }])
+    mockFilterProfilesQuery(null, { message: 'DB error' })
+    const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
+    expect(res.status).toBe(500)
   })
 
   it('returns 500 when the test_results fetch fails', async () => {

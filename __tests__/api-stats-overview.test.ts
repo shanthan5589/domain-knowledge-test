@@ -20,8 +20,8 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 const mockAuth = auth as jest.Mock
 const mockFrom = supabaseAdmin.from as jest.Mock
 
-function makeRequest() {
-  return new NextRequest('http://localhost/api/stats/overview')
+function makeRequest(query = '') {
+  return new NextRequest(`http://localhost/api/stats/overview${query}`)
 }
 
 function mockResultsQuery(data: unknown, error: unknown = null) {
@@ -29,6 +29,25 @@ function mockResultsQuery(data: unknown, error: unknown = null) {
     select: jest.fn().mockReturnValue({
       order: jest.fn().mockResolvedValue({ data, error }),
     }),
+  })
+}
+
+// resolveEmailFilter's profiles query chains .eq() once per active filter before
+// being awaited, so the mock builder must stay chainable and thenable.
+function makeChainableResult(data: unknown, error: unknown = null) {
+  const builder: {
+    eq: jest.Mock
+    then: (resolve: (v: { data: unknown; error: unknown }) => void) => void
+  } = {
+    eq: jest.fn(() => builder),
+    then: (resolve) => resolve({ data, error }),
+  }
+  return builder
+}
+
+function mockProfilesQuery(data: unknown, error: unknown = null) {
+  mockFrom.mockReturnValueOnce({
+    select: jest.fn().mockReturnValue(makeChainableResult(data, error)),
   })
 }
 
@@ -86,5 +105,29 @@ describe('GET /api/stats/overview', () => {
     const res = await GET(makeRequest())
     const body = await res.json()
     expect(body.mostAttemptedDomain).toBe('ai')
+  })
+
+  it('restricts averages to the profile filter when one is supplied', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { domain: 'ai', user_email: 'a@test.com', score: 9, completed_at: '2026-01-04' },
+      { domain: 'ai', user_email: 'b@test.com', score: 3, completed_at: '2026-01-03' },
+      { domain: 'cloud', user_email: 'a@test.com', score: 6, completed_at: '2026-01-02' },
+    ])
+    mockProfilesQuery([{ email: 'a@test.com' }])
+
+    const res = await GET(makeRequest('?designation=Data%20Scientist'))
+    const body = await res.json()
+    expect(body.averageScoreByDomain.ai).toBe(9)
+    expect(body.attemptCounts.ai).toBe(1)
+    expect(body.averageScoreByDomain.cloud).toBe(6)
+  })
+
+  it('returns 500 when the profile filter fetch fails', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ domain: 'ai', user_email: 'a@test.com', score: 9, completed_at: '2026-01-04' }])
+    mockProfilesQuery(null, { message: 'DB error' })
+    const res = await GET(makeRequest('?designation=Data%20Scientist'))
+    expect(res.status).toBe(500)
   })
 })

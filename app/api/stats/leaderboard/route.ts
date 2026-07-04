@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
@@ -39,14 +40,24 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (latestByEmail.size === 0) {
+  // Optionally restrict the crowd by any combination of profile attributes
+  const { emailFilter, error: filterError } = await resolveEmailFilter(req)
+  if (filterError) {
+    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 })
+  }
+
+  const filteredEntries = [...latestByEmail.entries()].filter(
+    ([email]) => !emailFilter || emailFilter.has(email)
+  )
+
+  if (filteredEntries.length === 0) {
     return NextResponse.json({ leaderboard: [] })
   }
 
   const { data: profiles, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('email, full_name')
-    .in('email', [...latestByEmail.keys()])
+    .in('email', filteredEntries.map(([email]) => email))
 
   if (profileError) {
     return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 })
@@ -56,7 +67,7 @@ export async function GET(req: NextRequest) {
     (profiles as { email: string; full_name: string | null }[]).map((p) => [p.email, p.full_name])
   )
 
-  const leaderboard = [...latestByEmail.entries()]
+  const leaderboard = filteredEntries
     .map(([email, { score, completed_at }]) => ({
       name: nameByEmail.get(email) ?? 'Anonymous',
       score,

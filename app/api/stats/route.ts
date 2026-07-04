@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
-
-// Profile columns that can be used to narrow down the comparison crowd
-const FILTERABLE_PROFILE_COLUMNS = [
-  ['designation', 'designation'],
-  ['country', 'country'],
-  ['state_region', 'state_region'],
-  ['city', 'city'],
-  ['experience', 'years_of_experience'],
-] as const
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -44,23 +36,9 @@ export async function GET(req: NextRequest) {
   }
 
   // Optionally restrict the crowd by any combination of profile attributes
-  let emailFilter: Set<string> | null = null
-  const activeFilters = FILTERABLE_PROFILE_COLUMNS.filter(([param]) => {
-    const value = req.nextUrl.searchParams.get(param)
-    return value && value !== 'all'
-  })
-
-  if (activeFilters.length > 0) {
-    let profileQuery = supabaseAdmin.from('profiles').select('email')
-    for (const [param, column] of activeFilters) {
-      profileQuery = profileQuery.eq(column, req.nextUrl.searchParams.get(param) as string)
-    }
-
-    const { data: profiles, error: profileError } = await profileQuery
-    if (profileError) {
-      return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
-    }
-    emailFilter = new Set((profiles ?? []).map((p: { email: string }) => p.email))
+  const { emailFilter, error: filterError } = await resolveEmailFilter(req)
+  if (filterError) {
+    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }
 
   const histogram = new Array(11).fill(0)
