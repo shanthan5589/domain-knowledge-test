@@ -5,6 +5,15 @@ import type { Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 
+// Profile columns that can be used to narrow down the comparison crowd
+const FILTERABLE_PROFILE_COLUMNS = [
+  ['designation', 'designation'],
+  ['country', 'country'],
+  ['state_region', 'state_region'],
+  ['city', 'city'],
+  ['experience', 'years_of_experience'],
+] as const
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.email) {
@@ -15,8 +24,6 @@ export async function GET(req: NextRequest) {
   if (!domain || !VALID_DOMAINS.includes(domain as Domain)) {
     return NextResponse.json({ error: 'Invalid domain' }, { status: 400 })
   }
-
-  const designation = req.nextUrl.searchParams.get('designation')
 
   const { data: results, error } = await supabaseAdmin
     .from('test_results')
@@ -36,14 +43,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Optionally restrict the crowd to a single designation
+  // Optionally restrict the crowd by any combination of profile attributes
   let emailFilter: Set<string> | null = null
-  if (designation && designation !== 'all') {
-    const { data: profiles, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('email')
-      .eq('designation', designation)
+  const activeFilters = FILTERABLE_PROFILE_COLUMNS.filter(([param]) => {
+    const value = req.nextUrl.searchParams.get(param)
+    return value && value !== 'all'
+  })
 
+  if (activeFilters.length > 0) {
+    let profileQuery = supabaseAdmin.from('profiles').select('email')
+    for (const [param, column] of activeFilters) {
+      profileQuery = profileQuery.eq(column, req.nextUrl.searchParams.get(param) as string)
+    }
+
+    const { data: profiles, error: profileError } = await profileQuery
     if (profileError) {
       return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
     }
@@ -58,8 +71,16 @@ export async function GET(req: NextRequest) {
     totalUsers += 1
   }
 
-  // Your own score is always reported, even if the designation filter excludes you
+  // Your own score is always reported, even if the filters exclude you
   const yourScore = latestByEmail.get(session.user.email) ?? null
 
-  return NextResponse.json({ histogram, totalUsers, yourScore })
+  // Percentile: what share of the (filtered) crowd you outscored
+  let percentile: number | null = null
+  if (yourScore !== null && totalUsers > 0) {
+    let scoredLower = 0
+    for (let s = 0; s < yourScore; s++) scoredLower += histogram[s]
+    percentile = Math.round((scoredLower / totalUsers) * 100)
+  }
+
+  return NextResponse.json({ histogram, totalUsers, yourScore, percentile })
 }
