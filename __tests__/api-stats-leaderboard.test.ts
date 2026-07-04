@@ -1,0 +1,148 @@
+/**
+ * @jest-environment node
+ */
+import { NextRequest } from 'next/server'
+import { GET } from '@/app/api/stats/leaderboard/route'
+
+jest.mock('@/auth', () => ({
+  auth: jest.fn(),
+}))
+
+jest.mock('@/lib/supabase-server', () => ({
+  supabaseAdmin: {
+    from: jest.fn(),
+  },
+}))
+
+import { auth } from '@/auth'
+import { supabaseAdmin } from '@/lib/supabase-server'
+
+const mockAuth = auth as jest.Mock
+const mockFrom = supabaseAdmin.from as jest.Mock
+
+function makeRequest(query: string) {
+  return new NextRequest(`http://localhost/api/stats/leaderboard${query}`)
+}
+
+function mockResultsQuery(data: unknown, error: unknown = null) {
+  mockFrom.mockReturnValueOnce({
+    select: jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnValue({
+        order: jest.fn().mockResolvedValue({ data, error }),
+      }),
+    }),
+  })
+}
+
+function mockProfilesQuery(data: unknown, error: unknown = null) {
+  mockFrom.mockReturnValueOnce({
+    select: jest.fn().mockReturnValue({
+      in: jest.fn().mockResolvedValue({ data, error }),
+    }),
+  })
+}
+
+describe('GET /api/stats/leaderboard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('returns 401 when not authenticated', async () => {
+    mockAuth.mockResolvedValue(null)
+    const res = await GET(makeRequest('?domain=ai'))
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 400 for an invalid domain', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const res = await GET(makeRequest('?domain=invalid'))
+    expect(res.status).toBe(400)
+  })
+
+  it('returns an empty leaderboard when nobody has attempted the domain', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([])
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.leaderboard).toEqual([])
+  })
+
+  it('ranks by score descending, using each user\'s latest attempt', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 6, completed_at: '2026-01-04' },
+      { user_email: 'a@test.com', score: 9, completed_at: '2026-01-01' }, // older, ignored
+      { user_email: 'b@test.com', score: 10, completed_at: '2026-01-03' },
+      { user_email: 'me@test.com', score: 8, completed_at: '2026-01-02' },
+    ])
+    mockProfilesQuery([
+      { email: 'a@test.com', full_name: 'Alice' },
+      { email: 'b@test.com', full_name: 'Bob' },
+      { email: 'me@test.com', full_name: 'Me' },
+    ])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.leaderboard).toEqual([
+      { name: 'Bob', score: 10, isYou: false },
+      { name: 'Me', score: 8, isYou: true },
+      { name: 'Alice', score: 6, isYou: false },
+    ])
+  })
+
+  it('breaks ties by earliest completion time', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 8, completed_at: '2026-01-05' },
+      { user_email: 'b@test.com', score: 8, completed_at: '2026-01-01' },
+    ])
+    mockProfilesQuery([
+      { email: 'a@test.com', full_name: 'Alice' },
+      { email: 'b@test.com', full_name: 'Bob' },
+    ])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.leaderboard.map((r: { name: string }) => r.name)).toEqual(['Bob', 'Alice'])
+  })
+
+  it('respects the limit query param, capped at 20', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      user_email: `u${i}@test.com`,
+      score: i % 11,
+      completed_at: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`,
+    }))
+    mockResultsQuery(rows)
+    mockProfilesQuery(rows.map((r) => ({ email: r.user_email, full_name: r.user_email })))
+
+    const res = await GET(makeRequest('?domain=ai&limit=999'))
+    const body = await res.json()
+    expect(body.leaderboard).toHaveLength(20)
+  })
+
+  it('falls back to Anonymous when a profile has no full_name', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ user_email: 'a@test.com', score: 7, completed_at: '2026-01-01' }])
+    mockProfilesQuery([{ email: 'a@test.com', full_name: null }])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.leaderboard[0].name).toBe('Anonymous')
+  })
+
+  it('returns 500 when the test_results fetch fails', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery(null, { message: 'DB error' })
+    const res = await GET(makeRequest('?domain=ai'))
+    expect(res.status).toBe(500)
+  })
+
+  it('returns 500 when the profiles fetch fails', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ user_email: 'a@test.com', score: 7, completed_at: '2026-01-01' }])
+    mockProfilesQuery(null, { message: 'DB error' })
+    const res = await GET(makeRequest('?domain=ai'))
+    expect(res.status).toBe(500)
+  })
+})
