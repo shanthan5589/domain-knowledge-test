@@ -137,7 +137,7 @@ export default function StatsPage() {
               aria-label="Domain"
               value={domain}
               onChange={(e) => setDomain(e.target.value as Domain)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              className="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white"
             >
               {ALL_DOMAINS.map((d) => (
                 <option key={d} value={d}>
@@ -156,7 +156,7 @@ export default function StatsPage() {
               aria-label="Designation"
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              className="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white"
             >
               <option value="all">All designations</option>
               {DESIGNATION_OPTIONS.map((opt) => (
@@ -176,7 +176,7 @@ export default function StatsPage() {
               aria-label="Experience"
               value={experience}
               onChange={(e) => setExperience(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              className="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white"
             >
               <option value="all">All experience levels</option>
               {EXPERIENCE_OPTIONS.map((opt) => (
@@ -229,7 +229,7 @@ export default function StatsPage() {
                   setStateCode('')
                   setCity('')
                 }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                className="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white"
               >
                 <option value="">All countries</option>
                 {Country.getAllCountries().map((c) => (
@@ -253,7 +253,7 @@ export default function StatsPage() {
                   setCity('')
                 }}
                 disabled={!countryCode}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">All states / regions</option>
                 {states.map((s) => (
@@ -274,7 +274,7 @@ export default function StatsPage() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 disabled={!stateCode}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full border border-gray-300 rounded-lg pl-3 pr-8 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">All cities</option>
                 {cities.map((c) => (
