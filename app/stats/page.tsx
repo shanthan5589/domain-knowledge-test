@@ -113,9 +113,7 @@ export default function StatsPage() {
   const yAxisMax = Math.max(20, Math.ceil(maxPercent / 10) * 10)
   const yAxisTicks = [1, 0.75, 0.5, 0.25, 0].map((f) => Math.round(yAxisMax * f))
 
-  const activeFilterCount = [experience, countryCode ? 'x' : 'all', stateCode ? 'x' : 'all', city ? 'x' : 'all'].filter(
-    (v) => v !== 'all'
-  ).length
+  const activeFilterCount = [countryCode, stateCode, city].filter((v) => v !== '').length
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -172,22 +170,7 @@ export default function StatsPage() {
           )}
 
           {tab === 'performance' && (
-            <button
-              onClick={() => setShowMoreFilters((v) => !v)}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap px-1 py-2"
-            >
-              {showMoreFilters ? 'Hide filters' : 'More filters'}
-              {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
-            </button>
-          )}
-        </div>
-
-        {tab === 'performance' && showMoreFilters && (
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 bg-white rounded-xl border border-gray-100 p-4"
-            data-testid="more-filters"
-          >
-            <div>
+            <div className="w-full sm:w-56">
               <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
                 Experience
               </label>
@@ -206,7 +189,24 @@ export default function StatsPage() {
                 ))}
               </select>
             </div>
+          )}
 
+          {tab === 'performance' && (
+            <button
+              onClick={() => setShowMoreFilters((v) => !v)}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap px-1 py-2"
+            >
+              {showMoreFilters ? 'Hide filters' : 'More filters'}
+              {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
+            </button>
+          )}
+        </div>
+
+        {tab === 'performance' && showMoreFilters && (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 bg-white rounded-xl border border-gray-100 p-4"
+            data-testid="more-filters"
+          >
             <div>
               <label htmlFor="stats-country" className="block text-sm font-medium text-gray-700 mb-1">
                 Country

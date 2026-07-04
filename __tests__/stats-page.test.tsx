@@ -83,23 +83,22 @@ describe('StatsPage', () => {
     await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
   })
 
-  it('defaults to the My Performance tab with Domain and Designation visible', async () => {
+  it('defaults to the My Performance tab with Domain, Designation and Experience visible', async () => {
     installFetchMock()
     render(<StatsPage />)
     expect(screen.getByLabelText('Domain')).toBeInTheDocument()
     expect(screen.getByLabelText('Designation')).toBeInTheDocument()
+    expect(screen.getByLabelText('Experience')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
   })
 
-  it('hides the advanced filters until "More filters" is clicked', async () => {
+  it('hides the location filters until "More filters" is clicked', async () => {
     installFetchMock()
     render(<StatsPage />)
-    expect(screen.queryByLabelText('Experience')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Country')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
 
     openMoreFilters()
-    expect(screen.getByLabelText('Experience')).toBeInTheDocument()
     expect(screen.getByLabelText('Country')).toBeInTheDocument()
     expect(screen.getByLabelText('State or Region')).toBeInTheDocument()
     expect(screen.getByLabelText('City')).toBeInTheDocument()
@@ -179,7 +178,6 @@ describe('StatsPage', () => {
     installFetchMock()
     render(<StatsPage />)
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai')))
-    openMoreFilters()
     fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '5-10 years' } })
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('experience=5-10+years'))
@@ -211,7 +209,7 @@ describe('StatsPage', () => {
     render(<StatsPage />)
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai')))
     openMoreFilters()
-    fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '5-10 years' } })
+    fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'IN' } })
     fireEvent.click(screen.getByRole('button', { name: /hide filters/i }))
     expect(screen.getByRole('button', { name: /more filters \(1\)/i })).toBeInTheDocument()
     await flushMicrotasks()
