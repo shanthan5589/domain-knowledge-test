@@ -191,19 +191,31 @@ export default function StatsPage() {
             </div>
           )}
 
-        </div>
-
-        {tab === 'performance' && (
-          <div className="flex justify-end mb-2">
+          {tab === 'performance' && (
             <button
               onClick={() => setShowMoreFilters((v) => !v)}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap"
+              aria-label={showMoreFilters ? 'Hide filters' : 'More filters'}
+              title={showMoreFilters ? 'Hide filters' : 'More filters'}
+              className={`relative flex items-center justify-center w-10 h-10 rounded-lg border transition flex-shrink-0 ${
+                showMoreFilters
+                  ? 'border-blue-500 bg-blue-50 text-blue-600'
+                  : 'border-gray-300 bg-white text-gray-500 hover:border-blue-300 hover:text-blue-600'
+              }`}
             >
-              {showMoreFilters ? 'Hide filters' : 'More filters'}
-              {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-5 h-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+              </svg>
+              {!showMoreFilters && activeFilterCount > 0 && (
+                <span
+                  data-testid="filter-count-badge"
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+                >
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {tab === 'performance' && showMoreFilters && (
           <div

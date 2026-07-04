@@ -211,7 +211,8 @@ describe('StatsPage', () => {
     openMoreFilters()
     fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'IN' } })
     fireEvent.click(screen.getByRole('button', { name: /hide filters/i }))
-    expect(screen.getByRole('button', { name: /more filters \(1\)/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /more filters/i })).toBeInTheDocument()
+    expect(screen.getByTestId('filter-count-badge')).toHaveTextContent('1')
     await flushMicrotasks()
   })
 
