@@ -191,16 +191,19 @@ export default function StatsPage() {
             </div>
           )}
 
-          {tab === 'performance' && (
+        </div>
+
+        {tab === 'performance' && (
+          <div className="flex justify-end mb-2">
             <button
               onClick={() => setShowMoreFilters((v) => !v)}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap px-1 py-2"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap"
             >
               {showMoreFilters ? 'Hide filters' : 'More filters'}
               {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {tab === 'performance' && showMoreFilters && (
           <div
