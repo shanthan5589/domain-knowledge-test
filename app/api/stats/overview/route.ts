@@ -37,7 +37,7 @@ export async function GET() {
     counts[domain] = (counts[domain] ?? 0) + 1
   }
 
-  const averageScoreByDomain: Partial<Record<Domain, number>> = {}
+  const averageScoreByDomain: Partial<Record<Domain, number | null>> = {}
   const attemptCounts: Partial<Record<Domain, number>> = {}
   let mostAttemptedDomain: Domain | null = null
   let maxCount = 0
