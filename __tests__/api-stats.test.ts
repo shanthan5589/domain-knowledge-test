@@ -122,7 +122,7 @@ describe('GET /api/stats', () => {
     expect(body.percentile).toBeNull()
   })
 
-  it('computes percentile as the share of the crowd scored lower than you', async () => {
+  it('computes percentile as the share of your peers scored lower than you, excluding yourself', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 4, completed_at: '2026-01-04' },
@@ -133,8 +133,51 @@ describe('GET /api/stats', () => {
 
     const res = await GET(makeRequest('?domain=ai'))
     const body = await res.json()
-    // 2 of 4 users (a, b) scored below 8 → 50th percentile
-    expect(body.percentile).toBe(50)
+    // 2 of your 3 peers (a, b — excluding yourself from the denominator) scored below 8 → 67th percentile
+    expect(body.percentile).toBe(67)
+  })
+
+  it('reports 100th percentile for the sole top scorer among several peers', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 4, completed_at: '2026-01-04' },
+      { user_email: 'b@test.com', score: 6, completed_at: '2026-01-03' },
+      { user_email: 'c@test.com', score: 7, completed_at: '2026-01-02' },
+      { user_email: 'd@test.com', score: 5, completed_at: '2026-01-02' },
+      { user_email: 'me@test.com', score: 10, completed_at: '2026-01-01' },
+    ])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.percentile).toBe(100)
+  })
+
+  it('returns null percentile when you have no peers to compare against', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ user_email: 'me@test.com', score: 10, completed_at: '2026-01-01' }])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.totalUsers).toBe(1)
+    expect(body.percentile).toBeNull()
+  })
+
+  it('does not exclude yourself from the denominator when the filter excludes you', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' },
+      { user_email: 'b@test.com', score: 6, completed_at: '2026-01-02' },
+      { user_email: 'me@test.com', score: 10, completed_at: '2026-01-01' },
+    ])
+    // Only 'a' and 'b' match the designation filter — 'me' is excluded from the crowd
+    mockProfilesQuery([{ email: 'a@test.com' }, { email: 'b@test.com' }])
+
+    const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
+    const body = await res.json()
+    expect(body.totalUsers).toBe(2)
+    // yourScore (10) beats both a (8) and b (6) — since you're not part of the
+    // filtered crowd, the denominator is the full crowd size (2), not (2 - 1)
+    expect(body.percentile).toBe(100)
   })
 
   it('combines multiple profile filters with AND semantics', async () => {

@@ -74,12 +74,18 @@ export async function GET(req: NextRequest) {
   // Your own score is always reported, even if the filters exclude you
   const yourScore = latestByEmail.get(session.user.email) ?? null
 
-  // Percentile: what share of the (filtered) crowd you outscored
+  // Percentile: what share of your peers in the (filtered) crowd you outscored.
+  // If you belong to that crowd, exclude yourself from the comparison denominator —
+  // otherwise being the sole top scorer among 5 people would read as "80%" instead of 100%.
   let percentile: number | null = null
   if (yourScore !== null && totalUsers > 0) {
-    let scoredLower = 0
-    for (let s = 0; s < yourScore; s++) scoredLower += histogram[s]
-    percentile = Math.round((scoredLower / totalUsers) * 100)
+    const youAreInGroup = !emailFilter || emailFilter.has(session.user.email)
+    const peerCount = youAreInGroup ? totalUsers - 1 : totalUsers
+    if (peerCount > 0) {
+      let scoredLower = 0
+      for (let s = 0; s < yourScore; s++) scoredLower += histogram[s]
+      percentile = Math.round((scoredLower / peerCount) * 100)
+    }
   }
 
   return NextResponse.json({ histogram, totalUsers, yourScore, percentile })
