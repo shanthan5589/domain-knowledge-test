@@ -116,6 +116,19 @@ describe('POST /api/auth/signup', () => {
     expect(res.status).toBe(500)
   })
 
+  it('returns 500 when the existing-account lookup fails', async () => {
+    mockFrom.mockReturnValueOnce({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: null, error: { code: 'XX000', message: 'DB error' } }),
+        }),
+      }),
+    })
+    const res = await POST(makeRequest(validBody))
+    expect(res.status).toBe(500)
+    expect(mockFrom).toHaveBeenCalledTimes(1)
+  })
+
   it('returns 400 for invalid JSON', async () => {
     const req = new NextRequest('http://localhost/api/auth/signup', {
       method: 'POST',

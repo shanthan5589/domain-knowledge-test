@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     .select('email, full_name')
     .in('email', filteredEntries.map(([email]) => email))
 
-  if (profileError) {
+  if (profileError || !profiles) {
     return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 })
   }
 
@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
   )
 
   const leaderboard = filteredEntries
+    .filter(([email]) => nameByEmail.has(email))
     .map(([email, { score, completed_at }]) => ({
       name: nameByEmail.get(email) ?? 'Anonymous',
       score,

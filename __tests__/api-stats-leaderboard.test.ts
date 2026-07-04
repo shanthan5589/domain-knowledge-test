@@ -150,6 +150,21 @@ describe('GET /api/stats/leaderboard', () => {
     expect(body.leaderboard[0].name).toBe('Anonymous')
   })
 
+  it('ignores results whose profile has been deleted', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'deleted@test.com', score: 10, completed_at: '2026-01-01' },
+      { user_email: 'a@test.com', score: 7, completed_at: '2026-01-02' },
+    ])
+    mockProfilesQuery([{ email: 'a@test.com', full_name: 'Alice' }])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.leaderboard).toEqual([
+      { name: 'Alice', score: 7, isYou: false },
+    ])
+  })
+
   it('restricts the leaderboard to the profile filter when one is supplied', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
@@ -201,6 +216,14 @@ describe('GET /api/stats/leaderboard', () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([{ user_email: 'a@test.com', score: 7, completed_at: '2026-01-01' }])
     mockProfilesQuery(null, { message: 'DB error' })
+    const res = await GET(makeRequest('?domain=ai'))
+    expect(res.status).toBe(500)
+  })
+
+  it('returns 500 when the profiles fetch returns no data', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ user_email: 'a@test.com', score: 7, completed_at: '2026-01-01' }])
+    mockProfilesQuery(null)
     const res = await GET(makeRequest('?domain=ai'))
     expect(res.status).toBe(500)
   })

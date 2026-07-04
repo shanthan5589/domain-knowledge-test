@@ -148,14 +148,16 @@ describe('PATCH /api/profile', () => {
     mockAuth.mockResolvedValue(authedSession)
     let updatedData: Record<string, unknown> = {}
     mockFrom.mockReturnValue({
-      update: jest.fn().mockImplementation((data) => {
+      upsert: jest.fn().mockImplementation((data) => {
         updatedData = data
-        return { eq: jest.fn().mockResolvedValue({ error: null }) }
+        return Promise.resolve({ error: null })
       }),
     })
     const res = await PATCH(makePatchRequest(validPatch))
     expect(res.status).toBe(200)
     expect((await res.json()).success).toBe(true)
+    expect(updatedData.email).toBe('test@test.com')
+    expect(updatedData.full_name).toBeUndefined()
     expect(updatedData.profile_completed).toBe(true)
     expect(updatedData.country).toBe('India')
     expect(updatedData.state_region).toBe('Telangana')
@@ -165,11 +167,15 @@ describe('PATCH /api/profile', () => {
   it('returns 200 when linkedin_url is omitted (optional)', async () => {
     mockAuth.mockResolvedValue(authedSession)
     mockFrom.mockReturnValue({
-      update: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      }),
+      upsert: jest.fn().mockResolvedValue({ error: null }),
     })
-    const { linkedin_url: _, ...noLinkedin } = validPatch
+    const noLinkedin = {
+      country: validPatch.country,
+      state_region: validPatch.state_region,
+      city: validPatch.city,
+      years_of_experience: validPatch.years_of_experience,
+      designation: validPatch.designation,
+    }
     const res = await PATCH(makePatchRequest(noLinkedin))
     expect(res.status).toBe(200)
   })
@@ -177,9 +183,7 @@ describe('PATCH /api/profile', () => {
   it('returns 500 on database error', async () => {
     mockAuth.mockResolvedValue(authedSession)
     mockFrom.mockReturnValue({
-      update: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: { message: 'DB error' } }),
-      }),
+      upsert: jest.fn().mockResolvedValue({ error: { message: 'DB error' } }),
     })
     const res = await PATCH(makePatchRequest(validPatch))
     expect(res.status).toBe(500)
@@ -190,9 +194,7 @@ describe('PATCH /api/profile', () => {
     for (const value of validValues) {
       mockAuth.mockResolvedValue(authedSession)
       mockFrom.mockReturnValue({
-        update: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ error: null }),
-        }),
+        upsert: jest.fn().mockResolvedValue({ error: null }),
       })
       const res = await PATCH(makePatchRequest({ ...validPatch, years_of_experience: value }))
       expect(res.status).toBe(200)

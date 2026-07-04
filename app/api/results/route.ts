@@ -4,6 +4,9 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import type { SubmitResultPayload, Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+const VALID_ANSWERS = new Set(['A', 'B', 'C', 'D'])
+const MAX_QUESTIONS_PER_TEST = 10
+const MAX_TIME_TAKEN_SECONDS = 300
 
 export async function GET() {
   const session = await auth()
@@ -42,10 +45,14 @@ export async function POST(req: NextRequest) {
   if (!VALID_DOMAINS.includes(domain)) {
     return NextResponse.json({ error: 'Invalid domain' }, { status: 400 })
   }
-  if (typeof score !== 'number' || score < 0 || score > 10) {
+  if (!Number.isInteger(score) || score < 0 || score > MAX_QUESTIONS_PER_TEST) {
     return NextResponse.json({ error: 'Invalid score' }, { status: 400 })
   }
-  if (typeof time_taken_seconds !== 'number' || time_taken_seconds < 0) {
+  if (
+    !Number.isInteger(time_taken_seconds) ||
+    time_taken_seconds < 0 ||
+    time_taken_seconds > MAX_TIME_TAKEN_SECONDS
+  ) {
     return NextResponse.json({ error: 'Invalid time' }, { status: 400 })
   }
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
@@ -54,18 +61,29 @@ export async function POST(req: NextRequest) {
 
   // Verify answers server-side against the actual correct answers
   const questionIds = Object.keys(answers)
-  const { data: questions, error: fetchError } = await supabaseAdmin
-    .from('questions')
-    .select('id, correct_answer')
-    .in('id', questionIds)
-
-  if (fetchError || !questions) {
-    return NextResponse.json({ error: 'Failed to verify answers' }, { status: 500 })
+  if (questionIds.length > MAX_QUESTIONS_PER_TEST) {
+    return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
+  }
+  if (!Object.values(answers).every((answer) => VALID_ANSWERS.has(answer))) {
+    return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
   }
 
-  const verifiedScore = questions.reduce((count, q) => {
-    return answers[q.id] === q.correct_answer ? count + 1 : count
-  }, 0)
+  let verifiedScore = 0
+  if (questionIds.length > 0) {
+    const { data: questions, error: fetchError } = await supabaseAdmin
+      .from('questions')
+      .select('id, correct_answer')
+      .eq('domain', domain)
+      .in('id', questionIds)
+
+    if (fetchError || !questions) {
+      return NextResponse.json({ error: 'Failed to verify answers' }, { status: 500 })
+    }
+
+    verifiedScore = questions.reduce((count, q) => {
+      return answers[q.id] === q.correct_answer ? count + 1 : count
+    }, 0)
+  }
 
   const { error: insertError } = await supabaseAdmin.from('test_results').insert({
     user_id: session.user.id ?? session.user.email,

@@ -29,11 +29,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
   }
 
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: lookupError } = await supabaseAdmin
     .from('profiles')
     .select('id')
     .eq('email', email.toLowerCase())
     .single()
+
+  if (lookupError && lookupError.code !== 'PGRST116') {
+    return NextResponse.json({ error: 'Failed to create account' }, { status: 500 })
+  }
 
   if (existing) {
     return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })

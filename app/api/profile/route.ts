@@ -66,7 +66,8 @@ export async function PATCH(req: NextRequest) {
 
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({
+    .upsert({
+      email: session.user.email,
       country: country.trim(),
       state_region: state_region.trim(),
       city: city.trim(),
@@ -74,8 +75,9 @@ export async function PATCH(req: NextRequest) {
       designation: designation.trim(),
       linkedin_url: linkedin_url?.trim() || null,
       profile_completed: true,
+    }, {
+      onConflict: 'email',
     })
-    .eq('email', session.user.email)
 
   if (error) {
     console.error('[PATCH /api/profile] Supabase error:', error.message)

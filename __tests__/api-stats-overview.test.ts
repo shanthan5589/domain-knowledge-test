@@ -51,6 +51,14 @@ function mockProfilesQuery(data: unknown, error: unknown = null) {
   })
 }
 
+function mockExistingProfilesQuery(data: unknown, error: unknown = null) {
+  mockFrom.mockReturnValueOnce({
+    select: jest.fn().mockReturnValue({
+      in: jest.fn().mockResolvedValue({ data, error }),
+    }),
+  })
+}
+
 describe('GET /api/stats/overview', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -86,12 +94,31 @@ describe('GET /api/stats/overview', () => {
       { domain: 'ai', user_email: 'b@test.com', score: 7, completed_at: '2026-01-02' },
       { domain: 'cloud', user_email: 'a@test.com', score: 5, completed_at: '2026-01-03' },
     ])
+    mockExistingProfilesQuery([{ email: 'a@test.com' }, { email: 'b@test.com' }])
     const res = await GET(makeRequest())
     const body = await res.json()
     expect(body.averageScoreByDomain.ai).toBe(8) // (9 + 7) / 2
     expect(body.averageScoreByDomain.cloud).toBe(5)
     expect(body.attemptCounts.ai).toBe(2)
     expect(body.attemptCounts.cloud).toBe(1)
+  })
+
+  it('returns the current user latest, best, and attempt count by domain', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { domain: 'ai', user_email: 'me@test.com', score: 8, completed_at: '2026-01-04' },
+      { domain: 'ai', user_email: 'me@test.com', score: 10, completed_at: '2026-01-03' },
+      { domain: 'cloud', user_email: 'me@test.com', score: 6, completed_at: '2026-01-02' },
+      { domain: 'ai', user_email: 'a@test.com', score: 7, completed_at: '2026-01-01' },
+    ])
+    mockExistingProfilesQuery([{ email: 'me@test.com' }, { email: 'a@test.com' }])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+    expect(body.userLatestScoreByDomain.ai).toBe(8)
+    expect(body.userBestScoreByDomain.ai).toBe(10)
+    expect(body.userAttemptCountsByDomain.ai).toBe(2)
+    expect(body.userLatestScoreByDomain.cloud).toBe(6)
   })
 
   it('picks the domain with the most unique test-takers as most attempted', async () => {
@@ -102,6 +129,7 @@ describe('GET /api/stats/overview', () => {
       { domain: 'ai', user_email: 'c@test.com', score: 5, completed_at: '2026-01-02' },
       { domain: 'cloud', user_email: 'a@test.com', score: 5, completed_at: '2026-01-01' },
     ])
+    mockExistingProfilesQuery([{ email: 'a@test.com' }, { email: 'b@test.com' }, { email: 'c@test.com' }])
     const res = await GET(makeRequest())
     const body = await res.json()
     expect(body.mostAttemptedDomain).toBe('ai')
@@ -121,6 +149,31 @@ describe('GET /api/stats/overview', () => {
     expect(body.averageScoreByDomain.ai).toBe(9)
     expect(body.attemptCounts.ai).toBe(1)
     expect(body.averageScoreByDomain.cloud).toBe(6)
+  })
+
+  it('ignores results whose profile has been deleted', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { domain: 'ai', user_email: 'deleted@test.com', score: 10, completed_at: '2026-01-04' },
+      { domain: 'ai', user_email: 'a@test.com', score: 6, completed_at: '2026-01-03' },
+      { domain: 'cloud', user_email: 'deleted@test.com', score: 9, completed_at: '2026-01-02' },
+    ])
+    mockExistingProfilesQuery([{ email: 'a@test.com' }])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+    expect(body.averageScoreByDomain.ai).toBe(6)
+    expect(body.attemptCounts.ai).toBe(1)
+    expect(body.averageScoreByDomain.cloud).toBeNull()
+    expect(body.mostAttemptedDomain).toBe('ai')
+  })
+
+  it('returns 500 when the profile existence fetch fails', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([{ domain: 'ai', user_email: 'a@test.com', score: 9, completed_at: '2026-01-04' }])
+    mockExistingProfilesQuery(null, { message: 'DB error' })
+    const res = await GET(makeRequest())
+    expect(res.status).toBe(500)
   })
 
   it('returns 500 when the profile filter fetch fails', async () => {

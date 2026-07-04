@@ -39,9 +39,32 @@ export async function GET(req: NextRequest) {
   if (filterError) {
     return NextResponse.json({ error: 'Failed to fetch overview' }, { status: 500 })
   }
+  let existingProfileEmails: Set<string> | null = null
+  if (!emailFilter) {
+    const allEmails = new Set<string>()
+    for (const emailMap of latestByDomain.values()) {
+      for (const email of emailMap.keys()) allEmails.add(email)
+    }
+
+    if (allEmails.size > 0) {
+      const { data: profiles, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('email')
+        .in('email', [...allEmails])
+
+      if (profileError || !profiles) {
+        return NextResponse.json({ error: 'Failed to fetch overview' }, { status: 500 })
+      }
+
+      existingProfileEmails = new Set((profiles as { email: string }[]).map((profile) => profile.email))
+    }
+  }
 
   const averageScoreByDomain: Partial<Record<Domain, number | null>> = {}
   const attemptCounts: Partial<Record<Domain, number>> = {}
+  const userLatestScoreByDomain: Partial<Record<Domain, number | null>> = {}
+  const userBestScoreByDomain: Partial<Record<Domain, number | null>> = {}
+  const userAttemptCountsByDomain: Partial<Record<Domain, number>> = {}
   let mostAttemptedDomain: Domain | null = null
   let maxCount = 0
 
@@ -51,6 +74,7 @@ export async function GET(req: NextRequest) {
     let count = 0
     for (const [email, score] of emailMap) {
       if (emailFilter && !emailFilter.has(email)) continue
+      if (existingProfileEmails && !existingProfileEmails.has(email)) continue
       sum += score
       count += 1
     }
@@ -58,11 +82,25 @@ export async function GET(req: NextRequest) {
     attemptCounts[domain] = count
     averageScoreByDomain[domain] = count > 0 ? Math.round((sum / count) * 10) / 10 : null
 
+    const userRowsForDomain = (results as { domain: string; user_email: string; score: number }[])
+      .filter((row) => row.domain === domain && row.user_email === session.user.email)
+    userLatestScoreByDomain[domain] = userRowsForDomain[0]?.score ?? null
+    userBestScoreByDomain[domain] =
+      userRowsForDomain.length > 0 ? Math.max(...userRowsForDomain.map((row) => row.score)) : null
+    userAttemptCountsByDomain[domain] = userRowsForDomain.length
+
     if (count > maxCount) {
       maxCount = count
       mostAttemptedDomain = domain
     }
   }
 
-  return NextResponse.json({ averageScoreByDomain, attemptCounts, mostAttemptedDomain })
+  return NextResponse.json({
+    averageScoreByDomain,
+    attemptCounts,
+    mostAttemptedDomain,
+    userLatestScoreByDomain,
+    userBestScoreByDomain,
+    userAttemptCountsByDomain,
+  })
 }
