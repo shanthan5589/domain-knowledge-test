@@ -251,4 +251,64 @@ describe('StatsPage', () => {
     await waitFor(() => expect(screen.getByText(/Top scorers in/)).toBeInTheDocument())
     expect(screen.queryByTestId('stats-chart')).not.toBeInTheDocument()
   })
+
+  it('keeps Designation, Experience and More filters visible on the Domain Overview tab', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Domain Overview' }))
+    await waitFor(() => expect(screen.getByTestId('domain-overview')).toBeInTheDocument())
+    expect(screen.getByLabelText('Designation')).toBeInTheDocument()
+    expect(screen.getByLabelText('Experience')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /more filters/i })).toBeInTheDocument()
+  })
+
+  it('keeps Designation, Experience and More filters visible on the Leaderboard tab', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Leaderboard' }))
+    await waitFor(() => expect(screen.getByText(/Top scorers in/)).toBeInTheDocument())
+    expect(screen.getByLabelText('Designation')).toBeInTheDocument()
+    expect(screen.getByLabelText('Experience')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /more filters/i })).toBeInTheDocument()
+  })
+
+  it('passes the selected crowd filters through to the Domain Overview request', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('Designation'), { target: { value: 'Data Scientist' } })
+    fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '5-10 years' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Domain Overview' }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/\/api\/stats\/overview\?.*designation=Data\+Scientist/)
+      )
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/\/api\/stats\/overview\?.*experience=5-10\+years/)
+      )
+    })
+    await flushMicrotasks()
+  })
+
+  it('passes the selected crowd filters through to the Leaderboard request', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('Designation'), { target: { value: 'Data Scientist' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Leaderboard' }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringMatching(/\/api\/stats\/leaderboard\?.*designation=Data\+Scientist/)
+      )
+    })
+    await flushMicrotasks()
+  })
 })

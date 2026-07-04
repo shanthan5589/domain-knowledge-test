@@ -147,77 +147,71 @@ export default function StatsPage() {
             </select>
           </div>
 
-          {tab === 'performance' && (
-            <div className="w-full sm:flex-1 sm:min-w-[140px]">
-              <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
-                Designation
-              </label>
-              <select
-                id="stats-designation"
-                aria-label="Designation"
-                value={designation}
-                onChange={(e) => setDesignation(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-              >
-                <option value="all">All designations</option>
-                {DESIGNATION_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {tab === 'performance' && (
-            <div className="w-full sm:flex-1 sm:min-w-[140px]">
-              <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
-                Experience
-              </label>
-              <select
-                id="stats-experience"
-                aria-label="Experience"
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-              >
-                <option value="all">All experience levels</option>
-                {EXPERIENCE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {tab === 'performance' && (
-            <button
-              onClick={() => setShowMoreFilters((v) => !v)}
-              aria-label={showMoreFilters ? 'Hide filters' : 'More filters'}
-              title={showMoreFilters ? 'Hide filters' : 'More filters'}
-              className={`relative flex items-center justify-center w-10 h-10 rounded-lg border transition flex-shrink-0 ${
-                showMoreFilters
-                  ? 'border-blue-500 bg-blue-50 text-blue-600'
-                  : 'border-gray-300 bg-white text-gray-500 hover:border-blue-300 hover:text-blue-600'
-              }`}
+          <div className="w-full sm:flex-1 sm:min-w-[140px]">
+            <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
+              Designation
+            </label>
+            <select
+              id="stats-designation"
+              aria-label="Designation"
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-5 h-5" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
-              </svg>
-              {!showMoreFilters && activeFilterCount > 0 && (
-                <span
-                  data-testid="filter-count-badge"
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
-                >
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          )}
+              <option value="all">All designations</option>
+              {DESIGNATION_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="w-full sm:flex-1 sm:min-w-[140px]">
+            <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
+              Experience
+            </label>
+            <select
+              id="stats-experience"
+              aria-label="Experience"
+              value={experience}
+              onChange={(e) => setExperience(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+            >
+              <option value="all">All experience levels</option>
+              {EXPERIENCE_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => setShowMoreFilters((v) => !v)}
+            aria-label={showMoreFilters ? 'Hide filters' : 'More filters'}
+            title={showMoreFilters ? 'Hide filters' : 'More filters'}
+            className={`relative flex items-center justify-center w-10 h-10 rounded-lg border transition flex-shrink-0 ${
+              showMoreFilters
+                ? 'border-blue-500 bg-blue-50 text-blue-600'
+                : 'border-gray-300 bg-white text-gray-500 hover:border-blue-300 hover:text-blue-600'
+            }`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-5 h-5" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+            </svg>
+            {!showMoreFilters && activeFilterCount > 0 && (
+              <span
+                data-testid="filter-count-badge"
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        {tab === 'performance' && showMoreFilters && (
+        {showMoreFilters && (
           <div
             className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 bg-white rounded-xl border border-gray-100 p-4"
             data-testid="more-filters"
@@ -407,14 +401,29 @@ export default function StatsPage() {
         )}
 
         {/* Domain Overview */}
-        {tab === 'overview' && <DomainOverview />}
+        {tab === 'overview' && (
+          <DomainOverview
+            designation={designation}
+            experience={experience}
+            country={countryName || 'all'}
+            state_region={stateName || 'all'}
+            city={city || 'all'}
+          />
+        )}
 
         {/* Leaderboard */}
         {tab === 'leaderboard' && (
           <div>
             <p className="text-sm text-gray-500 mb-4">Top scorers in {DOMAIN_LABELS[domain]}</p>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-              <Leaderboard domain={domain} />
+              <Leaderboard
+                domain={domain}
+                designation={designation}
+                experience={experience}
+                country={countryName || 'all'}
+                state_region={stateName || 'all'}
+                city={city || 'all'}
+              />
             </div>
           </div>
         )}

@@ -11,9 +11,14 @@ interface LeaderboardEntry {
 
 interface Props {
   domain: Domain
+  designation: string
+  experience: string
+  country: string
+  state_region: string
+  city: string
 }
 
-export default function Leaderboard({ domain }: Props) {
+export default function Leaderboard({ domain, designation, experience, country, state_region, city }: Props) {
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null)
   const [error, setError] = useState('')
 
@@ -22,7 +27,8 @@ export default function Leaderboard({ domain }: Props) {
 
     async function fetchLeaderboard() {
       try {
-        const res = await fetch(`/api/stats/leaderboard?domain=${domain}&limit=5`)
+        const params = new URLSearchParams({ domain, limit: '5', designation, experience, country, state_region, city })
+        const res = await fetch(`/api/stats/leaderboard?${params}`)
         if (!res.ok) throw new Error('Failed to load leaderboard')
         const json = await res.json()
         if (cancelled) return
@@ -37,7 +43,7 @@ export default function Leaderboard({ domain }: Props) {
     return () => {
       cancelled = true
     }
-  }, [domain])
+  }, [domain, designation, experience, country, state_region, city])
 
   if (error) return <p className="text-red-600 text-sm">{error}</p>
   if (!entries) return <p className="text-gray-400 text-sm animate-pulse">Loading leaderboard…</p>

@@ -19,7 +19,15 @@ interface OverviewResponse {
   mostAttemptedDomain: Domain | null
 }
 
-export default function DomainOverview() {
+interface Props {
+  designation: string
+  experience: string
+  country: string
+  state_region: string
+  city: string
+}
+
+export default function DomainOverview({ designation, experience, country, state_region, city }: Props) {
   const [data, setData] = useState<OverviewResponse | null>(null)
   const [error, setError] = useState('')
 
@@ -28,11 +36,13 @@ export default function DomainOverview() {
 
     async function fetchOverview() {
       try {
-        const res = await fetch('/api/stats/overview')
+        const params = new URLSearchParams({ designation, experience, country, state_region, city })
+        const res = await fetch(`/api/stats/overview?${params}`)
         if (!res.ok) throw new Error('Failed to load overview')
         const json = await res.json()
         if (cancelled) return
         setData(json)
+        setError('')
       } catch {
         if (!cancelled) setError('Could not load domain averages.')
       }
@@ -42,7 +52,7 @@ export default function DomainOverview() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [designation, experience, country, state_region, city])
 
   if (error) return <p className="text-red-600 text-sm">{error}</p>
   if (!data) return <p className="text-gray-400 text-sm animate-pulse">Loading domain averages…</p>

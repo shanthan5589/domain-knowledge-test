@@ -4,6 +4,8 @@ import DomainOverview from '@/components/DomainOverview'
 global.fetch = jest.fn()
 const mockFetch = fetch as jest.Mock
 
+const noFilters = { designation: 'all', experience: 'all', country: 'all', state_region: 'all', city: 'all' }
+
 describe('DomainOverview', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -11,7 +13,7 @@ describe('DomainOverview', () => {
 
   it('shows a loading state before data arrives', () => {
     mockFetch.mockImplementation(() => new Promise(() => {}))
-    render(<DomainOverview />)
+    render(<DomainOverview {...noFilters} />)
     expect(screen.getByText('Loading domain averages…')).toBeInTheDocument()
   })
 
@@ -24,7 +26,7 @@ describe('DomainOverview', () => {
         mostAttemptedDomain: 'ai',
       }),
     })
-    render(<DomainOverview />)
+    render(<DomainOverview {...noFilters} />)
     await waitFor(() => expect(screen.getByTestId('domain-overview')).toBeInTheDocument())
     expect(screen.getByText('7.5')).toBeInTheDocument()
     expect(screen.getByText('—')).toBeInTheDocument() // cybersecurity has no data yet
@@ -39,13 +41,34 @@ describe('DomainOverview', () => {
         mostAttemptedDomain: 'ai',
       }),
     })
-    render(<DomainOverview />)
+    render(<DomainOverview {...noFilters} />)
     await waitFor(() => expect(screen.getByTestId('most-attempted-badge')).toBeInTheDocument())
+  })
+
+  it('includes the crowd filters in the request', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ averageScoreByDomain: {}, attemptCounts: {}, mostAttemptedDomain: null }),
+    })
+    render(
+      <DomainOverview
+        designation="Data Scientist"
+        experience="3-5 years"
+        country="India"
+        state_region="all"
+        city="all"
+      />
+    )
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('designation=Data+Scientist'))
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('experience=3-5+years'))
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('country=India'))
+    })
   })
 
   it('shows an error message when the fetch fails', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'fail' }) })
-    render(<DomainOverview />)
+    render(<DomainOverview {...noFilters} />)
     await waitFor(() => {
       expect(screen.getByText('Could not load domain averages.')).toBeInTheDocument()
     })
