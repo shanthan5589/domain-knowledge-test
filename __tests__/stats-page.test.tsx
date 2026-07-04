@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import StatsPage from '@/app/stats/page'
 
 jest.mock('next-auth/react', () => ({
@@ -53,6 +53,21 @@ function installFetchMock(stats: object = statsBody()) {
   })
 }
 
+function openMoreFilters() {
+  fireEvent.click(screen.getByRole('button', { name: /more filters/i }))
+}
+
+// The effect's own setState calls land a couple of microtask ticks after the fetch
+// call is recorded, so tests that only assert on the fetch call args (not a DOM
+// change) need to flush those ticks inside act() before the test tears down.
+async function flushMicrotasks() {
+  await act(async () => {
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+}
+
 describe('StatsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -64,26 +79,39 @@ describe('StatsPage', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai'))
     })
+    // Let the fetch's state updates land inside act() before the test tears down
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
   })
 
-  it('renders all filter dropdowns', async () => {
+  it('defaults to the My Performance tab with Domain and Designation visible', async () => {
     installFetchMock()
     render(<StatsPage />)
     expect(screen.getByLabelText('Domain')).toBeInTheDocument()
     expect(screen.getByLabelText('Designation')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+  })
+
+  it('hides the advanced filters until "More filters" is clicked', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    expect(screen.queryByLabelText('Experience')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Country')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    openMoreFilters()
     expect(screen.getByLabelText('Experience')).toBeInTheDocument()
     expect(screen.getByLabelText('Country')).toBeInTheDocument()
     expect(screen.getByLabelText('State or Region')).toBeInTheDocument()
     expect(screen.getByLabelText('City')).toBeInTheDocument()
-    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
   })
 
   it('state and city dropdowns start disabled until a country/state is chosen', async () => {
     installFetchMock()
     render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    openMoreFilters()
     expect(screen.getByLabelText('State or Region')).toBeDisabled()
     expect(screen.getByLabelText('City')).toBeDisabled()
-    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
   })
 
   it('shows the chart once data is loaded', async () => {
@@ -133,6 +161,7 @@ describe('StatsPage', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=cybersecurity'))
     })
+    await flushMicrotasks()
   })
 
   it('refetches when the designation dropdown changes', async () => {
@@ -143,22 +172,26 @@ describe('StatsPage', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('designation=Data+Scientist'))
     })
+    await flushMicrotasks()
   })
 
   it('refetches when the experience dropdown changes', async () => {
     installFetchMock()
     render(<StatsPage />)
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai')))
+    openMoreFilters()
     fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '5-10 years' } })
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('experience=5-10+years'))
     })
+    await flushMicrotasks()
   })
 
   it('cascades country -> state -> city and sends human-readable names', async () => {
     installFetchMock()
     render(<StatsPage />)
     await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai')))
+    openMoreFilters()
 
     fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'IN' } })
     expect(screen.getByLabelText('State or Region')).not.toBeDisabled()
@@ -170,6 +203,18 @@ describe('StatsPage', () => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('country=India'))
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('state_region=Telangana'))
     })
+    await flushMicrotasks()
+  })
+
+  it('shows an active-filter count on the "More filters" toggle once collapsed again', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai')))
+    openMoreFilters()
+    fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '5-10 years' } })
+    fireEvent.click(screen.getByRole('button', { name: /hide filters/i }))
+    expect(screen.getByRole('button', { name: /more filters \(1\)/i })).toBeInTheDocument()
+    await flushMicrotasks()
   })
 
   it('shows an error message when the stats fetch fails', async () => {
@@ -188,10 +233,23 @@ describe('StatsPage', () => {
     })
   })
 
-  it('renders the domain overview and leaderboard sections', async () => {
+  it('switches to the Domain Overview tab and hides the performance chart', async () => {
     installFetchMock()
     render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Domain Overview' }))
     await waitFor(() => expect(screen.getByTestId('domain-overview')).toBeInTheDocument())
-    expect(screen.getByText(/Top Scorers/)).toBeInTheDocument()
+    expect(screen.queryByTestId('stats-chart')).not.toBeInTheDocument()
+  })
+
+  it('switches to the Leaderboard tab and hides the performance chart', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Leaderboard' }))
+    await waitFor(() => expect(screen.getByText(/Top scorers in/)).toBeInTheDocument())
+    expect(screen.queryByTestId('stats-chart')).not.toBeInTheDocument()
   })
 })

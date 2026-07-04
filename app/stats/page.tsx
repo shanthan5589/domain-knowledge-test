@@ -38,6 +38,14 @@ const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '
 // exposing an individual's score), so we show a message instead of a chart.
 const MIN_SAMPLE_SIZE = 5
 
+const TABS = [
+  { id: 'performance', label: 'My Performance' },
+  { id: 'overview', label: 'Domain Overview' },
+  { id: 'leaderboard', label: 'Leaderboard' },
+] as const
+
+type Tab = (typeof TABS)[number]['id']
+
 interface StatsResponse {
   histogram: number[]
   totalUsers: number
@@ -46,6 +54,9 @@ interface StatsResponse {
 }
 
 export default function StatsPage() {
+  const [tab, setTab] = useState<Tab>('performance')
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
+
   const [domain, setDomain] = useState<Domain>('ai')
   const [designation, setDesignation] = useState('all')
   const [experience, setExperience] = useState('all')
@@ -102,6 +113,10 @@ export default function StatsPage() {
   const yAxisMax = Math.max(20, Math.ceil(maxPercent / 10) * 10)
   const yAxisTicks = [1, 0.75, 0.5, 0.25, 0].map((f) => Math.round(yAxisMax * f))
 
+  const activeFilterCount = [experience, countryCode ? 'x' : 'all', stateCode ? 'x' : 'all', city ? 'x' : 'all'].filter(
+    (v) => v !== 'all'
+  ).length
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -111,241 +126,279 @@ export default function StatsPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Your Stats</h1>
-        <p className="text-gray-500 mb-8">See how your score compares to others</p>
+        <p className="text-gray-500 mb-6">See how your score compares to others</p>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          <div>
-            <label htmlFor="stats-domain" className="block text-sm font-medium text-gray-700 mb-1">
-              Domain
-            </label>
-            <select
-              id="stats-domain"
-              aria-label="Domain"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value as Domain)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-            >
-              {ALL_DOMAINS.map((d) => (
-                <option key={d} value={d}>
-                  {DOMAIN_LABELS[d]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
-              Designation
-            </label>
-            <select
-              id="stats-designation"
-              aria-label="Designation"
-              value={designation}
-              onChange={(e) => setDesignation(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-            >
-              <option value="all">All designations</option>
-              {DESIGNATION_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
-              Experience
-            </label>
-            <select
-              id="stats-experience"
-              aria-label="Experience"
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-            >
-              <option value="all">All experience levels</option>
-              {EXPERIENCE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stats-country" className="block text-sm font-medium text-gray-700 mb-1">
-              Country
-            </label>
-            <select
-              id="stats-country"
-              aria-label="Country"
-              value={countryCode}
-              onChange={(e) => {
-                setCountryCode(e.target.value)
-                setStateCode('')
-                setCity('')
-              }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-            >
-              <option value="">All countries</option>
-              {Country.getAllCountries().map((c) => (
-                <option key={c.isoCode} value={c.isoCode}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stats-state" className="block text-sm font-medium text-gray-700 mb-1">
-              State / Region
-            </label>
-            <select
-              id="stats-state"
-              aria-label="State or Region"
-              value={stateCode}
-              onChange={(e) => {
-                setStateCode(e.target.value)
-                setCity('')
-              }}
-              disabled={!countryCode}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">All states / regions</option>
-              {states.map((s) => (
-                <option key={s.isoCode} value={s.isoCode}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="stats-city" className="block text-sm font-medium text-gray-700 mb-1">
-              City
-            </label>
-            <select
-              id="stats-city"
-              aria-label="City"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              disabled={!stateCode}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">All cities</option>
-              {cities.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Domain selector — drives every tab below */}
+        <div className="max-w-xs mb-6">
+          <label htmlFor="stats-domain" className="block text-sm font-medium text-gray-700 mb-1">
+            Domain
+          </label>
+          <select
+            id="stats-domain"
+            aria-label="Domain"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value as Domain)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            {ALL_DOMAINS.map((d) => (
+              <option key={d} value={d}>
+                {DOMAIN_LABELS[d]}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Chart */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-10">
-          {loading && <p className="text-gray-400 text-sm animate-pulse">Loading stats…</p>}
-          {!loading && error && <p className="text-red-600 text-sm">{error}</p>}
+        {/* Tabs */}
+        <div role="tablist" className="flex gap-1 border-b border-gray-200 mb-6">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition ${
+                tab === t.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-          {!loading && !error && data && data.totalUsers < MIN_SAMPLE_SIZE && (
-            <p className="text-gray-500 text-sm text-center py-10" data-testid="stats-empty">
-              Not enough data yet for this filter ({data.totalUsers} {data.totalUsers === 1 ? 'result' : 'results'}
-              ). Try a broader filter.
-            </p>
-          )}
-
-          {!loading && !error && data && data.totalUsers >= MIN_SAMPLE_SIZE && (
-            <div data-testid="stats-chart">
-              <p className="text-xs text-black mb-4">
-                Based on {data.totalUsers} test-taker{data.totalUsers === 1 ? '' : 's'}
-              </p>
-
-              {data.yourScore !== null && data.percentile !== null && (
-                <p
-                  className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg px-4 py-2 mb-4"
-                  data-testid="percentile-callout"
+        {/* My Performance */}
+        {tab === 'performance' && (
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
+              <div className="flex-1">
+                <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
+                  Designation
+                </label>
+                <select
+                  id="stats-designation"
+                  aria-label="Designation"
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                 >
-                  You scored better than {data.percentile}% of this group in {DOMAIN_LABELS[domain]}.
+                  <option value="all">All designations</option>
+                  {DESIGNATION_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={() => setShowMoreFilters((v) => !v)}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap px-1 py-2"
+              >
+                {showMoreFilters ? 'Hide filters' : 'More filters'}
+                {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
+              </button>
+            </div>
+
+            {showMoreFilters && (
+              <div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 bg-white rounded-xl border border-gray-100 p-4"
+                data-testid="more-filters"
+              >
+                <div>
+                  <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
+                    Experience
+                  </label>
+                  <select
+                    id="stats-experience"
+                    aria-label="Experience"
+                    value={experience}
+                    onChange={(e) => setExperience(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="all">All experience levels</option>
+                    {EXPERIENCE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="stats-country" className="block text-sm font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <select
+                    id="stats-country"
+                    aria-label="Country"
+                    value={countryCode}
+                    onChange={(e) => {
+                      setCountryCode(e.target.value)
+                      setStateCode('')
+                      setCity('')
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="">All countries</option>
+                    {Country.getAllCountries().map((c) => (
+                      <option key={c.isoCode} value={c.isoCode}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="stats-state" className="block text-sm font-medium text-gray-700 mb-1">
+                    State / Region
+                  </label>
+                  <select
+                    id="stats-state"
+                    aria-label="State or Region"
+                    value={stateCode}
+                    onChange={(e) => {
+                      setStateCode(e.target.value)
+                      setCity('')
+                    }}
+                    disabled={!countryCode}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">All states / regions</option>
+                    {states.map((s) => (
+                      <option key={s.isoCode} value={s.isoCode}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="stats-city" className="block text-sm font-medium text-gray-700 mb-1">
+                    City
+                  </label>
+                  <select
+                    id="stats-city"
+                    aria-label="City"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    disabled={!stateCode}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">All cities</option>
+                    {cities.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Chart */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              {loading && <p className="text-gray-400 text-sm animate-pulse">Loading stats…</p>}
+              {!loading && error && <p className="text-red-600 text-sm">{error}</p>}
+
+              {!loading && !error && data && data.totalUsers < MIN_SAMPLE_SIZE && (
+                <p className="text-gray-500 text-sm text-center py-10" data-testid="stats-empty">
+                  Not enough data yet for this filter ({data.totalUsers}{' '}
+                  {data.totalUsers === 1 ? 'result' : 'results'}). Try a broader filter.
                 </p>
               )}
 
-              <div className="flex gap-3">
-                {/* Y-axis: percentage scale */}
-                <div className="flex flex-col justify-between h-56 text-xs text-black text-right">
-                  {yAxisTicks.map((tick) => (
-                    <span key={tick}>{tick}%</span>
-                  ))}
-                </div>
+              {!loading && !error && data && data.totalUsers >= MIN_SAMPLE_SIZE && (
+                <div data-testid="stats-chart">
+                  <p className="text-xs text-black mb-4">
+                    Based on {data.totalUsers} test-taker{data.totalUsers === 1 ? '' : 's'}
+                  </p>
 
-                {/* Bars + gridlines */}
-                <div className="flex-1 relative h-56">
-                  <div className="absolute inset-0 flex flex-col justify-between">
-                    {yAxisTicks.map((tick) => (
-                      <div key={tick} className="border-t border-black w-full" />
-                    ))}
-                  </div>
-                  <div className="relative flex items-end gap-2 h-full">
-                    {data.histogram.map((count, score) => {
-                      const percent = (count / data.totalUsers) * 100
-                      const heightPercent = (percent / yAxisMax) * 100
-                      const isYou = data.yourScore === score
-                      return (
-                        <div
-                          key={score}
-                          className="flex-1 flex flex-col items-center justify-end h-full"
-                          data-testid={`score-bar-${score}`}
-                        >
-                          {isYou && (
-                            <span
-                              className="mb-1 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold flex-shrink-0"
-                              title="Your score"
-                              data-testid="you-marker"
+                  {data.yourScore !== null && data.percentile !== null && (
+                    <p
+                      className="text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg px-4 py-2 mb-4"
+                      data-testid="percentile-callout"
+                    >
+                      You scored better than {data.percentile}% of this group in {DOMAIN_LABELS[domain]}.
+                    </p>
+                  )}
+
+                  <div className="flex gap-3">
+                    {/* Y-axis: percentage scale */}
+                    <div className="flex flex-col justify-between h-56 text-xs text-black text-right">
+                      {yAxisTicks.map((tick) => (
+                        <span key={tick}>{tick}%</span>
+                      ))}
+                    </div>
+
+                    {/* Bars + gridlines */}
+                    <div className="flex-1 relative h-56">
+                      <div className="absolute inset-0 flex flex-col justify-between">
+                        {yAxisTicks.map((tick) => (
+                          <div key={tick} className="border-t border-black w-full" />
+                        ))}
+                      </div>
+                      <div className="relative flex items-end gap-2 h-full">
+                        {data.histogram.map((count, score) => {
+                          const percent = (count / data.totalUsers) * 100
+                          const heightPercent = (percent / yAxisMax) * 100
+                          const isYou = data.yourScore === score
+                          return (
+                            <div
+                              key={score}
+                              className="flex-1 flex flex-col items-center justify-end h-full"
+                              data-testid={`score-bar-${score}`}
                             >
-                              You
-                            </span>
-                          )}
-                          <div
-                            className={`w-full rounded-t-md ${isYou ? 'bg-blue-500' : 'bg-gray-300'}`}
-                            style={{ height: `${heightPercent}%`, minHeight: count > 0 ? '4px' : '0' }}
-                          />
-                        </div>
-                      )
-                    })}
+                              {isYou && (
+                                <span
+                                  className="mb-1 w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold flex-shrink-0"
+                                  title="Your score"
+                                  data-testid="you-marker"
+                                >
+                                  You
+                                </span>
+                              )}
+                              <div
+                                className={`w-full rounded-t-md ${isYou ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                style={{ height: `${heightPercent}%`, minHeight: count > 0 ? '4px' : '0' }}
+                              />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* X-axis: score labels, aligned under the bars */}
-              <div className="flex gap-3 mt-2">
-                <div className="w-8 flex-shrink-0" />
-                <div className="flex-1 flex gap-2">
-                  {data.histogram.map((_, score) => (
-                    <span key={score} className="flex-1 text-center text-[11px] text-black">
-                      {score}
-                    </span>
-                  ))}
+                  {/* X-axis: score labels, aligned under the bars */}
+                  <div className="flex gap-3 mt-2">
+                    <div className="w-8 flex-shrink-0" />
+                    <div className="flex-1 flex gap-2">
+                      {data.histogram.map((_, score) => (
+                        <span key={score} className="flex-1 text-center text-[11px] text-black">
+                          {score}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-center text-xs text-black mt-2">Score (out of 10)</p>
                 </div>
-              </div>
-              <p className="text-center text-xs text-black mt-2">Score (out of 10)</p>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Domain averages */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Domain Averages</h2>
-          <DomainOverview />
-        </div>
-
-        {/* Leaderboard for the selected domain */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Top Scorers — {DOMAIN_LABELS[domain]}</h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <Leaderboard domain={domain} />
           </div>
-        </div>
+        )}
+
+        {/* Domain Overview */}
+        {tab === 'overview' && <DomainOverview />}
+
+        {/* Leaderboard */}
+        {tab === 'leaderboard' && (
+          <div>
+            <p className="text-sm text-gray-500 mb-4">Top scorers in {DOMAIN_LABELS[domain]}</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <Leaderboard domain={domain} />
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )
