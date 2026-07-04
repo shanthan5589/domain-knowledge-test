@@ -124,32 +124,162 @@ export default function StatsPage() {
         <UserMenu />
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-10">
+      <div className="max-w-3xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Your Stats</h1>
-        <p className="text-gray-500 mb-6">See how your score compares to others</p>
+        <p className="text-gray-500 mb-4">See how your score compares to others</p>
 
-        {/* Domain selector — drives every tab below */}
-        <div className="max-w-xs mb-6">
-          <label htmlFor="stats-domain" className="block text-sm font-medium text-gray-700 mb-1">
-            Domain
-          </label>
-          <select
-            id="stats-domain"
-            aria-label="Domain"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value as Domain)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-          >
-            {ALL_DOMAINS.map((d) => (
-              <option key={d} value={d}>
-                {DOMAIN_LABELS[d]}
-              </option>
-            ))}
-          </select>
+        {/* Domain + Designation share a row so the chart doesn't get pushed below the fold */}
+        <div className="flex flex-wrap items-end gap-4 mb-4">
+          <div className="w-full sm:w-56">
+            <label htmlFor="stats-domain" className="block text-sm font-medium text-gray-700 mb-1">
+              Domain
+            </label>
+            <select
+              id="stats-domain"
+              aria-label="Domain"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value as Domain)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+            >
+              {ALL_DOMAINS.map((d) => (
+                <option key={d} value={d}>
+                  {DOMAIN_LABELS[d]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {tab === 'performance' && (
+            <div className="w-full sm:w-56">
+              <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
+                Designation
+              </label>
+              <select
+                id="stats-designation"
+                aria-label="Designation"
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              >
+                <option value="all">All designations</option>
+                {DESIGNATION_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {tab === 'performance' && (
+            <button
+              onClick={() => setShowMoreFilters((v) => !v)}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap px-1 py-2"
+            >
+              {showMoreFilters ? 'Hide filters' : 'More filters'}
+              {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
+            </button>
+          )}
         </div>
 
+        {tab === 'performance' && showMoreFilters && (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 bg-white rounded-xl border border-gray-100 p-4"
+            data-testid="more-filters"
+          >
+            <div>
+              <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
+                Experience
+              </label>
+              <select
+                id="stats-experience"
+                aria-label="Experience"
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              >
+                <option value="all">All experience levels</option>
+                {EXPERIENCE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="stats-country" className="block text-sm font-medium text-gray-700 mb-1">
+                Country
+              </label>
+              <select
+                id="stats-country"
+                aria-label="Country"
+                value={countryCode}
+                onChange={(e) => {
+                  setCountryCode(e.target.value)
+                  setStateCode('')
+                  setCity('')
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+              >
+                <option value="">All countries</option>
+                {Country.getAllCountries().map((c) => (
+                  <option key={c.isoCode} value={c.isoCode}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="stats-state" className="block text-sm font-medium text-gray-700 mb-1">
+                State / Region
+              </label>
+              <select
+                id="stats-state"
+                aria-label="State or Region"
+                value={stateCode}
+                onChange={(e) => {
+                  setStateCode(e.target.value)
+                  setCity('')
+                }}
+                disabled={!countryCode}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">All states / regions</option>
+                {states.map((s) => (
+                  <option key={s.isoCode} value={s.isoCode}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="stats-city" className="block text-sm font-medium text-gray-700 mb-1">
+                City
+              </label>
+              <select
+                id="stats-city"
+                aria-label="City"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                disabled={!stateCode}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">All cities</option>
+                {cities.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div role="tablist" className="flex gap-1 border-b border-gray-200 mb-6">
+        <div role="tablist" className="flex gap-1 border-b border-gray-200 mb-4">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -170,134 +300,8 @@ export default function StatsPage() {
         {/* My Performance */}
         {tab === 'performance' && (
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
-              <div className="flex-1">
-                <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
-                  Designation
-                </label>
-                <select
-                  id="stats-designation"
-                  aria-label="Designation"
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                >
-                  <option value="all">All designations</option>
-                  {DESIGNATION_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                onClick={() => setShowMoreFilters((v) => !v)}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition whitespace-nowrap px-1 py-2"
-              >
-                {showMoreFilters ? 'Hide filters' : 'More filters'}
-                {!showMoreFilters && activeFilterCount > 0 && ` (${activeFilterCount})`}
-              </button>
-            </div>
-
-            {showMoreFilters && (
-              <div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 bg-white rounded-xl border border-gray-100 p-4"
-                data-testid="more-filters"
-              >
-                <div>
-                  <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
-                    Experience
-                  </label>
-                  <select
-                    id="stats-experience"
-                    aria-label="Experience"
-                    value={experience}
-                    onChange={(e) => setExperience(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                  >
-                    <option value="all">All experience levels</option>
-                    {EXPERIENCE_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="stats-country" className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
-                  </label>
-                  <select
-                    id="stats-country"
-                    aria-label="Country"
-                    value={countryCode}
-                    onChange={(e) => {
-                      setCountryCode(e.target.value)
-                      setStateCode('')
-                      setCity('')
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                  >
-                    <option value="">All countries</option>
-                    {Country.getAllCountries().map((c) => (
-                      <option key={c.isoCode} value={c.isoCode}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="stats-state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State / Region
-                  </label>
-                  <select
-                    id="stats-state"
-                    aria-label="State or Region"
-                    value={stateCode}
-                    onChange={(e) => {
-                      setStateCode(e.target.value)
-                      setCity('')
-                    }}
-                    disabled={!countryCode}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">All states / regions</option>
-                    {states.map((s) => (
-                      <option key={s.isoCode} value={s.isoCode}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="stats-city" className="block text-sm font-medium text-gray-700 mb-1">
-                    City
-                  </label>
-                  <select
-                    id="stats-city"
-                    aria-label="City"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    disabled={!stateCode}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">All cities</option>
-                    {cities.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
             {/* Chart */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               {loading && <p className="text-gray-400 text-sm animate-pulse">Loading stats…</p>}
               {!loading && error && <p className="text-red-600 text-sm">{error}</p>}
 
