@@ -128,7 +128,7 @@ export default function StatsPage() {
 
         {/* Domain + Designation share a row so the chart doesn't get pushed below the fold */}
         <div className="flex flex-wrap items-end gap-4 mb-4">
-          <div className="w-full sm:w-56">
+          <div className="w-full sm:flex-1 sm:min-w-[140px]">
             <label htmlFor="stats-domain" className="block text-sm font-medium text-gray-700 mb-1">
               Domain
             </label>
@@ -148,7 +148,7 @@ export default function StatsPage() {
           </div>
 
           {tab === 'performance' && (
-            <div className="w-full sm:w-56">
+            <div className="w-full sm:flex-1 sm:min-w-[140px]">
               <label htmlFor="stats-designation" className="block text-sm font-medium text-gray-700 mb-1">
                 Designation
               </label>
@@ -170,7 +170,7 @@ export default function StatsPage() {
           )}
 
           {tab === 'performance' && (
-            <div className="w-full sm:w-56">
+            <div className="w-full sm:flex-1 sm:min-w-[140px]">
               <label htmlFor="stats-experience" className="block text-sm font-medium text-gray-700 mb-1">
                 Experience
               </label>
