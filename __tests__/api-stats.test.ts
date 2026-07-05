@@ -208,7 +208,7 @@ describe('GET /api/stats', () => {
     expect(body.yourRank).toBe(3)
   })
 
-  it('returns null yourRank when you are excluded from the filtered crowd', async () => {
+  it('returns null yourRank and null percentile when you are excluded from the filtered crowd', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' },
@@ -220,6 +220,9 @@ describe('GET /api/stats', () => {
     const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
     const body = await res.json()
     expect(body.yourRank).toBeNull()
+    // You're not part of the filtered "Data Scientist" cohort, so a percentile
+    // comparing you against it would be meaningless — it should be omitted.
+    expect(body.percentile).toBeNull()
   })
 
   it('returns null percentile when you have no peers to compare against', async () => {
@@ -233,7 +236,7 @@ describe('GET /api/stats', () => {
     expect(body.percentile).toBeNull()
   })
 
-  it('does not exclude yourself from the denominator when the filter excludes you', async () => {
+  it('does not compute a percentile against a filtered cohort you are not part of', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' },
@@ -247,9 +250,10 @@ describe('GET /api/stats', () => {
     const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
     const body = await res.json()
     expect(body.totalUsers).toBe(2)
-    // yourScore (10) beats both a (8) and b (6) — since you're not part of the
-    // filtered crowd, the denominator is the full crowd size (2), not (2 - 1)
-    expect(body.percentile).toBe(100)
+    // yourScore (10) would beat both a (8) and b (6), but you aren't a member of
+    // the filtered "Data Scientist" cohort — comparing you against a group you
+    // don't belong to would be misleading, so no percentile is reported.
+    expect(body.percentile).toBeNull()
   })
 
   it('combines multiple profile filters with AND semantics', async () => {

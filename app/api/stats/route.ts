@@ -352,11 +352,15 @@ export async function GET(req: NextRequest) {
   const youAreInGroup = entries.some((entry) => entry.email === session.user.email)
 
   // Percentile: what share of your peers in the (filtered) crowd you outscored.
-  // If you belong to that crowd, exclude yourself from the comparison denominator —
-  // otherwise being the sole top scorer among 5 people would read as "80%" instead of 100%.
+  // Exclude yourself from the comparison denominator — otherwise being the sole
+  // top scorer among 5 people would read as "80%" instead of 100%.
+  // If you don't actually belong to the active filtered cohort (e.g. you've
+  // filtered the view to a role/location you aren't in), comparing you against
+  // it wouldn't mean anything — omit the percentile in that case instead of
+  // reporting a number against a group you're not part of.
   let percentile: number | null = null
-  if (yourScore !== null && totalUsers > 0) {
-    const peerCount = youAreInGroup ? totalUsers - 1 : totalUsers
+  if (youAreInGroup && yourScore !== null && totalUsers > 0) {
+    const peerCount = totalUsers - 1
     if (peerCount > 0) {
       let scoredLower = 0
       for (let s = 0; s < yourScore; s++) scoredLower += histogram[s]
