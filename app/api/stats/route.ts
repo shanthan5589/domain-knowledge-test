@@ -80,6 +80,17 @@ function toAverageScoreByGroup(
     .sort((a, b) => b.averageScore - a.averageScore || b.count - a.count)
 }
 
+// Minimum number of distinct users a segment/breakdown must contain before we're
+// willing to report it back to the client. Narrow filters (e.g. a rare
+// designation in a small city) can otherwise de-anonymize one or two real
+// people. Any group row (distribution bucket, average-by-group bucket, or
+// location comparison) that falls below this is dropped rather than returned.
+const MIN_COHORT_SIZE = 5
+
+function withMinCohortSize<T extends { count: number }>(rows: T[]): T[] {
+  return rows.filter((row) => row.count >= MIN_COHORT_SIZE)
+}
+
 function roundToOne(value: number) {
   return Math.round(value * 10) / 10
 }
@@ -106,6 +117,8 @@ function buildLocationComparisons(req: NextRequest, entries: ScoreEntry[]) {
   function addComparison(label: string | null, scope: string, matches: (entry: ScoreEntry) => boolean) {
     if (!label || label === 'all') return
     const scopedEntries = entries.filter(matches)
+    // Skip segments too small to report without risking de-anonymization.
+    if (scopedEntries.length < MIN_COHORT_SIZE) return
     comparisons.push({
       label,
       scope,
@@ -118,12 +131,16 @@ function buildLocationComparisons(req: NextRequest, entries: ScoreEntry[]) {
   addComparison(stateRegion, 'State / Region', (entry) => entry.profile.state_region === stateRegion)
   addComparison(country, 'Country', (entry) => entry.profile.country === country)
 
-  comparisons.push({
-    label: 'Global',
-    scope: 'Global',
-    averageScore: averageScoreFor(entries),
-    count: entries.length,
-  })
+  // The "Global" row reflects the same filtered cohort used for the rest of
+  // this response, so guard it on the same size floor for consistency.
+  if (entries.length >= MIN_COHORT_SIZE) {
+    comparisons.push({
+      label: 'Global',
+      scope: 'Global',
+      averageScore: averageScoreFor(entries),
+      count: entries.length,
+    })
+  }
 
   return comparisons
 }
@@ -391,15 +408,19 @@ export async function GET(req: NextRequest) {
     averageTimeSeconds,
     topScoreCount,
     topScorePercent,
-    roleDistribution: toDistribution(entries, (entry) => entry.profile.designation),
-    roleAverageScores: toAverageScoreByGroup(entries, (entry) => entry.profile.designation),
-    experienceAverageScores: toAverageScoreByGroup(entries, (entry) => entry.profile.years_of_experience),
-    experienceDistribution: toDistribution(entries, (entry) => entry.profile.years_of_experience),
+    roleDistribution: withMinCohortSize(toDistribution(entries, (entry) => entry.profile.designation)),
+    roleAverageScores: withMinCohortSize(toAverageScoreByGroup(entries, (entry) => entry.profile.designation)),
+    experienceAverageScores: withMinCohortSize(
+      toAverageScoreByGroup(entries, (entry) => entry.profile.years_of_experience)
+    ),
+    experienceDistribution: withMinCohortSize(
+      toDistribution(entries, (entry) => entry.profile.years_of_experience)
+    ),
     locationDistribution: locationDimension.getValue
-      ? toDistribution(entries, locationDimension.getValue)
+      ? withMinCohortSize(toDistribution(entries, locationDimension.getValue))
       : [],
     locationAverageScores: locationDimension.getValue
-      ? toAverageScoreByGroup(entries, locationDimension.getValue)
+      ? withMinCohortSize(toAverageScoreByGroup(entries, locationDimension.getValue))
       : [],
     locationDistributionLabel: locationDimension.label,
     // Use the same filtered cohort as the rest of this response so "Local vs

@@ -10,6 +10,11 @@ const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data
 // single request from pulling an unbounded table scan across every domain.
 const RESULTS_QUERY_LIMIT = 5000
 
+// Minimum number of distinct users a per-domain breakdown must contain before
+// we're willing to report its aggregate numbers back to the client. Prevents a
+// narrow profile filter from de-anonymizing one or two real people.
+const MIN_COHORT_SIZE = 5
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.email) {
@@ -86,7 +91,9 @@ export async function GET(req: NextRequest) {
     }
 
     attemptCounts[domain] = count
-    averageScoreByDomain[domain] = count > 0 ? Math.round((sum / count) * 10) / 10 : null
+    // Suppress the average for cohorts too small to report without risking
+    // de-anonymization of a handful of filtered users.
+    averageScoreByDomain[domain] = count >= MIN_COHORT_SIZE ? Math.round((sum / count) * 10) / 10 : null
 
     const userRowsForDomain = (results as { domain: string; user_email: string; score: number }[])
       .filter((row) => row.domain === domain && row.user_email === session.user.email)

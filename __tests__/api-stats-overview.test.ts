@@ -63,6 +63,10 @@ function mockExistingProfilesQuery(data: unknown, error: unknown = null) {
   })
 }
 
+function emails(prefix: string, count: number) {
+  return Array.from({ length: count }, (_, i) => `${prefix}${i}@test.com`)
+}
+
 describe('GET /api/stats/overview', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -90,7 +94,25 @@ describe('GET /api/stats/overview', () => {
     expect(body.mostAttemptedDomain).toBeNull()
   })
 
-  it('computes per-domain averages from each user\'s latest attempt only', async () => {
+  it('computes per-domain averages from each user\'s latest attempt only, once the cohort meets the minimum size', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const aiEmails = emails('ai', 5)
+    const cloudEmails = emails('cloud', 5)
+    mockResultsQuery([
+      ...aiEmails.map((email, i) => ({ domain: 'ai', user_email: email, score: 9, completed_at: `2026-01-${10 + i}` })),
+      { domain: 'ai', user_email: aiEmails[0], score: 3, completed_at: '2026-01-01' }, // older, ignored
+      ...cloudEmails.map((email, i) => ({ domain: 'cloud', user_email: email, score: 5, completed_at: `2026-02-${10 + i}` })),
+    ])
+    mockExistingProfilesQuery([...aiEmails, ...cloudEmails].map((email) => ({ email })))
+    const res = await GET(makeRequest())
+    const body = await res.json()
+    expect(body.averageScoreByDomain.ai).toBe(9)
+    expect(body.averageScoreByDomain.cloud).toBe(5)
+    expect(body.attemptCounts.ai).toBe(5)
+    expect(body.attemptCounts.cloud).toBe(5)
+  })
+
+  it('suppresses the domain average (but not the raw attempt count) when fewer than the minimum cohort size have attempted', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { domain: 'ai', user_email: 'a@test.com', score: 9, completed_at: '2026-01-04' },
@@ -101,8 +123,8 @@ describe('GET /api/stats/overview', () => {
     mockExistingProfilesQuery([{ email: 'a@test.com' }, { email: 'b@test.com' }])
     const res = await GET(makeRequest())
     const body = await res.json()
-    expect(body.averageScoreByDomain.ai).toBe(8) // (9 + 7) / 2
-    expect(body.averageScoreByDomain.cloud).toBe(5)
+    expect(body.averageScoreByDomain.ai).toBeNull()
+    expect(body.averageScoreByDomain.cloud).toBeNull()
     expect(body.attemptCounts.ai).toBe(2)
     expect(body.attemptCounts.cloud).toBe(1)
   })
@@ -139,19 +161,20 @@ describe('GET /api/stats/overview', () => {
     expect(body.mostAttemptedDomain).toBe('ai')
   })
 
-  it('restricts averages to the profile filter when one is supplied', async () => {
+  it('restricts averages to the profile filter when one is supplied, once the filtered cohort meets the minimum size', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const aEmails = emails('a', 5)
     mockResultsQuery([
-      { domain: 'ai', user_email: 'a@test.com', score: 9, completed_at: '2026-01-04' },
+      ...aEmails.map((email, i) => ({ domain: 'ai', user_email: email, score: 9, completed_at: `2026-01-${10 + i}` })),
       { domain: 'ai', user_email: 'b@test.com', score: 3, completed_at: '2026-01-03' },
-      { domain: 'cloud', user_email: 'a@test.com', score: 6, completed_at: '2026-01-02' },
+      ...aEmails.map((email, i) => ({ domain: 'cloud', user_email: email, score: 6, completed_at: `2026-02-${10 + i}` })),
     ])
-    mockProfilesQuery([{ email: 'a@test.com' }])
+    mockProfilesQuery(aEmails.map((email) => ({ email })))
 
     const res = await GET(makeRequest('?designation=Data%20Scientist'))
     const body = await res.json()
     expect(body.averageScoreByDomain.ai).toBe(9)
-    expect(body.attemptCounts.ai).toBe(1)
+    expect(body.attemptCounts.ai).toBe(5)
     expect(body.averageScoreByDomain.cloud).toBe(6)
   })
 
@@ -166,7 +189,10 @@ describe('GET /api/stats/overview', () => {
 
     const res = await GET(makeRequest())
     const body = await res.json()
-    expect(body.averageScoreByDomain.ai).toBe(6)
+    // Only 1 real (non-deleted) test-taker per domain — below the minimum
+    // cohort size, so averages are suppressed even though attempt counts and
+    // the most-attempted domain are still reported.
+    expect(body.averageScoreByDomain.ai).toBeNull()
     expect(body.attemptCounts.ai).toBe(1)
     expect(body.averageScoreByDomain.cloud).toBeNull()
     expect(body.mostAttemptedDomain).toBe('ai')

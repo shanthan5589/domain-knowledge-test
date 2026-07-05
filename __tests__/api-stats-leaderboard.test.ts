@@ -165,7 +165,33 @@ describe('GET /api/stats/leaderboard', () => {
     ])
   })
 
-  it('restricts the leaderboard to the profile filter when one is supplied', async () => {
+  it('restricts the leaderboard to the profile filter when the filtered cohort meets the minimum size', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    // 5 people match the designation filter — at (not below) the minimum
+    // cohort size, so names are still safe to reveal. 'topscorer' is excluded
+    // by the filter and must not appear.
+    const filterEmails = ['a@test.com', 'c@test.com', 'd@test.com', 'e@test.com', 'me@test.com']
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 6, completed_at: '2026-01-03' },
+      { user_email: 'topscorer@test.com', score: 10, completed_at: '2026-01-02' }, // excluded by filter
+      { user_email: 'c@test.com', score: 5, completed_at: '2026-01-02' },
+      { user_email: 'd@test.com', score: 4, completed_at: '2026-01-02' },
+      { user_email: 'e@test.com', score: 3, completed_at: '2026-01-02' },
+      { user_email: 'me@test.com', score: 8, completed_at: '2026-01-01' },
+    ])
+    mockFilterProfilesQuery(filterEmails.map((email) => ({ email })))
+    mockProfilesQuery(filterEmails.map((email) => ({ email, full_name: email })))
+
+    const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist&limit=10'))
+    const body = await res.json()
+    expect(body.leaderboard.map((r: { name: string }) => r.name)).toEqual(
+      expect.arrayContaining(filterEmails)
+    )
+    expect(body.leaderboard).toHaveLength(5)
+    expect(body.leaderboard.some((r: { name: string }) => r.name === 'topscorer@test.com')).toBe(false)
+  })
+
+  it('withholds names when the filtered cohort is smaller than the minimum cohort size', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 6, completed_at: '2026-01-03' },
@@ -174,17 +200,12 @@ describe('GET /api/stats/leaderboard', () => {
     ])
     // Only 'a' and 'me' match the designation filter — 'b' (the top scorer) is excluded
     mockFilterProfilesQuery([{ email: 'a@test.com' }, { email: 'me@test.com' }])
-    mockProfilesQuery([
-      { email: 'a@test.com', full_name: 'Alice' },
-      { email: 'me@test.com', full_name: 'Me' },
-    ])
 
     const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
     const body = await res.json()
-    expect(body.leaderboard).toEqual([
-      { name: 'Me', score: 8, isYou: true },
-      { name: 'Alice', score: 6, isYou: false },
-    ])
+    // Only 2 people match — below the minimum cohort size, so no names/scores
+    // are revealed even though the caller is one of the two people.
+    expect(body.leaderboard).toEqual([])
   })
 
   it('returns an empty leaderboard when the profile filter matches nobody who has attempted', async () => {
