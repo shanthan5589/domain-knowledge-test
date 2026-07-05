@@ -80,6 +80,17 @@ function toAverageScoreByGroup(
     .sort((a, b) => b.averageScore - a.averageScore || b.count - a.count)
 }
 
+// Minimum number of distinct users a segment/breakdown must contain before we're
+// willing to report it back to the client. Narrow filters (e.g. a rare
+// designation in a small city) can otherwise de-anonymize one or two real
+// people. Any group row (distribution bucket, average-by-group bucket, or
+// location comparison) that falls below this is dropped rather than returned.
+const MIN_COHORT_SIZE = 5
+
+function withMinCohortSize<T extends { count: number }>(rows: T[]): T[] {
+  return rows.filter((row) => row.count >= MIN_COHORT_SIZE)
+}
+
 function roundToOne(value: number) {
   return Math.round(value * 10) / 10
 }
@@ -106,6 +117,8 @@ function buildLocationComparisons(req: NextRequest, entries: ScoreEntry[]) {
   function addComparison(label: string | null, scope: string, matches: (entry: ScoreEntry) => boolean) {
     if (!label || label === 'all') return
     const scopedEntries = entries.filter(matches)
+    // Skip segments too small to report without risking de-anonymization.
+    if (scopedEntries.length < MIN_COHORT_SIZE) return
     comparisons.push({
       label,
       scope,
@@ -118,12 +131,16 @@ function buildLocationComparisons(req: NextRequest, entries: ScoreEntry[]) {
   addComparison(stateRegion, 'State / Region', (entry) => entry.profile.state_region === stateRegion)
   addComparison(country, 'Country', (entry) => entry.profile.country === country)
 
-  comparisons.push({
-    label: 'Global',
-    scope: 'Global',
-    averageScore: averageScoreFor(entries),
-    count: entries.length,
-  })
+  // The "Global" row reflects the same filtered cohort used for the rest of
+  // this response, so guard it on the same size floor for consistency.
+  if (entries.length >= MIN_COHORT_SIZE) {
+    comparisons.push({
+      label: 'Global',
+      scope: 'Global',
+      averageScore: averageScoreFor(entries),
+      count: entries.length,
+    })
+  }
 
   return comparisons
 }
@@ -178,6 +195,11 @@ function buildUserProgress(userAttempts: ResultRow[]) {
   }
 }
 
+// Cap on how many result rows we pull for a single domain before aggregating in
+// memory. Well above any realistic per-domain attempt volume for this app, but
+// keeps a single request from pulling an unbounded table scan.
+const RESULTS_QUERY_LIMIT = 5000
+
 function getLocationDimension(req: NextRequest) {
   const country = req.nextUrl.searchParams.get('country')
   const stateRegion = req.nextUrl.searchParams.get('state_region')
@@ -224,6 +246,7 @@ export async function GET(req: NextRequest) {
     .select('user_email, score, time_taken_seconds, completed_at')
     .eq('domain', domain)
     .order('completed_at', { ascending: false })
+    .limit(RESULTS_QUERY_LIMIT)
 
   if (error || !results) {
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
@@ -311,20 +334,6 @@ export async function GET(req: NextRequest) {
     })
     .filter((entry): entry is ScoreEntry => entry !== null)
 
-  const allProfiledEntries: ScoreEntry[] = [...latestByEmail.entries()]
-    .map(([email, latest]) => {
-      const profile = profileByEmail.get(email)
-      if (!profile) return null
-      return {
-        email,
-        score: latest.score,
-        time_taken_seconds: latest.time_taken_seconds,
-        completed_at: latest.completed_at,
-        profile,
-      }
-    })
-    .filter((entry): entry is ScoreEntry => entry !== null)
-
   const histogram = new Array(11).fill(0)
   let scoreSum = 0
   let topScore: number | null = null
@@ -360,11 +369,15 @@ export async function GET(req: NextRequest) {
   const youAreInGroup = entries.some((entry) => entry.email === session.user.email)
 
   // Percentile: what share of your peers in the (filtered) crowd you outscored.
-  // If you belong to that crowd, exclude yourself from the comparison denominator —
-  // otherwise being the sole top scorer among 5 people would read as "80%" instead of 100%.
+  // Exclude yourself from the comparison denominator — otherwise being the sole
+  // top scorer among 5 people would read as "80%" instead of 100%.
+  // If you don't actually belong to the active filtered cohort (e.g. you've
+  // filtered the view to a role/location you aren't in), comparing you against
+  // it wouldn't mean anything — omit the percentile in that case instead of
+  // reporting a number against a group you're not part of.
   let percentile: number | null = null
-  if (yourScore !== null && totalUsers > 0) {
-    const peerCount = youAreInGroup ? totalUsers - 1 : totalUsers
+  if (youAreInGroup && yourScore !== null && totalUsers > 0) {
+    const peerCount = totalUsers - 1
     if (peerCount > 0) {
       let scoredLower = 0
       for (let s = 0; s < yourScore; s++) scoredLower += histogram[s]
@@ -395,18 +408,26 @@ export async function GET(req: NextRequest) {
     averageTimeSeconds,
     topScoreCount,
     topScorePercent,
-    roleDistribution: toDistribution(entries, (entry) => entry.profile.designation),
-    roleAverageScores: toAverageScoreByGroup(entries, (entry) => entry.profile.designation),
-    experienceAverageScores: toAverageScoreByGroup(entries, (entry) => entry.profile.years_of_experience),
-    experienceDistribution: toDistribution(entries, (entry) => entry.profile.years_of_experience),
+    roleDistribution: withMinCohortSize(toDistribution(entries, (entry) => entry.profile.designation)),
+    roleAverageScores: withMinCohortSize(toAverageScoreByGroup(entries, (entry) => entry.profile.designation)),
+    experienceAverageScores: withMinCohortSize(
+      toAverageScoreByGroup(entries, (entry) => entry.profile.years_of_experience)
+    ),
+    experienceDistribution: withMinCohortSize(
+      toDistribution(entries, (entry) => entry.profile.years_of_experience)
+    ),
     locationDistribution: locationDimension.getValue
-      ? toDistribution(entries, locationDimension.getValue)
+      ? withMinCohortSize(toDistribution(entries, locationDimension.getValue))
       : [],
     locationAverageScores: locationDimension.getValue
-      ? toAverageScoreByGroup(entries, locationDimension.getValue)
+      ? withMinCohortSize(toAverageScoreByGroup(entries, locationDimension.getValue))
       : [],
     locationDistributionLabel: locationDimension.label,
-    locationComparisons: buildLocationComparisons(req, allProfiledEntries),
+    // Use the same filtered cohort as the rest of this response so "Local vs
+    // Global" comparisons share one consistent reference frame, instead of
+    // comparing the filtered view against a differently-scoped (unfiltered)
+    // crowd that includes people outside the active filters.
+    locationComparisons: buildLocationComparisons(req, entries),
     userProgress,
   })
 }

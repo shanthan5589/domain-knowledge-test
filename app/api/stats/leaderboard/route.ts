@@ -8,6 +8,11 @@ const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data
 const DEFAULT_LIMIT = 5
 const MAX_LIMIT = 20
 
+// Minimum number of distinct users a filtered cohort must contain before we're
+// willing to reveal individual display names. A narrow filter (e.g. a rare
+// designation in a small city) could otherwise de-anonymize one or two people.
+const MIN_COHORT_SIZE = 5
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.email) {
@@ -51,6 +56,13 @@ export async function GET(req: NextRequest) {
   )
 
   if (filteredEntries.length === 0) {
+    return NextResponse.json({ leaderboard: [] })
+  }
+
+  // A filtered cohort smaller than the minimum size would let a narrow filter
+  // (e.g. a rare designation/city combination) single out a real person's name
+  // and score. Refuse to reveal names for such small groups.
+  if (emailFilter && filteredEntries.length < MIN_COHORT_SIZE) {
     return NextResponse.json({ leaderboard: [] })
   }
 

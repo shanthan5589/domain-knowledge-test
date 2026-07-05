@@ -15,17 +15,23 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Users can read and update only their own profile
+-- Users can read and update only their own profile.
+-- Scoped to the email claim in the request JWT so the anon key cannot be
+-- used to read/write other users' rows. Server-side app code uses the
+-- service-role client (supabaseAdmin), which bypasses RLS entirely, so
+-- normal app functionality (e.g. Google sign-in profile creation) is
+-- unaffected by this restriction.
 CREATE POLICY "Users can read own profile"
   ON profiles FOR SELECT
-  USING (true);
+  USING (email = auth.jwt()->>'email');
 
 CREATE POLICY "Users can insert own profile"
   ON profiles FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (email = auth.jwt()->>'email');
 
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
-  USING (true);
+  USING (email = auth.jwt()->>'email')
+  WITH CHECK (email = auth.jwt()->>'email');
 
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles (email);

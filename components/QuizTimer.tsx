@@ -10,6 +10,7 @@ interface QuizTimerProps {
 export default function QuizTimer({ totalSeconds, onExpire }: QuizTimerProps) {
   const [remaining, setRemaining] = useState(totalSeconds)
   const onExpireRef = useRef(onExpire)
+  const hasExpiredRef = useRef(false)
 
   useEffect(() => {
     onExpireRef.current = onExpire
@@ -17,7 +18,14 @@ export default function QuizTimer({ totalSeconds, onExpire }: QuizTimerProps) {
 
   useEffect(() => {
     if (remaining <= 0) {
-      onExpireRef.current()
+      // Guard against calling onExpire more than once per timer instance —
+      // without this, a re-render triggered by the expire callback itself
+      // (e.g. parent changing phase) could re-run this effect while
+      // `remaining` is still 0 and fire the callback again.
+      if (!hasExpiredRef.current) {
+        hasExpiredRef.current = true
+        onExpireRef.current()
+      }
       return
     }
     const id = setTimeout(() => setRemaining((r) => r - 1), 1000)
