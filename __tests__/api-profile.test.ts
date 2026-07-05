@@ -185,6 +185,31 @@ describe('PATCH /api/profile', () => {
     expect(res.status).toBe(500)
   })
 
+  it('logs code/details/hint from the Supabase error without changing the response body', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockFrom.mockReturnValue({
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({
+          error: {
+            message: 'duplicate key value violates unique constraint',
+            code: '23505',
+            details: 'Key (email)=(test@test.com) already exists.',
+            hint: 'Missing UNIQUE constraint on profiles.email',
+          },
+        }),
+      }),
+    })
+    const res = await PATCH(makePatchRequest(validPatch))
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Failed to update profile')
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[PATCH /api/profile] Supabase error:',
+      expect.objectContaining({ code: '23505', details: expect.any(String), hint: expect.any(String) })
+    )
+    consoleErrorSpy.mockRestore()
+  })
+
   it('accepts all valid years_of_experience values', async () => {
     const validValues = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
     for (const value of validValues) {

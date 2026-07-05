@@ -78,7 +78,15 @@ export async function PATCH(req: NextRequest) {
     .eq('email', session.user.email)
 
   if (error) {
-    console.error('[PATCH /api/profile] Supabase error:', error.message)
+    // Log code/details/hint so misconfigurations (e.g. a missing constraint
+    // on the deployed DB) are diagnosable from server logs, without changing
+    // the generic error returned to the client.
+    console.error('[PATCH /api/profile] Supabase error:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
   }
 
