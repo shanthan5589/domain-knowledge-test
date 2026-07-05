@@ -5,6 +5,17 @@ import type { SubmitResultPayload, Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 
+// Every test consists of exactly this many questions — enforce it exactly so a
+// crafted request can't submit fewer (easier, cherry-picked) questions to
+// inflate the resulting percentage score.
+const MAX_QUESTIONS_PER_TEST = 10
+
+// Duplicate-submission window: if a result for the same user+domain already
+// exists within this many seconds, treat a new submission as a duplicate
+// instead of inserting a second row (handles double-submits from retries,
+// double-clicks, or a timer/manual-submit race).
+const DUPLICATE_SUBMISSION_WINDOW_SECONDS = 10
+
 export async function GET() {
   const session = await auth()
   if (!session?.user?.email) {
@@ -45,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (typeof score !== 'number' || score < 0 || score > 10) {
     return NextResponse.json({ error: 'Invalid score' }, { status: 400 })
   }
-  if (typeof time_taken_seconds !== 'number' || time_taken_seconds < 0) {
+  if (typeof time_taken_seconds !== 'number' || time_taken_seconds <= 0) {
     return NextResponse.json({ error: 'Invalid time' }, { status: 400 })
   }
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
@@ -54,6 +65,10 @@ export async function POST(req: NextRequest) {
 
   // Verify answers server-side against the actual correct answers
   const questionIds = Object.keys(answers)
+
+  if (questionIds.length !== MAX_QUESTIONS_PER_TEST) {
+    return NextResponse.json({ error: 'Invalid number of answers' }, { status: 400 })
+  }
   const { data: questions, error: fetchError } = await supabaseAdmin
     .from('questions')
     .select('id, correct_answer')
@@ -66,6 +81,27 @@ export async function POST(req: NextRequest) {
   const verifiedScore = questions.reduce((count, q) => {
     return answers[q.id] === q.correct_answer ? count + 1 : count
   }, 0)
+
+  // Guard against duplicate submissions (double-clicks, network retries, or the
+  // timer/manual-submit race) reaching the database as two separate rows. If a
+  // result for this user+domain was already recorded within the last few
+  // seconds, treat this request as a duplicate and hand back that result
+  // instead of inserting a second row.
+  const dedupWindowStart = new Date(
+    Date.now() - DUPLICATE_SUBMISSION_WINDOW_SECONDS * 1000
+  ).toISOString()
+  const { data: recentResults, error: recentError } = await supabaseAdmin
+    .from('test_results')
+    .select('score')
+    .eq('user_email', session.user.email)
+    .eq('domain', domain)
+    .gte('completed_at', dedupWindowStart)
+    .order('completed_at', { ascending: false })
+    .limit(1)
+
+  if (!recentError && recentResults && recentResults.length > 0) {
+    return NextResponse.json({ score: recentResults[0].score })
+  }
 
   const { error: insertError } = await supabaseAdmin.from('test_results').insert({
     user_id: session.user.id ?? session.user.email,
