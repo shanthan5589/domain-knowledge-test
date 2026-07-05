@@ -33,3 +33,23 @@ describe('schema.sql — test_results RLS policies', () => {
     expect(content).toMatch(/WITH CHECK\s*\(\s*user_email\s*=\s*auth\.jwt\(\)\s*->>\s*'email'\s*\)/)
   })
 })
+
+describe('schema.sql — test_results foreign key to profiles', () => {
+  let content: string
+
+  beforeAll(() => {
+    content = readSchemaSQL()
+  })
+
+  it('adds a foreign key from test_results.user_email to profiles.email', () => {
+    expect(content).toMatch(
+      /FOREIGN KEY\s*\(\s*user_email\s*\)\s*REFERENCES\s*profiles\s*\(\s*email\s*\)\s*ON DELETE CASCADE/i
+    )
+  })
+
+  it('guards the ALTER TABLE with an idempotent existence check so it is safe to re-run', () => {
+    // Must be wrapped so re-running schema.sql against an existing database
+    // (which already has the constraint) does not error out.
+    expect(content).toMatch(/DO \$\$[\s\S]*IF NOT EXISTS[\s\S]*ADD CONSTRAINT[\s\S]*END \$\$;/)
+  })
+})

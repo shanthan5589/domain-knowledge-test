@@ -1,6 +1,7 @@
 -- ============================================================
 -- Domain Knowledge Test Platform — Supabase Schema
--- Run this in Supabase SQL Editor before running seed.sql
+-- Run this in Supabase SQL Editor AFTER profiles.sql, before running seed.sql
+-- (test_results.user_email has a foreign key into profiles.email below)
 -- ============================================================
 
 -- Questions table (populated via seed.sql, read only by server)
@@ -50,3 +51,18 @@ CREATE POLICY "Users can read own results"
 -- Index for fast random question fetching by domain
 CREATE INDEX IF NOT EXISTS idx_questions_domain ON questions (domain);
 CREATE INDEX IF NOT EXISTS idx_results_user_email ON test_results (user_email);
+
+-- Foreign key so test_results.user_email always references a real profile.
+-- profiles.email has a UNIQUE constraint (see profiles.sql), so it is a
+-- valid FK target. Wrapped in a guard so this file is safe to re-run against
+-- an existing database.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'test_results_user_email_fkey'
+  ) THEN
+    ALTER TABLE test_results
+      ADD CONSTRAINT test_results_user_email_fkey
+      FOREIGN KEY (user_email) REFERENCES profiles(email) ON DELETE CASCADE;
+  END IF;
+END $$;
