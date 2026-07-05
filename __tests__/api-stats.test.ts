@@ -365,27 +365,33 @@ describe('GET /api/stats', () => {
     expect(body.userProgress.consistency.label).toBe('Stable')
   })
 
-  it('returns local, country, and global comparison averages for the selected location', async () => {
+  it('scopes country and global comparisons to the active filter, not the full unfiltered crowd', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 8, completed_at: '2026-01-04' },
       { user_email: 'b@test.com', score: 6, completed_at: '2026-01-03' },
       { user_email: 'me@test.com', score: 10, completed_at: '2026-01-02' },
     ])
+    // The country=India filter matches only 'a' and 'me' — 'b' is excluded from
+    // the crowd entirely, so it must not sneak back in via the "Country"/"Global"
+    // comparison rows.
     mockProfilesQuery([{ email: 'a@test.com' }, { email: 'me@test.com' }])
     mockCommunityProfilesQuery([
       { email: 'a@test.com', designation: 'Software Engineer / Developer', years_of_experience: '1-3 years', country: 'India', state_region: 'Telangana', city: 'Hyderabad' },
-      { email: 'b@test.com', designation: 'Data Scientist', years_of_experience: '3-5 years', country: 'India', state_region: 'Karnataka', city: 'Bengaluru' },
       { email: 'me@test.com', designation: 'Software Engineer / Developer', years_of_experience: '1-3 years', country: 'India', state_region: 'Telangana', city: 'Hyderabad' },
     ])
 
     const res = await GET(makeRequest('?domain=ai&country=India&state_region=Telangana&city=Hyderabad'))
     const body = await res.json()
+    // Both 'a' and 'me' happen to share every location field, so City, State,
+    // Country, and Global all report the same 2-person, avg-9 scope — but note
+    // this reflects the *filtered* 2-person crowd, not the unfiltered 3-person
+    // one that would include 'b'.
     expect(body.locationComparisons).toEqual([
       { label: 'Hyderabad', scope: 'City', averageScore: 9, count: 2 },
       { label: 'Telangana', scope: 'State / Region', averageScore: 9, count: 2 },
-      { label: 'India', scope: 'Country', averageScore: 8, count: 3 },
-      { label: 'Global', scope: 'Global', averageScore: 8, count: 3 },
+      { label: 'India', scope: 'Country', averageScore: 9, count: 2 },
+      { label: 'Global', scope: 'Global', averageScore: 9, count: 2 },
     ])
   })
 

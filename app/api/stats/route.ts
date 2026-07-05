@@ -317,20 +317,6 @@ export async function GET(req: NextRequest) {
     })
     .filter((entry): entry is ScoreEntry => entry !== null)
 
-  const allProfiledEntries: ScoreEntry[] = [...latestByEmail.entries()]
-    .map(([email, latest]) => {
-      const profile = profileByEmail.get(email)
-      if (!profile) return null
-      return {
-        email,
-        score: latest.score,
-        time_taken_seconds: latest.time_taken_seconds,
-        completed_at: latest.completed_at,
-        profile,
-      }
-    })
-    .filter((entry): entry is ScoreEntry => entry !== null)
-
   const histogram = new Array(11).fill(0)
   let scoreSum = 0
   let topScore: number | null = null
@@ -412,7 +398,11 @@ export async function GET(req: NextRequest) {
       ? toAverageScoreByGroup(entries, locationDimension.getValue)
       : [],
     locationDistributionLabel: locationDimension.label,
-    locationComparisons: buildLocationComparisons(req, allProfiledEntries),
+    // Use the same filtered cohort as the rest of this response so "Local vs
+    // Global" comparisons share one consistent reference frame, instead of
+    // comparing the filtered view against a differently-scoped (unfiltered)
+    // crowd that includes people outside the active filters.
+    locationComparisons: buildLocationComparisons(req, entries),
     userProgress,
   })
 }
