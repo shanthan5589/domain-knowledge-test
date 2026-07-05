@@ -178,6 +178,11 @@ function buildUserProgress(userAttempts: ResultRow[]) {
   }
 }
 
+// Cap on how many result rows we pull for a single domain before aggregating in
+// memory. Well above any realistic per-domain attempt volume for this app, but
+// keeps a single request from pulling an unbounded table scan.
+const RESULTS_QUERY_LIMIT = 5000
+
 function getLocationDimension(req: NextRequest) {
   const country = req.nextUrl.searchParams.get('country')
   const stateRegion = req.nextUrl.searchParams.get('state_region')
@@ -224,6 +229,7 @@ export async function GET(req: NextRequest) {
     .select('user_email, score, time_taken_seconds, completed_at')
     .eq('domain', domain)
     .order('completed_at', { ascending: false })
+    .limit(RESULTS_QUERY_LIMIT)
 
   if (error || !results) {
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })

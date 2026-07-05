@@ -27,7 +27,11 @@ function makeRequest(query = '') {
 function mockResultsQuery(data: unknown, error: unknown = null) {
   mockFrom.mockReturnValueOnce({
     select: jest.fn().mockReturnValue({
-      order: jest.fn().mockResolvedValue({ data, error }),
+      in: jest.fn().mockReturnValue({
+        order: jest.fn().mockReturnValue({
+          limit: jest.fn().mockResolvedValue({ data, error }),
+        }),
+      }),
     }),
   })
 }

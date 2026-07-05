@@ -34,7 +34,9 @@ function mockResultsQuery(data: unknown, error: unknown = null) {
   mockFrom.mockReturnValueOnce({
     select: jest.fn().mockReturnValue({
       eq: jest.fn().mockReturnValue({
-        order: jest.fn().mockResolvedValue({ data: rows, error }),
+        order: jest.fn().mockReturnValue({
+          limit: jest.fn().mockResolvedValue({ data: rows, error }),
+        }),
       }),
     }),
   })

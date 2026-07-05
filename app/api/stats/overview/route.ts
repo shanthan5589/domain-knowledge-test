@@ -6,6 +6,10 @@ import type { Domain } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 
+// Cap on how many result rows we pull before aggregating in memory — keeps a
+// single request from pulling an unbounded table scan across every domain.
+const RESULTS_QUERY_LIMIT = 5000
+
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.email) {
@@ -15,7 +19,9 @@ export async function GET(req: NextRequest) {
   const { data: results, error } = await supabaseAdmin
     .from('test_results')
     .select('domain, user_email, score, completed_at')
+    .in('domain', VALID_DOMAINS)
     .order('completed_at', { ascending: false })
+    .limit(RESULTS_QUERY_LIMIT)
 
   if (error || !results) {
     return NextResponse.json({ error: 'Failed to fetch overview' }, { status: 500 })
