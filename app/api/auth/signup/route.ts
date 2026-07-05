@@ -20,7 +20,22 @@ export async function POST(req: NextRequest) {
   if (!email?.trim()) return NextResponse.json({ error: 'Email is required' }, { status: 400 })
   if (!password) return NextResponse.json({ error: 'Password is required' }, { status: 400 })
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  // Reasonable max-length limits so oversized payloads can't be stored.
+  const MAX_NAME_LENGTH = 100
+  const MAX_EMAIL_LENGTH = 255
+  if (firstName.trim().length > MAX_NAME_LENGTH) {
+    return NextResponse.json({ error: 'First name is too long' }, { status: 400 })
+  }
+  if (lastName.trim().length > MAX_NAME_LENGTH) {
+    return NextResponse.json({ error: 'Last name is too long' }, { status: 400 })
+  }
+  if (email.trim().length > MAX_EMAIL_LENGTH) {
+    return NextResponse.json({ error: 'Email is too long' }, { status: 400 })
+  }
+
+  // Slightly stricter than a bare "has an @ and a dot": disallows spaces
+  // (already excluded), consecutive dots, and requires a plausible TLD.
+  const emailRegex = /^[^\s@.]+(?:\.[^\s@.]+)*@[^\s@.]+(?:\.[^\s@.]+)*\.[a-zA-Z]{2,}$/
   if (!emailRegex.test(email)) {
     return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
   }
@@ -36,7 +51,12 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (existing) {
-    return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
+    // Deliberately vague: confirming the email is already registered would let
+    // an attacker enumerate valid accounts by mass-probing this endpoint.
+    return NextResponse.json(
+      { error: 'Unable to create account with these details. If you already have an account, try logging in or resetting your password.' },
+      { status: 409 }
+    )
   }
 
   const password_hash = await bcrypt.hash(password, 12)

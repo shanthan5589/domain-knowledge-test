@@ -59,9 +59,10 @@ describe('SignupPage', () => {
   })
 
   it('shows error message returned from API', async () => {
+    const apiError = 'Unable to create account with these details. If you already have an account, try logging in or resetting your password.'
     mockFetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({ error: 'An account with this email already exists' }),
+      json: async () => ({ error: apiError }),
     })
     render(<SignupPage />)
     fireEvent.change(screen.getByPlaceholderText('John'), { target: { value: 'John' } })
@@ -70,7 +71,7 @@ describe('SignupPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Min. 8 characters'), { target: { value: 'password123' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
     await waitFor(() => {
-      expect(screen.getByText('An account with this email already exists')).toBeInTheDocument()
+      expect(screen.getByText(apiError)).toBeInTheDocument()
     })
   })
 
