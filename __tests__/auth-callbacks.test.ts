@@ -26,6 +26,7 @@ function makeProfilesMock() {
 type SignInArgs = { user: { email?: string | null; name?: string | null }; account: { provider: string } | null }
 type JwtArgs = { token: { email?: string | null; profileCompleted?: boolean }; trigger?: string }
 type AuthConfig = {
+  trustHost?: boolean
   callbacks: {
     signIn: (args: SignInArgs) => Promise<boolean>
     jwt: (args: JwtArgs) => Promise<JwtArgs['token']>
@@ -74,6 +75,11 @@ describe('auth.ts callbacks', () => {
     await import('@/auth')
     return capturedConfig
   }
+
+  it('trusts the request host, so OAuth callbacks work on any Vercel preview URL', async () => {
+    const config = await loadConfig()
+    expect(config.trustHost).toBe(true)
+  })
 
   describe('signIn callback (Google)', () => {
     it('lowercases the email when looking up an existing profile', async () => {
