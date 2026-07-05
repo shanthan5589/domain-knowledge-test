@@ -1,6 +1,7 @@
 -- ============================================================
 -- Domain Knowledge Test Platform — Supabase Schema
--- Run this in Supabase SQL Editor before running seed.sql
+-- Run this in Supabase SQL Editor AFTER profiles.sql, before running seed.sql
+-- (test_results.user_email has a foreign key into profiles.email below)
 -- ============================================================
 
 -- Questions table (populated via seed.sql, read only by server)
@@ -35,14 +36,33 @@ ALTER TABLE test_results ENABLE ROW LEVEL SECURITY;
 -- (No RLS policies needed; service role bypasses RLS)
 
 -- Test results: users can insert and read only their own rows
+-- NOTE: these policies only affect requests made with the anon/authenticated
+-- key (e.g. direct client access). The app's server-side result-submission
+-- code uses the service-role client, which bypasses RLS entirely, so normal
+-- app behavior is unaffected by this restriction.
 CREATE POLICY "Users can insert own results"
   ON test_results FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (user_email = auth.jwt()->>'email');
 
 CREATE POLICY "Users can read own results"
   ON test_results FOR SELECT
-  USING (user_email = current_user);
+  USING (user_email = auth.jwt()->>'email');
 
 -- Index for fast random question fetching by domain
 CREATE INDEX IF NOT EXISTS idx_questions_domain ON questions (domain);
 CREATE INDEX IF NOT EXISTS idx_results_user_email ON test_results (user_email);
+
+-- Foreign key so test_results.user_email always references a real profile.
+-- profiles.email has a UNIQUE constraint (see profiles.sql), so it is a
+-- valid FK target. Wrapped in a guard so this file is safe to re-run against
+-- an existing database.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'test_results_user_email_fkey'
+  ) THEN
+    ALTER TABLE test_results
+      ADD CONSTRAINT test_results_user_email_fkey
+      FOREIGN KEY (user_email) REFERENCES profiles(email) ON DELETE CASCADE;
+  END IF;
+END $$;
