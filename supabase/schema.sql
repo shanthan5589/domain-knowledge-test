@@ -35,13 +35,17 @@ ALTER TABLE test_results ENABLE ROW LEVEL SECURITY;
 -- (No RLS policies needed; service role bypasses RLS)
 
 -- Test results: users can insert and read only their own rows
+-- NOTE: these policies only affect requests made with the anon/authenticated
+-- key (e.g. direct client access). The app's server-side result-submission
+-- code uses the service-role client, which bypasses RLS entirely, so normal
+-- app behavior is unaffected by this restriction.
 CREATE POLICY "Users can insert own results"
   ON test_results FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (user_email = auth.jwt()->>'email');
 
 CREATE POLICY "Users can read own results"
   ON test_results FOR SELECT
-  USING (user_email = current_user);
+  USING (user_email = auth.jwt()->>'email');
 
 -- Index for fast random question fetching by domain
 CREATE INDEX IF NOT EXISTS idx_questions_domain ON questions (domain);
