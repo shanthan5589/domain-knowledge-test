@@ -54,15 +54,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       // Auto-create profile for Google users on first sign in
       if (account?.provider === 'google' && user.email) {
+        const normalizedEmail = user.email.toLowerCase()
         const { data: existing } = await supabaseAdmin
           .from('profiles')
           .select('id')
-          .eq('email', user.email)
+          .eq('email', normalizedEmail)
           .single()
 
         if (!existing) {
           await supabaseAdmin.from('profiles').insert({
-            email: user.email,
+            email: normalizedEmail,
             full_name: user.name,
           })
         }
@@ -78,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const { data } = await supabaseAdmin
           .from('profiles')
           .select('profile_completed')
-          .eq('email', token.email as string)
+          .eq('email', (token.email as string).toLowerCase())
           .single()
         token.profileCompleted = data?.profile_completed ?? false
       }
