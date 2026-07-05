@@ -210,6 +210,92 @@ describe('PATCH /api/profile', () => {
     consoleErrorSpy.mockRestore()
   })
 
+  it('returns 400 when country exceeds max length', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, country: 'a'.repeat(201) }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/Country/)
+  })
+
+  it('returns 400 when state_region exceeds max length', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, state_region: 'a'.repeat(201) }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/State\/Region/)
+  })
+
+  it('returns 400 when city exceeds max length', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, city: 'a'.repeat(201) }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/City/)
+  })
+
+  it('returns 400 when designation exceeds max length', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, designation: 'a'.repeat(201) }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/Designation/)
+  })
+
+  it('accepts a field exactly at the max length boundary', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    mockFrom.mockReturnValue({
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+    const res = await PATCH(makePatchRequest({ ...validPatch, city: 'a'.repeat(200) }))
+    expect(res.status).toBe(200)
+  })
+
+  it('returns 400 when linkedin_url is not a valid URL', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: 'not a url' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/LinkedIn URL/)
+  })
+
+  it('returns 400 when linkedin_url uses javascript: protocol', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: 'javascript:alert(1)' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/LinkedIn URL/)
+  })
+
+  it('returns 400 when linkedin_url uses data: protocol', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: 'data:text/html,<script>alert(1)</script>' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/LinkedIn URL/)
+  })
+
+  it('returns 400 when linkedin_url uses http (non-https) protocol', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: 'http://linkedin.com/in/test' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/LinkedIn URL/)
+  })
+
+  it('returns 400 when linkedin_url exceeds max length', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    const longUrl = 'https://linkedin.com/in/' + 'a'.repeat(200)
+    const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: longUrl }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/LinkedIn URL/)
+  })
+
+  it('accepts a valid https linkedin_url', async () => {
+    mockAuth.mockResolvedValue(authedSession)
+    mockFrom.mockReturnValue({
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+    const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: 'https://linkedin.com/in/test' }))
+    expect(res.status).toBe(200)
+  })
+
   it('accepts all valid years_of_experience values', async () => {
     const validValues = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
     for (const value of validValues) {
