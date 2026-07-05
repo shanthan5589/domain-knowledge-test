@@ -4,6 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 // Query params that narrow the comparison crowd down to a subset of profiles.
 // Shared across the stats endpoints so the histogram, domain overview, and
 // leaderboard all filter the crowd identically.
+//
+// This is an explicit whitelist: only these exact param -> column pairs are
+// ever passed to `.eq()`. Nothing derived from user input (e.g. an arbitrary
+// query param name) is ever used as a column name.
 const FILTERABLE_PROFILE_COLUMNS = [
   ['designation', 'designation'],
   ['country', 'country'],
@@ -21,18 +25,25 @@ interface EmailFilterResult {
 // all of them (AND semantics). Returns emailFilter: null when no filters are active,
 // meaning "everyone" — callers should treat that as "don't restrict the crowd".
 export async function resolveEmailFilter(req: NextRequest): Promise<EmailFilterResult> {
-  const activeFilters = FILTERABLE_PROFILE_COLUMNS.filter(([param]) => {
-    const value = req.nextUrl.searchParams.get(param)
-    return value && value !== 'all'
-  })
+  // A filter only counts as "active" when its value is present, non-empty (after
+  // trimming), and not the "all" sentinel. Skipping missing/blank values here
+  // prevents an empty-string param from being passed to `.eq()`, where its
+  // matching behavior against NULL/empty columns would be surprising.
+  const activeFilters = FILTERABLE_PROFILE_COLUMNS
+    .map(([param, column]) => {
+      const rawValue = req.nextUrl.searchParams.get(param)
+      const value = rawValue?.trim()
+      return { param, column, value }
+    })
+    .filter(({ value }) => !!value && value !== 'all')
 
   if (activeFilters.length === 0) {
     return { emailFilter: null, error: false }
   }
 
   let profileQuery = supabaseAdmin.from('profiles').select('email')
-  for (const [param, column] of activeFilters) {
-    profileQuery = profileQuery.eq(column, req.nextUrl.searchParams.get(param) as string)
+  for (const { column, value } of activeFilters) {
+    profileQuery = profileQuery.eq(column, value as string)
   }
 
   const { data: profiles, error } = await profileQuery
