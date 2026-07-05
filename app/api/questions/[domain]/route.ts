@@ -5,6 +5,18 @@ import type { Domain, Question, ClientQuestion } from '@/lib/types'
 
 const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 
+// Unbiased shuffle: Array.prototype.sort(() => Math.random() - 0.5) is a well-known
+// non-uniform shuffle because comparator-based sorts don't produce a fair permutation.
+// Fisher-Yates guarantees every permutation is equally likely.
+function fisherYatesShuffle<T>(items: T[]): T[] {
+  const result = [...items]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ domain: string }> }
@@ -30,8 +42,8 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 })
   }
 
-  // Shuffle and take 10
-  const shuffled = (data as Question[]).sort(() => Math.random() - 0.5).slice(0, 10)
+  // Shuffle using Fisher-Yates (unbiased) and take 10
+  const shuffled = fisherYatesShuffle(data as Question[]).slice(0, 10)
 
   // Strip correct_answer before sending to client
   const clientQuestions: ClientQuestion[] = shuffled.map(({ id, question, option_a, option_b, option_c, option_d }) => ({

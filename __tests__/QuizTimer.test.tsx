@@ -68,4 +68,35 @@ describe('QuizTimer', () => {
     render(<QuizTimer totalSeconds={125} onExpire={jest.fn()} />)
     expect(screen.getByTestId('quiz-timer')).toHaveTextContent('2:05')
   })
+
+  it('calls onExpire only once even if the callback triggers a parent re-render', () => {
+    // Simulate the real-world scenario: onExpire changes on every render
+    // (e.g. parent updates state/phase in response to expiry), which used
+    // to cause the effect to re-run while remaining was still 0.
+    const onExpire = jest.fn()
+    const { rerender } = render(<QuizTimer totalSeconds={1} onExpire={onExpire} />)
+    advanceSeconds(1)
+    expect(onExpire).toHaveBeenCalledTimes(1)
+
+    // Re-render with a new onExpire reference and let more time pass —
+    // the guard should prevent a second call.
+    const onExpire2 = jest.fn()
+    rerender(<QuizTimer totalSeconds={1} onExpire={onExpire2} />)
+    advanceSeconds(2)
+    expect(onExpire).toHaveBeenCalledTimes(1)
+    expect(onExpire2).not.toHaveBeenCalled()
+  })
+
+  it('does not call onExpire again after multiple re-renders while remaining stays at 0', () => {
+    const onExpire = jest.fn()
+    const { rerender } = render(<QuizTimer totalSeconds={1} onExpire={onExpire} />)
+    advanceSeconds(1)
+    expect(onExpire).toHaveBeenCalledTimes(1)
+
+    // Force several extra re-renders with the same props
+    rerender(<QuizTimer totalSeconds={1} onExpire={onExpire} />)
+    rerender(<QuizTimer totalSeconds={1} onExpire={onExpire} />)
+    rerender(<QuizTimer totalSeconds={1} onExpire={onExpire} />)
+    expect(onExpire).toHaveBeenCalledTimes(1)
+  })
 })
