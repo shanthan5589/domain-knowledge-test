@@ -193,15 +193,13 @@ describe('PATCH /api/profile', () => {
     mockAuth.mockResolvedValue(authedSession)
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     mockFrom.mockReturnValue({
-      update: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({
-          error: {
-            message: 'duplicate key value violates unique constraint',
-            code: '23505',
-            details: 'Key (email)=(test@test.com) already exists.',
-            hint: 'Missing UNIQUE constraint on profiles.email',
-          },
-        }),
+      upsert: jest.fn().mockResolvedValue({
+        error: {
+          message: 'duplicate key value violates unique constraint',
+          code: '23505',
+          details: 'Key (email)=(test@test.com) already exists.',
+          hint: 'Missing UNIQUE constraint on profiles.email',
+        },
       }),
     })
     const res = await PATCH(makePatchRequest(validPatch))
@@ -245,9 +243,7 @@ describe('PATCH /api/profile', () => {
   it('accepts a field exactly at the max length boundary', async () => {
     mockAuth.mockResolvedValue(authedSession)
     mockFrom.mockReturnValue({
-      update: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      }),
+      upsert: jest.fn().mockResolvedValue({ error: null }),
     })
     const res = await PATCH(makePatchRequest({ ...validPatch, city: 'a'.repeat(200) }))
     expect(res.status).toBe(200)
@@ -292,9 +288,7 @@ describe('PATCH /api/profile', () => {
   it('accepts a valid https linkedin_url', async () => {
     mockAuth.mockResolvedValue(authedSession)
     mockFrom.mockReturnValue({
-      update: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      }),
+      upsert: jest.fn().mockResolvedValue({ error: null }),
     })
     const res = await PATCH(makePatchRequest({ ...validPatch, linkedin_url: 'https://linkedin.com/in/test' }))
     expect(res.status).toBe(200)
