@@ -2,23 +2,7 @@
 
 import { useState } from 'react'
 import { Country, State, City } from 'country-state-city'
-
-const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
-
-const DESIGNATION_OPTIONS = [
-  'Software Engineer / Developer',
-  'Full-Stack Developer',
-  'Data Scientist',
-  'Cloud Architect / Engineer',
-  'DevOps Engineer',
-  'Cybersecurity Specialist',
-  'AI / Machine Learning Engineer',
-  'UI/UX Designer',
-  'IT Project Manager',
-  'Product Owner',
-  'Business Analyst',
-  'Other',
-]
+import { DESIGNATION_OPTIONS, EXPERIENCE_OPTIONS } from '@/lib/profile-options'
 
 interface Props {
   initialValues: {

@@ -8,23 +8,7 @@ import DomainOverview from '@/components/DomainOverview'
 import Leaderboard from '@/components/Leaderboard'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
-
-const DESIGNATION_OPTIONS = [
-  'Software Engineer / Developer',
-  'Full-Stack Developer',
-  'Data Scientist',
-  'Cloud Architect / Engineer',
-  'DevOps Engineer',
-  'Cybersecurity Specialist',
-  'AI / Machine Learning Engineer',
-  'UI/UX Designer',
-  'IT Project Manager',
-  'Product Owner',
-  'Business Analyst',
-  'Other',
-]
-
-const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
+import { DESIGNATION_OPTIONS, EXPERIENCE_OPTIONS } from '@/lib/profile-options'
 
 // Below this many test-takers, a histogram is too sparse to be meaningful (and risks
 // exposing an individual's score), so we show a message instead of a chart.
