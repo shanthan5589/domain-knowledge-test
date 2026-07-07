@@ -7,6 +7,7 @@ import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
+import { antiCheatHandlers } from '@/lib/anti-cheat'
 
 const TOTAL_SECONDS = 300 // 5 minutes
 
@@ -225,12 +226,7 @@ export default function TestPage() {
 
   // Quiz
   return (
-    <main
-      className="min-h-screen bg-gray-50"
-      onCopy={(e) => e.preventDefault()}
-      onCut={(e) => e.preventDefault()}
-      onContextMenu={(e) => e.preventDefault()}
-    >
+    <main className="min-h-screen bg-gray-50" {...antiCheatHandlers}>
       {/* Header bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
