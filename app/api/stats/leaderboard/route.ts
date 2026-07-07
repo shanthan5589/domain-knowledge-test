@@ -4,6 +4,7 @@ import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { latestByKey } from '@/lib/latest-by-key'
 
 const DEFAULT_LIMIT = 5
 const MAX_LIMIT = 20
@@ -36,12 +37,10 @@ export async function GET(req: NextRequest) {
   }
 
   // One entry per user — their most recent attempt (rows already ordered newest-first)
-  const latestByEmail = new Map<string, { score: number; completed_at: string }>()
-  for (const row of results as { user_email: string; score: number; completed_at: string }[]) {
-    if (!latestByEmail.has(row.user_email)) {
-      latestByEmail.set(row.user_email, { score: row.score, completed_at: row.completed_at })
-    }
-  }
+  const latestByEmail = latestByKey(
+    results as { user_email: string; score: number; completed_at: string }[],
+    (row) => row.user_email
+  )
 
   // Optionally restrict the crowd by any combination of profile attributes
   const { emailFilter, error: filterError } = await resolveEmailFilter(req)

@@ -4,6 +4,7 @@ import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { latestByKey } from '@/lib/latest-by-key'
 
 // Cap on how many result rows we pull before aggregating in memory — keeps a
 // single request from pulling an unbounded table scan across every domain.
@@ -30,16 +31,24 @@ export async function GET(req: NextRequest) {
   }
 
   // One score per user per domain — their most recent attempt (rows already ordered newest-first)
-  const latestByDomain = new Map<Domain, Map<string, number>>()
-  for (const row of results as { domain: string; user_email: string; score: number }[]) {
+  type OverviewRow = { domain: string; user_email: string; score: number }
+  const rowsByDomain = new Map<Domain, OverviewRow[]>()
+  for (const row of results as OverviewRow[]) {
     const domain = row.domain as Domain
-    if (!latestByDomain.has(domain)) {
-      latestByDomain.set(domain, new Map())
+    if (!rowsByDomain.has(domain)) {
+      rowsByDomain.set(domain, [])
     }
-    const emailMap = latestByDomain.get(domain)!
-    if (!emailMap.has(row.user_email)) {
-      emailMap.set(row.user_email, row.score)
+    rowsByDomain.get(domain)!.push(row)
+  }
+
+  const latestByDomain = new Map<Domain, Map<string, number>>()
+  for (const [domain, rows] of rowsByDomain) {
+    const latestRows = latestByKey(rows, (row) => row.user_email)
+    const emailToScore = new Map<string, number>()
+    for (const [email, row] of latestRows) {
+      emailToScore.set(email, row.score)
     }
+    latestByDomain.set(domain, emailToScore)
   }
 
   // Optionally restrict the crowd by any combination of profile attributes

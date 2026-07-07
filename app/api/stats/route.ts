@@ -4,6 +4,7 @@ import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { latestByKey } from '@/lib/latest-by-key'
 
 interface ProfileRow {
   email: string
@@ -20,12 +21,6 @@ interface ScoreEntry {
   time_taken_seconds: number
   completed_at: string
   profile: ProfileRow
-}
-
-interface LatestResult {
-  score: number
-  time_taken_seconds: number
-  completed_at: string
 }
 
 interface ResultRow {
@@ -251,16 +246,7 @@ export async function GET(req: NextRequest) {
 
   // Keep only each user's most recent attempt for this domain (rows already ordered newest-first)
   const resultRows = results as ResultRow[]
-  const latestByEmail = new Map<string, LatestResult>()
-  for (const row of resultRows) {
-    if (!latestByEmail.has(row.user_email)) {
-      latestByEmail.set(row.user_email, {
-        score: row.score,
-        time_taken_seconds: row.time_taken_seconds,
-        completed_at: row.completed_at,
-      })
-    }
-  }
+  const latestByEmail = latestByKey(resultRows, (row) => row.user_email)
   const userProgress = buildUserProgress(
     resultRows.filter((row) => row.user_email === session.user.email)
   )

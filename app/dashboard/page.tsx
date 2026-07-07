@@ -5,6 +5,7 @@ import DomainSelector from '@/components/DomainSelector'
 import UserMenu from '@/components/UserMenu'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS_SHORT as DOMAIN_LABELS } from '@/lib/domains'
+import { latestByKey } from '@/lib/latest-by-key'
 
 function getScoreTier(score: number) {
   if (score >= 9) return { label: 'Excellent', scoreColor: 'text-green-600', labelColor: 'text-green-600' }
@@ -46,11 +47,9 @@ export default async function DashboardPage() {
     .order('completed_at', { ascending: false })
 
   // Keep only the latest result per domain
-  const latestByDomain: Partial<Record<Domain, ResultRow>> = {}
-  for (const row of (rawResults ?? []) as ResultRow[]) {
-    const d = row.domain as Domain
-    if (!latestByDomain[d]) latestByDomain[d] = row
-  }
+  const latestByDomain: Partial<Record<Domain, ResultRow>> = Object.fromEntries(
+    latestByKey((rawResults ?? []) as ResultRow[], (row) => row.domain as Domain)
+  )
 
   const hasAnyResult = Object.keys(latestByDomain).length > 0
 
