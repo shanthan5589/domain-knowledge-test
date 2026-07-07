@@ -9,6 +9,7 @@ import Leaderboard from '@/components/Leaderboard'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { DESIGNATION_OPTIONS, EXPERIENCE_OPTIONS } from '@/lib/profile-options'
+import { roundToOne } from '@/lib/stats-calculations'
 
 // Below this many test-takers, a histogram is too sparse to be meaningful (and risks
 // exposing an individual's score), so we show a message instead of a chart.
@@ -104,10 +105,6 @@ function formatPeople(count: number) {
 
 function formatScore(score: number | null) {
   return score === null ? '-' : `${score}/10`
-}
-
-function roundToOne(value: number) {
-  return Math.round(value * 10) / 10
 }
 
 function formatDuration(totalSeconds: number | null) {
