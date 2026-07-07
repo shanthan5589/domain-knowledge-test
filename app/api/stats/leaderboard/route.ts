@@ -11,7 +11,7 @@ const MAX_LIMIT = 20
 // Minimum number of distinct users a filtered cohort must contain before we're
 // willing to reveal individual display names. A narrow filter (e.g. a rare
 // designation in a small city) could otherwise de-anonymize one or two people.
-const MIN_COHORT_SIZE = 5
+const MIN_COHORT_SIZE = 3
 
 export async function GET(req: NextRequest) {
   const session = await auth()
