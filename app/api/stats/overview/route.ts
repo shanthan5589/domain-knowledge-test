@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveEmailFilter } from '@/lib/stats-filters'
+import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     let sum = 0
     let count = 0
     for (const [email, score] of emailMap) {
-      if (emailFilter && !emailFilter.has(email)) continue
+      if (!matchesEmailFilter(emailFilter, email)) continue
       if (existingProfileEmails && !existingProfileEmails.has(email)) continue
       sum += score
       count += 1

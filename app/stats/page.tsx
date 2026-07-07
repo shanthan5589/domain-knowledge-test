@@ -10,6 +10,7 @@ import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { DESIGNATION_OPTIONS, EXPERIENCE_OPTIONS } from '@/lib/profile-options'
 import { roundToOne } from '@/lib/stats-calculations'
+import { crowdFilterParams } from '@/lib/crowd-filter-params'
 
 // Below this many test-takers, a histogram is too sparse to be meaningful (and risks
 // exposing an individual's score), so we show a message instead of a chart.
@@ -832,11 +833,13 @@ export default function StatsPage() {
         setLoading(true)
         const params = new URLSearchParams({
           domain,
-          designation,
-          experience,
-          country: countryName || 'all',
-          state_region: stateName || 'all',
-          city: city || 'all',
+          ...crowdFilterParams({
+            designation,
+            experience,
+            country: countryName || 'all',
+            state_region: stateName || 'all',
+            city: city || 'all',
+          }),
         })
         const res = await fetch(`/api/stats?${params}`)
         if (!res.ok) throw new Error('Failed to load stats')
@@ -864,13 +867,15 @@ export default function StatsPage() {
     async function fetchOverview() {
       if (!profileLocationReady) return
       try {
-        const params = new URLSearchParams({
-          designation,
-          experience,
-          country: countryName || 'all',
-          state_region: stateName || 'all',
-          city: city || 'all',
-        })
+        const params = new URLSearchParams(
+          crowdFilterParams({
+            designation,
+            experience,
+            country: countryName || 'all',
+            state_region: stateName || 'all',
+            city: city || 'all',
+          })
+        )
         const res = await fetch(`/api/stats/overview?${params}`)
         if (!res.ok) throw new Error('Failed to load overview')
         const json = await res.json()

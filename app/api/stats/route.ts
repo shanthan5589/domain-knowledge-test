@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveEmailFilter } from '@/lib/stats-filters'
+import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }
 
-  const matchingEmails = [...latestByEmail.keys()].filter((email) => !emailFilter || emailFilter.has(email))
+  const matchingEmails = [...latestByEmail.keys()].filter((email) => matchesEmailFilter(emailFilter, email))
 
   if (matchingEmails.length === 0) {
     return NextResponse.json({

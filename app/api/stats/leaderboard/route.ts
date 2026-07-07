@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveEmailFilter } from '@/lib/stats-filters'
+import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   }
 
   const filteredEntries = [...latestByEmail.entries()].filter(
-    ([email]) => !emailFilter || emailFilter.has(email)
+    ([email]) => matchesEmailFilter(emailFilter, email)
   )
 
   if (filteredEntries.length === 0) {
