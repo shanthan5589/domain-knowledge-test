@@ -17,6 +17,11 @@ declare module 'next-auth' {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+  // Trust the incoming request's Host header instead of requiring a fixed
+  // NEXTAUTH_URL/AUTH_URL. Vercel preview deployments each get a unique URL,
+  // so a value pinned to production would send the OAuth redirect_uri to the
+  // wrong deployment and break the PKCE cookie check on preview URLs.
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -54,15 +59,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       // Auto-create profile for Google users on first sign in
       if (account?.provider === 'google' && user.email) {
+        const normalizedEmail = user.email.toLowerCase()
         const { data: existing } = await supabaseAdmin
           .from('profiles')
           .select('id')
-          .eq('email', user.email)
+          .eq('email', normalizedEmail)
           .single()
 
         if (!existing) {
           await supabaseAdmin.from('profiles').insert({
-            email: user.email,
+            email: normalizedEmail,
             full_name: user.name,
           })
         }
@@ -78,7 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const { data } = await supabaseAdmin
           .from('profiles')
           .select('profile_completed')
-          .eq('email', token.email as string)
+          .eq('email', (token.email as string).toLowerCase())
           .single()
         token.profileCompleted = data?.profile_completed ?? false
       }

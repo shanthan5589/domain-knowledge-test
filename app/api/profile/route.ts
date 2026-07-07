@@ -59,26 +59,69 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Designation is required' }, { status: 400 })
   }
 
+  // Cap text field lengths to keep the database and downstream UI safe from
+  // unbounded input.
+  const MAX_FIELD_LENGTH = 200
+  const fieldsToCheck: Array<[string, string]> = [
+    ['Country', country],
+    ['State/Region', state_region],
+    ['City', city],
+    ['Designation', designation],
+  ]
+  for (const [label, value] of fieldsToCheck) {
+    if (value.trim().length > MAX_FIELD_LENGTH) {
+      return NextResponse.json({ error: `${label} must be ${MAX_FIELD_LENGTH} characters or fewer` }, { status: 400 })
+    }
+  }
+
   const VALID_EXPERIENCE = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
   if (!VALID_EXPERIENCE.includes(years_of_experience)) {
     return NextResponse.json({ error: 'Invalid years of experience value' }, { status: 400 })
   }
 
+  // LinkedIn URL is optional, but when provided it must be a valid, safe
+  // https:// URL — reject javascript:/data: URIs or malformed input that
+  // could later be rendered as an href elsewhere in the app.
+  const trimmedLinkedinUrl = linkedin_url?.trim() || ''
+  if (trimmedLinkedinUrl) {
+    if (trimmedLinkedinUrl.length > MAX_FIELD_LENGTH) {
+      return NextResponse.json({ error: 'LinkedIn URL must be 200 characters or fewer' }, { status: 400 })
+    }
+    try {
+      const parsed = new URL(trimmedLinkedinUrl)
+      if (parsed.protocol !== 'https:') {
+        return NextResponse.json({ error: 'LinkedIn URL must be a valid https:// URL' }, { status: 400 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'LinkedIn URL must be a valid https:// URL' }, { status: 400 })
+    }
+  }
+
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({
+    .upsert({
+      email: session.user.email,
       country: country.trim(),
       state_region: state_region.trim(),
       city: city.trim(),
       years_of_experience,
       designation: designation.trim(),
-      linkedin_url: linkedin_url?.trim() || null,
+      linkedin_url: trimmedLinkedinUrl || null,
       profile_completed: true,
+    }, {
+      onConflict: 'email',
     })
-    .eq('email', session.user.email)
 
   if (error) {
-    console.error('[PATCH /api/profile] Supabase error:', error.message)
+    // Log code/details so misconfigurations (e.g. a missing constraint on the
+    // deployed DB) are diagnosable from server logs, without changing the
+    // generic error returned to the client.
+    console.error('[PATCH /api/profile] Supabase error:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
   }
 

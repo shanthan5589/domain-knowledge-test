@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import QuizTimer from '@/components/QuizTimer'
@@ -42,6 +42,17 @@ export default function TestPage() {
   const [startTime, setStartTime] = useState<number | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
+  // Bumped every time the user clicks "Try Again" on the results screen so a
+  // same-domain retake (which doesn't change `domain`, `status`, or `router`)
+  // still forces the data-fetching effect below to re-run and fully reset
+  // questions/currentIndex/answers/score/startTime/phase/errorMessage.
+  const [resetKey, setResetKey] = useState(0)
+
+  // Guards submitTest so it's a no-op after the first call — protects against
+  // the timer firing its expire callback twice, or a manual Submit click
+  // landing at nearly the same instant the timer expires.
+  const hasSubmittedRef = useRef(false)
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
@@ -55,7 +66,20 @@ export default function TestPage() {
       return
     }
 
+    // Fresh attempt: reset all per-attempt state before fetching. Guarded by
+    // an async function (rather than calling setState directly in the effect
+    // body) so this reset + fetch reads as a single synchronization to an
+    // external system (the API), not a cascading-render anti-pattern.
     async function fetchQuestions() {
+      hasSubmittedRef.current = false
+      setPhase('loading')
+      setQuestions([])
+      setCurrentIndex(0)
+      setAnswers({})
+      setScore(null)
+      setStartTime(null)
+      setErrorMessage('')
+
       try {
         const res = await fetch(`/api/questions/${domain}`)
         if (!res.ok) throw new Error('Failed to load questions')
@@ -69,10 +93,12 @@ export default function TestPage() {
       }
     }
     fetchQuestions()
-  }, [domain, status, router])
+  }, [domain, status, router, resetKey])
 
   const submitTest = useCallback(
     async (finalAnswers: Record<string, CorrectAnswer>) => {
+      if (hasSubmittedRef.current) return
+      hasSubmittedRef.current = true
       setPhase('submitting')
       const timeTaken = Math.round((Date.now() - (startTime ?? Date.now())) / 1000)
       try {
@@ -100,6 +126,11 @@ export default function TestPage() {
 
   function handleTimerExpire() {
     submitTest(answers)
+  }
+
+  function handleTryAgain() {
+    setResetKey((k) => k + 1)
+    router.push(`/test/${domain}`)
   }
 
   function handleSelect(answer: CorrectAnswer) {
@@ -181,7 +212,7 @@ export default function TestPage() {
               Back to Dashboard
             </button>
             <button
-              onClick={() => router.push(`/test/${domain}`)}
+              onClick={handleTryAgain}
               className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700 transition"
             >
               Try Again

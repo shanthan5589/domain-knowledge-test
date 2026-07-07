@@ -88,6 +88,14 @@ export default function UserMenu() {
             Profile
           </button>
 
+          {/* Stats link */}
+          <button
+            onClick={() => { setOpen(false); router.push('/stats') }}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+          >
+            Stats
+          </button>
+
           {/* Sign out */}
           <button
             onClick={() => signOut({ callbackUrl: '/' })}

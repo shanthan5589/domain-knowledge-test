@@ -45,10 +45,11 @@ describe('UserMenu', () => {
     expect(screen.getByText('shanthan@example.com')).toBeInTheDocument()
   })
 
-  it('shows Profile and Sign out buttons in dropdown', () => {
+  it('shows Profile, Stats and Sign out buttons in dropdown', () => {
     render(<UserMenu />)
     fireEvent.click(screen.getByRole('button', { name: /user menu/i }))
     expect(screen.getByRole('button', { name: /^profile$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^stats$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument()
   })
 
@@ -57,6 +58,13 @@ describe('UserMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /user menu/i }))
     fireEvent.click(screen.getByRole('button', { name: /^profile$/i }))
     expect(mockPush).toHaveBeenCalledWith('/profile')
+  })
+
+  it('navigates to /stats when Stats is clicked', () => {
+    render(<UserMenu />)
+    fireEvent.click(screen.getByRole('button', { name: /user menu/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^stats$/i }))
+    expect(mockPush).toHaveBeenCalledWith('/stats')
   })
 
   it('calls signOut with / callbackUrl when Sign out is clicked', () => {

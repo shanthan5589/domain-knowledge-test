@@ -94,7 +94,7 @@ describe('POST /api/auth/signup', () => {
     expect((await res.json()).error).toBe('Password must be at least 8 characters')
   })
 
-  it('returns 409 when email already exists', async () => {
+  it('returns 409 when email already exists, without confirming the email is registered', async () => {
     mockFrom.mockReturnValueOnce({
       select: jest.fn().mockReturnValue({
         eq: jest.fn().mockReturnValue({
@@ -104,7 +104,42 @@ describe('POST /api/auth/signup', () => {
     })
     const res = await POST(makeRequest(validBody))
     expect(res.status).toBe(409)
-    expect((await res.json()).error).toBe('An account with this email already exists')
+    const { error } = await res.json()
+    // Message must not state the email already exists — that would let an
+    // attacker enumerate registered accounts via this endpoint.
+    expect(error).not.toMatch(/already exists/i)
+    expect(error.length).toBeGreaterThan(0)
+  })
+
+  it('returns 400 when firstName exceeds max length', async () => {
+    const res = await POST(makeRequest({ ...validBody, firstName: 'a'.repeat(101) }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('First name is too long')
+  })
+
+  it('returns 400 when lastName exceeds max length', async () => {
+    const res = await POST(makeRequest({ ...validBody, lastName: 'a'.repeat(101) }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Last name is too long')
+  })
+
+  it('returns 400 when email exceeds max length', async () => {
+    const longEmail = `${'a'.repeat(250)}@example.com`
+    const res = await POST(makeRequest({ ...validBody, email: longEmail }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Email is too long')
+  })
+
+  it('returns 400 for email with consecutive dots', async () => {
+    const res = await POST(makeRequest({ ...validBody, email: 'john..doe@example.com' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Invalid email address')
+  })
+
+  it('returns 400 for email with no TLD', async () => {
+    const res = await POST(makeRequest({ ...validBody, email: 'john@localhost' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Invalid email address')
   })
 
   it('returns 500 when insert fails', async () => {
@@ -114,6 +149,19 @@ describe('POST /api/auth/signup', () => {
     })
     const res = await POST(makeRequest(validBody))
     expect(res.status).toBe(500)
+  })
+
+  it('returns 500 when the existing-account lookup fails', async () => {
+    mockFrom.mockReturnValueOnce({
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({ data: null, error: { code: 'XX000', message: 'DB error' } }),
+        }),
+      }),
+    })
+    const res = await POST(makeRequest(validBody))
+    expect(res.status).toBe(500)
+    expect(mockFrom).toHaveBeenCalledTimes(1)
   })
 
   it('returns 400 for invalid JSON', async () => {
