@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import type { CorrectAnswer } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { parseFields, parseSeedSQL } from '@/lib/seed-parser'
 
 const VALID_ANSWERS: CorrectAnswer[] = ['A', 'B', 'C', 'D']
 const QUESTIONS_PER_DOMAIN: Record<string, number> = {
@@ -14,61 +15,6 @@ const QUESTIONS_PER_DOMAIN: Record<string, number> = {
 const TOTAL_QUESTIONS = Object.values(QUESTIONS_PER_DOMAIN).reduce((a, b) => a + b, 0)
 const MIN_QUESTION_LENGTH = 20
 const MIN_OPTION_LENGTH = 2
-
-// State-machine parser for a SQL VALUES row — handles escaped '' apostrophes correctly
-function parseFields(line: string): string[] {
-  const fields: string[] = []
-  let i = 0
-
-  while (i < line.length && line[i] !== '(') i++
-  if (line[i] === '(') i++
-
-  while (i < line.length) {
-    while (i < line.length && (line[i] === ' ' || line[i] === ',' || line[i] === '\t')) i++
-    if (line[i] === ')' || i >= line.length) break
-    if (line[i] !== "'") { i++; continue }
-
-    i++
-    let value = ''
-    while (i < line.length) {
-      if (line[i] === "'" && line[i + 1] === "'") {
-        value += "'"; i += 2
-      } else if (line[i] === "'") {
-        i++; break
-      } else {
-        value += line[i]; i++
-      }
-    }
-    fields.push(value)
-  }
-
-  return fields
-}
-
-function parseSeedSQL() {
-  const seedPath = path.join(process.cwd(), 'supabase', 'seed.sql')
-  const content = fs.readFileSync(seedPath, 'utf-8')
-  const rows: {
-    domain: string; question: string
-    option_a: string; option_b: string; option_c: string; option_d: string
-    correct_answer: string
-  }[] = []
-
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim()
-    if (!VALID_DOMAINS.some((d) => trimmed.startsWith(`('${d}',`))) continue
-    const fields = parseFields(trimmed)
-    if (fields.length < 7) continue
-    rows.push({
-      domain: fields[0], question: fields[1],
-      option_a: fields[2], option_b: fields[3],
-      option_c: fields[4], option_d: fields[5],
-      correct_answer: fields[6],
-    })
-  }
-
-  return rows
-}
 
 describe('Seed SQL — file structure', () => {
   it('seed.sql exists', () => {
