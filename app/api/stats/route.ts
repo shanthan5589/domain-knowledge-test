@@ -85,7 +85,7 @@ function toAverageScoreByGroup(
 // designation in a small city) can otherwise de-anonymize one or two real
 // people. Any group row (distribution bucket, average-by-group bucket, or
 // location comparison) that falls below this is dropped rather than returned.
-const MIN_COHORT_SIZE = 5
+const MIN_COHORT_SIZE = 3
 
 function withMinCohortSize<T extends { count: number }>(rows: T[]): T[] {
   return rows.filter((row) => row.count >= MIN_COHORT_SIZE)

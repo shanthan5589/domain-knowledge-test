@@ -331,17 +331,21 @@ describe('GET /api/stats', () => {
     expect(body.lowScore).toBe(6)
     expect(body.topScoreCount).toBe(1)
     expect(body.topScorePercent).toBe(33)
-    // But every demographic/location breakdown here has only 1-2 people per
-    // group (and the overall cohort itself is only 3 people), which is below
-    // the minimum cohort size — so none of the segment-level breakdowns that
-    // could de-anonymize a small group are returned.
+    // Every role/experience breakdown here has only 1-2 people per group,
+    // which is below the minimum cohort size — so none of those
+    // segment-level breakdowns that could de-anonymize a small group are
+    // returned.
     expect(body.roleDistribution).toEqual([])
     expect(body.experienceAverageScores).toEqual([])
     expect(body.experienceDistribution).toEqual([])
     expect(body.locationDistributionLabel).toBe('Countries')
-    expect(body.locationDistribution).toEqual([])
-    expect(body.locationAverageScores).toEqual([])
-    expect(body.locationComparisons).toEqual([])
+    // But the country breakdown has all 3 people in one group (India), and
+    // the overall cohort is also exactly 3 people — both meet (not fall
+    // below) the minimum cohort size, so the country distribution and the
+    // "Global" comparison row are both reported.
+    expect(body.locationDistribution).toEqual([{ label: 'India', count: 3, percent: 100 }])
+    expect(body.locationAverageScores).toEqual([{ label: 'India', averageScore: 8, count: 3 }])
+    expect(body.locationComparisons).toEqual([{ label: 'Global', scope: 'Global', averageScore: 8, count: 3 }])
   })
 
   it('returns demographic distributions and location comparisons once each group meets the minimum cohort size', async () => {

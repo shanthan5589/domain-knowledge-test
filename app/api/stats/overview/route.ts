@@ -13,7 +13,7 @@ const RESULTS_QUERY_LIMIT = 5000
 // Minimum number of distinct users a per-domain breakdown must contain before
 // we're willing to report its aggregate numbers back to the client. Prevents a
 // narrow profile filter from de-anonymizing one or two real people.
-const MIN_COHORT_SIZE = 5
+const MIN_COHORT_SIZE = 3
 
 export async function GET(req: NextRequest) {
   const session = await auth()
