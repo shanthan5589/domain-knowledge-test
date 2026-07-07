@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import type { SubmitResultPayload } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { requireSession } from '@/lib/session'
 
 // Every test consists of exactly this many questions — enforce it exactly so a
 // crafted request can't submit fewer (easier, cherry-picked) questions to
@@ -16,10 +16,8 @@ const MAX_QUESTIONS_PER_TEST = 10
 const DUPLICATE_SUBMISSION_WINDOW_SECONDS = 10
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const { data: results, error } = await supabaseAdmin
     .from('test_results')
@@ -35,10 +33,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   let body: SubmitResultPayload
   try {

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { requireSession } from '@/lib/session'
 
 // Cap on how many result rows we pull before aggregating in memory — keeps a
 // single request from pulling an unbounded table scan across every domain.
@@ -15,10 +15,8 @@ const RESULTS_QUERY_LIMIT = 5000
 const MIN_COHORT_SIZE = 5
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const { data: results, error } = await supabaseAdmin
     .from('test_results')

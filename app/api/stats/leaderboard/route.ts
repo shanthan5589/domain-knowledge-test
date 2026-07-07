@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { requireSession } from '@/lib/session'
 
 const DEFAULT_LIMIT = 5
 const MAX_LIMIT = 20
@@ -14,10 +14,8 @@ const MAX_LIMIT = 20
 const MIN_COHORT_SIZE = 5
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const domain = req.nextUrl.searchParams.get('domain')
   if (!domain || !VALID_DOMAINS.includes(domain as Domain)) {
