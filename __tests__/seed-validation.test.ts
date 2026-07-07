@@ -1,8 +1,8 @@
 import fs from 'fs'
 import path from 'path'
-import type { Domain, CorrectAnswer } from '@/lib/types'
+import type { CorrectAnswer } from '@/lib/types'
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 const VALID_ANSWERS: CorrectAnswer[] = ['A', 'B', 'C', 'D']
 const QUESTIONS_PER_DOMAIN: Record<string, number> = {
   ai: 65,

@@ -6,18 +6,9 @@ import { useSession } from 'next-auth/react'
 import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
+import { ALL_DOMAINS as VALID_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 
 const TOTAL_SECONDS = 300 // 5 minutes
-
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
-
-const DOMAIN_LABELS: Record<Domain, string> = {
-  ai: 'Artificial Intelligence & Generative AI',
-  cloud: 'Cloud Computing',
-  cybersecurity: 'Cybersecurity',
-  devops: 'DevOps & CI/CD',
-  data_science: 'Data Science, Analytics & Big Data',
-}
 
 function getScoreTier(score: number) {
   if (score >= 9) return { label: 'Excellent', color: 'text-green-600' }

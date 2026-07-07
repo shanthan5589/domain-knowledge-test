@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import type { Domain, Question, ClientQuestion } from '@/lib/types'
-
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 
 // Unbiased shuffle: Array.prototype.sort(() => Math.random() - 0.5) is a well-known
 // non-uniform shuffle because comparator-based sorts don't produce a fair permutation.

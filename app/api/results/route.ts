@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import type { SubmitResultPayload, Domain } from '@/lib/types'
-
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import type { SubmitResultPayload } from '@/lib/types'
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 
 // Every test consists of exactly this many questions — enforce it exactly so a
 // crafted request can't submit fewer (easier, cherry-picked) questions to

@@ -2,16 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Domain } from '@/lib/types'
-
-const DOMAIN_LABELS: Record<Domain, string> = {
-  ai: 'AI & Generative AI',
-  cloud: 'Cloud Computing',
-  cybersecurity: 'Cybersecurity',
-  devops: 'DevOps & CI/CD',
-  data_science: 'Data Science & Analytics',
-}
-
-const ALL_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS, DOMAIN_LABELS_SHORT as DOMAIN_LABELS } from '@/lib/domains'
 
 interface OverviewResponse {
   averageScoreByDomain: Partial<Record<Domain, number | null>>

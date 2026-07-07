@@ -3,8 +3,8 @@ import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 const DEFAULT_LIMIT = 5
 const MAX_LIMIT = 20
 

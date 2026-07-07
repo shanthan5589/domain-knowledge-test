@@ -3,8 +3,7 @@ import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
-
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 
 interface ProfileRow {
   email: string

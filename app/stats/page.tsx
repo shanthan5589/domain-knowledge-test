@@ -7,16 +7,7 @@ import UserMenu from '@/components/UserMenu'
 import DomainOverview from '@/components/DomainOverview'
 import Leaderboard from '@/components/Leaderboard'
 import type { Domain } from '@/lib/types'
-
-const DOMAIN_LABELS: Record<Domain, string> = {
-  ai: 'Artificial Intelligence & Generative AI',
-  cloud: 'Cloud Computing',
-  cybersecurity: 'Cybersecurity',
-  devops: 'DevOps & CI/CD',
-  data_science: 'Data Science, Analytics & Big Data',
-}
-
-const ALL_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 
 const DESIGNATION_OPTIONS = [
   'Software Engineer / Developer',

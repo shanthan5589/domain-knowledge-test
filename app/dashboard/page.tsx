@@ -4,16 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import DomainSelector from '@/components/DomainSelector'
 import UserMenu from '@/components/UserMenu'
 import type { Domain } from '@/lib/types'
-
-const DOMAIN_LABELS: Record<Domain, string> = {
-  ai: 'AI & Generative AI',
-  cloud: 'Cloud Computing',
-  cybersecurity: 'Cybersecurity',
-  devops: 'DevOps & CI/CD',
-  data_science: 'Data Science & Analytics',
-}
-
-const ALL_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS, DOMAIN_LABELS_SHORT as DOMAIN_LABELS } from '@/lib/domains'
 
 function getScoreTier(score: number) {
   if (score >= 9) return { label: 'Excellent', scoreColor: 'text-green-600', labelColor: 'text-green-600' }
