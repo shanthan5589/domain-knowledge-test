@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "seed:domain": "ts-node scripts/generate-domain-seed.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

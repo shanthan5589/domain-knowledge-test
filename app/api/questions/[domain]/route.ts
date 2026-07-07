@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import type { Domain, Question, ClientQuestion } from '@/lib/types'
-
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { requireSession } from '@/lib/session'
 
 // Unbiased shuffle: Array.prototype.sort(() => Math.random() - 0.5) is a well-known
 // non-uniform shuffle because comparator-based sorts don't produce a fair permutation.
@@ -21,10 +20,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ domain: string }> }
 ) {
-  const session = await auth()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const { domain } = await params
 

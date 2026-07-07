@@ -2,34 +2,24 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Domain } from '@/lib/types'
+import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 
-const DOMAINS = [
-  {
-    id: 'ai',
-    name: 'Artificial Intelligence & Generative AI',
-    description: 'LLMs, prompt engineering, model APIs, AI concepts',
-  },
-  {
-    id: 'cloud',
-    name: 'Cloud Computing',
-    description: 'AWS, Azure, GCP services and architecture',
-  },
-  {
-    id: 'cybersecurity',
-    name: 'Cybersecurity',
-    description: 'Threats, tools, protocols, and best practices',
-  },
-  {
-    id: 'devops',
-    name: 'DevOps & CI/CD',
-    description: 'Pipelines, containers, Kubernetes, automation',
-  },
-  {
-    id: 'data_science',
-    name: 'Data Science, Analytics & Big Data',
-    description: 'ML, data pipelines, SQL, visualization tools',
-  },
-]
+// Marketing-style blurbs shown under each domain name — not duplicated
+// anywhere else, so they stay local to this component.
+const DOMAIN_DESCRIPTIONS: Record<Domain, string> = {
+  ai: 'LLMs, prompt engineering, model APIs, AI concepts',
+  cloud: 'AWS, Azure, GCP services and architecture',
+  cybersecurity: 'Threats, tools, protocols, and best practices',
+  devops: 'Pipelines, containers, Kubernetes, automation',
+  data_science: 'ML, data pipelines, SQL, visualization tools',
+}
+
+const DOMAINS = ALL_DOMAINS.map((id) => ({
+  id,
+  name: DOMAIN_LABELS[id],
+  description: DOMAIN_DESCRIPTIONS[id],
+}))
 
 export default function DomainSelector() {
   const router = useRouter()

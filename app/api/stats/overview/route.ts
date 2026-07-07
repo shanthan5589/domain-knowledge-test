@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveEmailFilter } from '@/lib/stats-filters'
+import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
-
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { requireSession } from '@/lib/session'
+import { latestByKey } from '@/lib/latest-by-key'
 
 // Cap on how many result rows we pull before aggregating in memory — keeps a
 // single request from pulling an unbounded table scan across every domain.
@@ -16,10 +16,8 @@ const RESULTS_QUERY_LIMIT = 5000
 const MIN_COHORT_SIZE = 5
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const { data: results, error } = await supabaseAdmin
     .from('test_results')
@@ -33,16 +31,24 @@ export async function GET(req: NextRequest) {
   }
 
   // One score per user per domain — their most recent attempt (rows already ordered newest-first)
-  const latestByDomain = new Map<Domain, Map<string, number>>()
-  for (const row of results as { domain: string; user_email: string; score: number }[]) {
+  type OverviewRow = { domain: string; user_email: string; score: number }
+  const rowsByDomain = new Map<Domain, OverviewRow[]>()
+  for (const row of results as OverviewRow[]) {
     const domain = row.domain as Domain
-    if (!latestByDomain.has(domain)) {
-      latestByDomain.set(domain, new Map())
+    if (!rowsByDomain.has(domain)) {
+      rowsByDomain.set(domain, [])
     }
-    const emailMap = latestByDomain.get(domain)!
-    if (!emailMap.has(row.user_email)) {
-      emailMap.set(row.user_email, row.score)
+    rowsByDomain.get(domain)!.push(row)
+  }
+
+  const latestByDomain = new Map<Domain, Map<string, number>>()
+  for (const [domain, rows] of rowsByDomain) {
+    const latestRows = latestByKey(rows, (row) => row.user_email)
+    const emailToScore = new Map<string, number>()
+    for (const [email, row] of latestRows) {
+      emailToScore.set(email, row.score)
     }
+    latestByDomain.set(domain, emailToScore)
   }
 
   // Optionally restrict the crowd by any combination of profile attributes
@@ -84,7 +90,7 @@ export async function GET(req: NextRequest) {
     let sum = 0
     let count = 0
     for (const [email, score] of emailMap) {
-      if (emailFilter && !emailFilter.has(email)) continue
+      if (!matchesEmailFilter(emailFilter, email)) continue
       if (existingProfileEmails && !existingProfileEmails.has(email)) continue
       sum += score
       count += 1

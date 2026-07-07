@@ -7,33 +7,10 @@ import UserMenu from '@/components/UserMenu'
 import DomainOverview from '@/components/DomainOverview'
 import Leaderboard from '@/components/Leaderboard'
 import type { Domain } from '@/lib/types'
-
-const DOMAIN_LABELS: Record<Domain, string> = {
-  ai: 'Artificial Intelligence & Generative AI',
-  cloud: 'Cloud Computing',
-  cybersecurity: 'Cybersecurity',
-  devops: 'DevOps & CI/CD',
-  data_science: 'Data Science, Analytics & Big Data',
-}
-
-const ALL_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
-
-const DESIGNATION_OPTIONS = [
-  'Software Engineer / Developer',
-  'Full-Stack Developer',
-  'Data Scientist',
-  'Cloud Architect / Engineer',
-  'DevOps Engineer',
-  'Cybersecurity Specialist',
-  'AI / Machine Learning Engineer',
-  'UI/UX Designer',
-  'IT Project Manager',
-  'Product Owner',
-  'Business Analyst',
-  'Other',
-]
-
-const EXPERIENCE_OPTIONS = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
+import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
+import { DESIGNATION_OPTIONS, EXPERIENCE_OPTIONS } from '@/lib/profile-options'
+import { roundToOne } from '@/lib/stats-calculations'
+import { crowdFilterParams } from '@/lib/crowd-filter-params'
 
 // Below this many test-takers, a histogram is too sparse to be meaningful (and risks
 // exposing an individual's score), so we show a message instead of a chart.
@@ -129,10 +106,6 @@ function formatPeople(count: number) {
 
 function formatScore(score: number | null) {
   return score === null ? '-' : `${score}/10`
-}
-
-function roundToOne(value: number) {
-  return Math.round(value * 10) / 10
 }
 
 function formatDuration(totalSeconds: number | null) {
@@ -860,11 +833,13 @@ export default function StatsPage() {
         setLoading(true)
         const params = new URLSearchParams({
           domain,
-          designation,
-          experience,
-          country: countryName || 'all',
-          state_region: stateName || 'all',
-          city: city || 'all',
+          ...crowdFilterParams({
+            designation,
+            experience,
+            country: countryName || 'all',
+            state_region: stateName || 'all',
+            city: city || 'all',
+          }),
         })
         const res = await fetch(`/api/stats?${params}`)
         if (!res.ok) throw new Error('Failed to load stats')
@@ -892,13 +867,15 @@ export default function StatsPage() {
     async function fetchOverview() {
       if (!profileLocationReady) return
       try {
-        const params = new URLSearchParams({
-          designation,
-          experience,
-          country: countryName || 'all',
-          state_region: stateName || 'all',
-          city: city || 'all',
-        })
+        const params = new URLSearchParams(
+          crowdFilterParams({
+            designation,
+            experience,
+            country: countryName || 'all',
+            state_region: stateName || 'all',
+            city: city || 'all',
+          })
+        )
         const res = await fetch(`/api/stats/overview?${params}`)
         if (!res.ok) throw new Error('Failed to load overview')
         const json = await res.json()

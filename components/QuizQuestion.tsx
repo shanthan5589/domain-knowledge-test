@@ -1,6 +1,7 @@
 'use client'
 
 import type { ClientQuestion, CorrectAnswer } from '@/lib/types'
+import { NO_SELECT_STYLE } from '@/lib/anti-cheat'
 
 interface QuizQuestionProps {
   question: ClientQuestion
@@ -34,7 +35,7 @@ export default function QuizQuestion({
       {/* Question text — no copy */}
       <p
         className="text-lg font-semibold text-gray-900 mb-6 leading-relaxed"
-        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        style={NO_SELECT_STYLE}
       >
         {question.question}
       </p>
@@ -54,7 +55,7 @@ export default function QuizQuestion({
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50'
               }`}
-              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+              style={NO_SELECT_STYLE}
             >
               {/* Letter label — always visible */}
               <span
@@ -74,7 +75,7 @@ export default function QuizQuestion({
                     ? 'opacity-100'
                     : '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'
                 }`}
-                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+                style={NO_SELECT_STYLE}
                 aria-label={`Option ${key}: ${optionText}`}
               >
                 {optionText}

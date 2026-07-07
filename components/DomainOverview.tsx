@@ -2,16 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import type { Domain } from '@/lib/types'
-
-const DOMAIN_LABELS: Record<Domain, string> = {
-  ai: 'AI & Generative AI',
-  cloud: 'Cloud Computing',
-  cybersecurity: 'Cybersecurity',
-  devops: 'DevOps & CI/CD',
-  data_science: 'Data Science & Analytics',
-}
-
-const ALL_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
+import { ALL_DOMAINS, DOMAIN_LABELS_SHORT as DOMAIN_LABELS } from '@/lib/domains'
+import { crowdFilterParams } from '@/lib/crowd-filter-params'
 
 interface OverviewResponse {
   averageScoreByDomain: Partial<Record<Domain, number | null>>
@@ -36,7 +28,7 @@ export default function DomainOverview({ designation, experience, country, state
 
     async function fetchOverview() {
       try {
-        const params = new URLSearchParams({ designation, experience, country, state_region, city })
+        const params = new URLSearchParams(crowdFilterParams({ designation, experience, country, state_region, city }))
         const res = await fetch(`/api/stats/overview?${params}`)
         if (!res.ok) throw new Error('Failed to load overview')
         const json = await res.json()
