@@ -204,8 +204,21 @@ describe('GET /api/stats/leaderboard', () => {
     const res = await GET(makeRequest('?domain=ai&designation=Data%20Scientist'))
     const body = await res.json()
     // Only 2 people match — below the minimum cohort size, so no names/scores
-    // are revealed even though the caller is one of the two people.
+    // are revealed even though the caller is one of the two people. The match
+    // count is still reported so the client can tell this apart from nobody
+    // having attempted the domain at all.
     expect(body.leaderboard).toEqual([])
+    expect(body.suppressedCount).toBe(2)
+  })
+
+  it('does not report a suppressedCount when nobody has attempted the domain at all', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.leaderboard).toEqual([])
+    expect(body.suppressedCount).toBeUndefined()
   })
 
   it('returns an empty leaderboard when the profile filter matches nobody who has attempted', async () => {
