@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Domain } from '@/lib/types'
+import { crowdFilterParams } from '@/lib/crowd-filter-params'
 
 interface LeaderboardEntry {
   name: string
@@ -31,7 +32,11 @@ export default function Leaderboard({ domain, designation, experience, country, 
 
     async function fetchLeaderboard() {
       try {
-        const params = new URLSearchParams({ domain, limit: '5', designation, experience, country, state_region, city })
+        const params = new URLSearchParams({
+          domain,
+          limit: '5',
+          ...crowdFilterParams({ designation, experience, country, state_region, city }),
+        })
         const res = await fetch(`/api/stats/leaderboard?${params}`)
         if (!res.ok) throw new Error('Failed to load leaderboard')
         const json = await res.json()

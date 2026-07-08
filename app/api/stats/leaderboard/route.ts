@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { resolveEmailFilter } from '@/lib/stats-filters'
+import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
+import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
+import { requireSession } from '@/lib/session'
+import { latestByKey } from '@/lib/latest-by-key'
 
-const VALID_DOMAINS: Domain[] = ['ai', 'cloud', 'cybersecurity', 'devops', 'data_science']
 const DEFAULT_LIMIT = 5
 const MAX_LIMIT = 20
 
@@ -14,10 +15,8 @@ const MAX_LIMIT = 20
 const MIN_COHORT_SIZE = 3
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const domain = req.nextUrl.searchParams.get('domain')
   if (!domain || !VALID_DOMAINS.includes(domain as Domain)) {
@@ -38,12 +37,10 @@ export async function GET(req: NextRequest) {
   }
 
   // One entry per user — their most recent attempt (rows already ordered newest-first)
-  const latestByEmail = new Map<string, { score: number; completed_at: string }>()
-  for (const row of results as { user_email: string; score: number; completed_at: string }[]) {
-    if (!latestByEmail.has(row.user_email)) {
-      latestByEmail.set(row.user_email, { score: row.score, completed_at: row.completed_at })
-    }
-  }
+  const latestByEmail = latestByKey(
+    results as { user_email: string; score: number; completed_at: string }[],
+    (row) => row.user_email
+  )
 
   // Optionally restrict the crowd by any combination of profile attributes
   const { emailFilter, error: filterError } = await resolveEmailFilter(req)
@@ -52,7 +49,7 @@ export async function GET(req: NextRequest) {
   }
 
   const filteredEntries = [...latestByEmail.entries()].filter(
-    ([email]) => !emailFilter || emailFilter.has(email)
+    ([email]) => matchesEmailFilter(emailFilter, email)
   )
 
   if (filteredEntries.length === 0) {

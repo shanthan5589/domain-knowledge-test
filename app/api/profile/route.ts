@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { EXPERIENCE_OPTIONS } from '@/lib/profile-options'
+import { requireSession } from '@/lib/session'
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   const { data, error } = await supabaseAdmin
     .from('profiles')
@@ -22,10 +21,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { session, unauthorizedResponse } = await requireSession()
+  if (!session) return unauthorizedResponse
 
   let body: {
     country?: string
@@ -74,8 +71,7 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const VALID_EXPERIENCE = ['Fresher', '1-3 years', '3-5 years', '5-10 years', '10+ years']
-  if (!VALID_EXPERIENCE.includes(years_of_experience)) {
+  if (!EXPERIENCE_OPTIONS.includes(years_of_experience)) {
     return NextResponse.json({ error: 'Invalid years of experience value' }, { status: 400 })
   }
 

@@ -21,6 +21,12 @@ interface EmailFilterResult {
   error: boolean
 }
 
+// Shared "does this email pass the active filter" predicate. emailFilter ===
+// null means no filters are active, i.e. everyone passes.
+export function matchesEmailFilter(emailFilter: Set<string> | null, email: string): boolean {
+  return !emailFilter || emailFilter.has(email)
+}
+
 // Resolves the active filter query params into the set of profile emails that match
 // all of them (AND semantics). Returns emailFilter: null when no filters are active,
 // meaning "everyone" — callers should treat that as "don't restrict the crowd".
