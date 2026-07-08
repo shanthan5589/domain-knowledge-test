@@ -62,6 +62,24 @@ describe('TestPage', () => {
     })
   })
 
+  it('stacks the results-screen action buttons vertically on narrow screens', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockQuestionsResponse())
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 7 }) })
+
+    render(<TestPage />)
+    await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
+
+    for (let i = 0; i < 10; i++) {
+      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+    }
+
+    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    const tryAgainButton = screen.getByText('Try Again')
+    expect(tryAgainButton.parentElement).toHaveClass('flex-col', 'sm:flex-row')
+  })
+
   describe('Try Again resets state for a same-domain retake', () => {
     it('re-fetches fresh questions and resets progress after clicking Try Again', async () => {
       ;(global.fetch as jest.Mock)
