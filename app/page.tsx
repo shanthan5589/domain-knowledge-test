@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import HomeSignupForm from '@/components/HomeSignupForm'
+import Logo from '@/components/Logo'
 
 export default async function Home() {
   const session = await auth()
@@ -11,9 +12,7 @@ export default async function Home() {
     <div className="min-h-screen flex flex-col bg-[var(--paper)]">
       {/* Nav */}
       <header className="px-8 py-4 bg-[var(--surface)] border-b border-[var(--line)] flex items-center justify-between">
-        <span className="text-base font-semibold text-[var(--ink)] tracking-tight">
-          Domain Knowledge Test
-        </span>
+        <Logo />
         <Link
           href="/login"
           className="text-sm font-medium text-[var(--action)] hover:text-[var(--action-hover)] transition-colors"
