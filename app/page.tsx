@@ -47,7 +47,7 @@ export default async function Home() {
 
       {/* Footer */}
       <footer className="py-5 border-t border-[var(--line)] text-center">
-        <p className="text-sm text-[var(--ink-soft)]">© Copyright All rights reserved.</p>
+        <p className="text-sm text-[var(--ink-soft)]">© 2026 Castor AI. All rights reserved.</p>
       </footer>
     </div>
   )
