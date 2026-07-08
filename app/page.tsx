@@ -11,13 +11,16 @@ export default async function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[var(--paper)]">
       {/* Nav */}
-      <header className="px-8 py-4 bg-[var(--surface)] border-b border-[var(--line)] flex items-center justify-between">
+      <header className="px-4 sm:px-8 py-4 bg-[var(--surface)] border-b border-[var(--line)] flex items-center justify-between">
         <Logo />
+        {/* Shorter label on phones so it never wraps against the logo;
+            full text restored from sm: up, unchanged from before. */}
         <Link
           href="/login"
-          className="text-sm font-medium text-[var(--action)] hover:text-[var(--action-hover)] transition-colors"
+          className="text-sm font-medium text-[var(--action)] hover:text-[var(--action-hover)] transition-colors whitespace-nowrap"
         >
-          Sign in to your account →
+          <span className="sm:hidden">Sign in →</span>
+          <span className="hidden sm:inline">Sign in to your account →</span>
         </Link>
       </header>
 
