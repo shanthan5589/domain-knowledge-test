@@ -210,6 +210,14 @@ describe('StatsPage', () => {
     await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
   })
 
+  it('wraps the tab bar in a horizontally scrollable container so it cannot force page-wide overflow on narrow screens', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    const tablist = screen.getByRole('tablist')
+    expect(tablist.parentElement).toHaveClass('overflow-x-auto')
+    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+  })
+
   it('shows a link back to the dashboard', async () => {
     installFetchMock()
     render(<StatsPage />)
