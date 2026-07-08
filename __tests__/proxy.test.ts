@@ -83,6 +83,11 @@ describe('proxy middleware', () => {
     // image bytes, breaking the logo everywhere it's rendered.
     expect(matcher.test('/logo.jpg')).toBe(false)
 
+    // icon.png is Next's App Router favicon route (from app/icon.png) — same
+    // failure mode as logo.jpg above: unexcluded, it gets redirected to
+    // /login for logged-out visitors instead of serving the tab icon.
+    expect(matcher.test('/icon.png')).toBe(false)
+
     // Real protected routes must still be matched.
     expect(matcher.test('/dashboard')).toBe(true)
     expect(matcher.test('/profile')).toBe(true)

@@ -20,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Domain Knowledge Test",
+  title: "Edu | Castor AI",
   description: "Test your knowledge across AI, Cloud, Cybersecurity, DevOps, and Data Science",
 };
 

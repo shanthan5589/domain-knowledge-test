@@ -17,5 +17,5 @@ export const config = {
   // other excluded prefixes, so `/` was being treated as protected and
   // redirected to /login even though app/page.tsx already handles showing the
   // public landing page vs. redirecting a logged-in user to /dashboard.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo.jpg|login|signup|$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo.jpg|icon.png|login|signup|$).*)'],
 }
