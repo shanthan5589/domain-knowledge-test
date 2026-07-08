@@ -3,15 +3,17 @@ import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import DomainSelector from '@/components/DomainSelector'
 import UserMenu from '@/components/UserMenu'
+import AppHeader from '@/components/AppHeader'
+import ScoreGauge from '@/components/ui/ScoreGauge'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS_SHORT as DOMAIN_LABELS } from '@/lib/domains'
 import { latestByKey } from '@/lib/latest-by-key'
 
 function getScoreTier(score: number) {
-  if (score >= 9) return { label: 'Excellent', scoreColor: 'text-green-600', labelColor: 'text-green-600' }
-  if (score >= 7) return { label: 'Good', scoreColor: 'text-violet-600', labelColor: 'text-violet-600' }
-  if (score >= 5) return { label: 'Average', scoreColor: 'text-yellow-500', labelColor: 'text-yellow-500' }
-  return { label: 'Needs improvement', scoreColor: 'text-red-500', labelColor: 'text-red-500' }
+  if (score >= 9) return { label: 'Excellent', color: '#15803D' }
+  if (score >= 7) return { label: 'Good', color: '#4338CA' }
+  if (score >= 5) return { label: 'Average', color: 'var(--signal)' }
+  return { label: 'Needs improvement', color: '#B42318' }
 }
 
 interface ResultRow {
@@ -54,20 +56,16 @@ export default async function DashboardPage() {
   const hasAnyResult = Object.keys(latestByDomain).length > 0
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Top nav */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-800">Domain Knowledge Test</span>
-        <UserMenu />
-      </div>
+    <main className="min-h-screen bg-[var(--paper)]">
+      <AppHeader right={<UserMenu />} />
 
-      <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Welcome header */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-[var(--ink)] mb-2">
             Welcome, {session.user?.name?.split(' ')[0] ?? session.user?.email}!
           </h1>
-          <p className="text-gray-500">Select a domain to begin your assessment</p>
+          <p className="text-[var(--ink-soft)]">Select a domain to begin your assessment</p>
         </div>
 
         {/* Domain selector */}
@@ -76,36 +74,39 @@ export default async function DashboardPage() {
         {/* Results history */}
         {hasAnyResult && (
           <div className="mt-14">
-            <h2 className="text-xl font-bold text-gray-900 mb-5">Your Results</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--ink-soft)] pb-3 mb-5 border-b border-[var(--line)]">
+              Your Results
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {ALL_DOMAINS.map((domain) => {
                 const result = latestByDomain[domain]
                 if (!result) return null
                 const mins = Math.floor(result.time_taken_seconds / 60)
                 const secs = result.time_taken_seconds % 60
-                const { label, scoreColor, labelColor } = getScoreTier(result.score)
+                const { label, color } = getScoreTier(result.score)
                 return (
                   <div
                     key={domain}
-                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-5"
+                    className="bg-[var(--surface)] rounded-lg border border-[var(--line)] p-5"
                   >
-                    <p className="text-xs font-medium text-gray-400 mb-1 uppercase tracking-wide">
+                    <p className="text-xs font-medium text-[var(--ink-soft)] mb-2 uppercase tracking-wide">
                       {DOMAIN_LABELS[domain]}
                     </p>
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className={`text-4xl font-black ${scoreColor}`}>
+                    <div className="flex items-baseline gap-1.5 mb-3">
+                      <span className="font-mono text-4xl font-bold text-[var(--ink)]">
                         {result.score}
                       </span>
-                      <span className="text-lg font-bold text-gray-400 mb-1">/ 10</span>
+                      <span className="text-sm font-medium text-[var(--ink-soft)]">/ 10</span>
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <ScoreGauge score={result.score} />
+                    <p className="text-xs text-[var(--ink-soft)] mt-3">
                       Completed in {mins > 0 ? `${mins}m ${secs}s` : `${secs}s`} &middot;{' '}
                       {new Date(result.completed_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                       })}
                     </p>
-                    <div className={`mt-2 text-xs font-medium ${labelColor}`}>
+                    <div className="mt-2 text-xs font-semibold" style={{ color }}>
                       {label}
                     </div>
                   </div>

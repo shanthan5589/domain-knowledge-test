@@ -8,15 +8,15 @@ export default async function Home() {
   if (session) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-[var(--paper)]">
       {/* Nav */}
-      <header className="px-8 py-4 bg-white border-b border-gray-200 flex items-center justify-between">
-        <span className="text-base font-semibold text-gray-900 tracking-tight">
+      <header className="px-8 py-4 bg-[var(--surface)] border-b border-[var(--line)] flex items-center justify-between">
+        <span className="text-base font-semibold text-[var(--ink)] tracking-tight">
           Domain Knowledge Test
         </span>
         <Link
           href="/login"
-          className="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
+          className="text-sm font-medium text-[var(--action)] hover:text-[var(--action-hover)] transition-colors"
         >
           Sign in to your account →
         </Link>
@@ -27,10 +27,10 @@ export default async function Home() {
 
         {/* Left — headline + description */}
         <div className="flex-1 flex flex-col">
-          <h1 className="text-5xl sm:text-6xl font-black leading-tight tracking-tight mb-6 text-gray-900">
+          <h1 className="text-5xl sm:text-6xl font-bold leading-tight tracking-tight mb-6 text-[var(--ink)]">
             How well do you actually use AI?
           </h1>
-          <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
+          <p className="text-lg text-[var(--ink-soft)] leading-relaxed max-w-xl">
             Most professionals have access to the same tools. The best ones use them to drive real
             results. Take the 3-minute assessment to get an honest read on your AI skills.
           </p>
@@ -44,8 +44,8 @@ export default async function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="py-5 border-t border-gray-200 text-center">
-        <p className="text-sm text-gray-400">© Copyright All rights reserved.</p>
+      <footer className="py-5 border-t border-[var(--line)] text-center">
+        <p className="text-sm text-[var(--ink-soft)]">© Copyright All rights reserved.</p>
       </footer>
     </div>
   )

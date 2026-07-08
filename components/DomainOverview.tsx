@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS_SHORT as DOMAIN_LABELS } from '@/lib/domains'
 import { crowdFilterParams } from '@/lib/crowd-filter-params'
+import ScoreGauge from '@/components/ui/ScoreGauge'
 
 interface OverviewResponse {
   averageScoreByDomain: Partial<Record<Domain, number | null>>
@@ -47,7 +48,7 @@ export default function DomainOverview({ designation, experience, country, state
   }, [designation, experience, country, state_region, city])
 
   if (error) return <p className="text-red-600 text-sm">{error}</p>
-  if (!data) return <p className="text-gray-400 text-sm animate-pulse">Loading domain averages…</p>
+  if (!data) return <p className="text-[var(--ink-soft)] text-sm animate-pulse">Loading domain averages…</p>
 
   return (
     <div data-testid="domain-overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -57,23 +58,28 @@ export default function DomainOverview({ designation, experience, country, state
         const isMostAttempted = data.mostAttemptedDomain === d
 
         return (
-          <div key={d} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{DOMAIN_LABELS[d]}</p>
+          <div key={d} className="bg-[var(--surface)] rounded-lg border border-[var(--line)] p-4">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide">{DOMAIN_LABELS[d]}</p>
               {isMostAttempted && (
                 <span
-                  className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0"
+                  className="text-[10px] font-semibold text-[var(--action)] bg-[var(--paper)] px-2 py-0.5 rounded-full flex-shrink-0"
                   data-testid="most-attempted-badge"
                 >
                   Most attempted
                 </span>
               )}
             </div>
-            <p className="text-2xl font-black text-gray-900">
+            <p className="font-mono text-2xl font-bold text-[var(--ink)]">
               {avg ?? '—'}
-              <span className="text-sm font-medium text-gray-400"> / 10 avg</span>
+              <span className="text-sm font-medium text-[var(--ink-soft)] font-sans"> / 10 avg</span>
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            {typeof avg === 'number' && (
+              <div className="mt-2">
+                <ScoreGauge score={avg} />
+              </div>
+            )}
+            <p className="text-xs text-[var(--ink-soft)] mt-2">
               {count} test-taker{count === 1 ? '' : 's'}
             </p>
           </div>

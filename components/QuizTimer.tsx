@@ -39,12 +39,22 @@ export default function QuizTimer({ totalSeconds, onExpire }: QuizTimerProps) {
 
   return (
     <div
-      data-testid="quiz-timer"
-      className={`font-mono text-2xl font-bold tabular-nums ${
-        isUrgent ? 'text-red-600 animate-pulse' : 'text-gray-700'
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border ${
+        isUrgent ? 'border-red-200 bg-red-50' : 'border-[var(--line)] bg-[var(--paper)]'
       }`}
     >
-      {display}
+      <span
+        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isUrgent ? 'bg-red-600 animate-pulse' : 'bg-[var(--signal)]'}`}
+        aria-hidden="true"
+      />
+      <div
+        data-testid="quiz-timer"
+        className={`font-mono text-2xl font-bold tabular-nums ${
+          isUrgent ? 'text-red-600 animate-pulse' : 'text-gray-700'
+        }`}
+      >
+        {display}
+      </div>
     </div>
   )
 }

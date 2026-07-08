@@ -28,13 +28,13 @@ export default function QuizQuestion({
   return (
     <div className="select-none">
       {/* Progress */}
-      <p className="text-sm text-gray-400 mb-3">
+      <p className="font-mono text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-3">
         Question {questionNumber} of {totalQuestions}
       </p>
 
       {/* Question text — no copy */}
       <p
-        className="text-lg font-semibold text-gray-900 mb-6 leading-relaxed"
+        className="text-lg font-semibold text-[var(--ink)] mb-6 leading-relaxed"
         style={NO_SELECT_STYLE}
       >
         {question.question}
@@ -50,19 +50,19 @@ export default function QuizQuestion({
             <button
               key={key}
               onClick={() => onSelect(key)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 text-left transition-all group ${
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-lg border-2 text-left transition-all group ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50'
+                  : 'border-[var(--line)] bg-[var(--surface)] hover:border-[var(--action)]'
               }`}
               style={NO_SELECT_STYLE}
             >
               {/* Letter label — always visible */}
               <span
-                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-mono font-bold text-sm ${
                   isSelected
                     ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
+                    : 'bg-[var(--paper)] text-[var(--ink-soft)] group-hover:bg-[var(--action)] group-hover:text-white'
                 }`}
               >
                 {key}
@@ -70,7 +70,7 @@ export default function QuizQuestion({
 
               {/* Option text — hidden until hover or selected */}
               <span
-                className={`text-gray-700 text-sm transition-all duration-200 ${
+                className={`text-[var(--ink)] text-sm transition-all duration-200 ${
                   isSelected
                     ? 'opacity-100'
                     : '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100'

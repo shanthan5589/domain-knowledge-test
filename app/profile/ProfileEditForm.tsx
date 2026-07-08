@@ -28,6 +28,10 @@ function nameToStateCode(stateName: string, countryCode: string): string {
   return State.getStatesOfCountry(countryCode).find((s) => s.name === stateName)?.isoCode ?? ''
 }
 
+const inputClass =
+  'w-full border border-[var(--line)] rounded-md px-3 py-2 text-sm text-[var(--ink)] bg-[var(--surface)] focus:outline-none focus:ring-1 focus:ring-[var(--action)] focus:border-[var(--action)] disabled:opacity-50 disabled:cursor-not-allowed'
+const labelClass = 'block text-sm font-medium text-[var(--ink)] mb-1'
+
 export default function ProfileEditForm({ initialValues }: Props) {
   const initialCountryCode = nameToCountryCode(initialValues.country)
   const initialStateCode = nameToStateCode(initialValues.state_region, initialCountryCode)
@@ -76,31 +80,31 @@ export default function ProfileEditForm({ initialValues }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
+    <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-lg border border-[var(--line)] p-6 space-y-5">
       {/* Read-only fields */}
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
-        <p className="text-sm text-gray-900 py-2 px-3 bg-gray-50 rounded-lg border border-gray-200">
+        <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Name</label>
+        <p className="text-sm text-[var(--ink)] py-2 px-3 bg-[var(--paper)] rounded-md border border-[var(--line)]">
           {initialValues.full_name || '—'}
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
-        <p className="text-sm text-gray-900 py-2 px-3 bg-gray-50 rounded-lg border border-gray-200">
+        <label className="block text-sm font-medium text-[var(--ink-soft)] mb-1">Email</label>
+        <p className="text-sm text-[var(--ink)] py-2 px-3 bg-[var(--paper)] rounded-md border border-[var(--line)]">
           {initialValues.email}
         </p>
       </div>
 
       {/* Country */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+        <label className={labelClass}>Country</label>
         <select
           value={country}
           onChange={(e) => { setCountry(e.target.value); setStateRegion(''); setCity('') }}
           required
           aria-label="Country"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         >
           <option value="">Select country</option>
           {Country.getAllCountries().map((c) => (
@@ -111,14 +115,14 @@ export default function ProfileEditForm({ initialValues }: Props) {
 
       {/* State / Region */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">State / Region</label>
+        <label className={labelClass}>State / Region</label>
         <select
           value={stateRegion}
           onChange={(e) => { setStateRegion(e.target.value); setCity('') }}
           disabled={!country}
           required
           aria-label="State or Region"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={inputClass}
         >
           <option value="">Select state / region</option>
           {states.map((s) => (
@@ -129,14 +133,14 @@ export default function ProfileEditForm({ initialValues }: Props) {
 
       {/* City */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+        <label className={labelClass}>City</label>
         <select
           value={city}
           onChange={(e) => setCity(e.target.value)}
           disabled={!stateRegion}
           required
           aria-label="City"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={inputClass}
         >
           <option value="">Select city</option>
           {cities.map((c) => (
@@ -147,7 +151,7 @@ export default function ProfileEditForm({ initialValues }: Props) {
 
       {/* Years of experience */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-[var(--ink)] mb-2">
           Years of Experience
         </label>
         <div className="space-y-2">
@@ -159,9 +163,9 @@ export default function ProfileEditForm({ initialValues }: Props) {
                 value={opt}
                 checked={experience === opt}
                 onChange={() => setExperience(opt)}
-                className="accent-blue-600 w-4 h-4"
+                className="accent-[var(--action)] w-4 h-4"
               />
-              <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+              <span className="text-sm text-[var(--ink)] group-hover:text-[var(--action)] transition-colors">
                 {opt}
               </span>
             </label>
@@ -171,13 +175,13 @@ export default function ProfileEditForm({ initialValues }: Props) {
 
       {/* Designation */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+        <label className={labelClass}>Designation</label>
         <select
           value={designation}
           onChange={(e) => setDesignation(e.target.value)}
           required
           aria-label="Designation"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         >
           <option value="">Select designation</option>
           {DESIGNATION_OPTIONS.map((opt) => (
@@ -188,16 +192,16 @@ export default function ProfileEditForm({ initialValues }: Props) {
 
       {/* LinkedIn */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={labelClass}>
           LinkedIn Profile{' '}
-          <span className="text-gray-400 font-normal">(Optional)</span>
+          <span className="text-[var(--ink-soft)] font-normal">(Optional)</span>
         </label>
         <input
           type="url"
           value={linkedin}
           onChange={(e) => setLinkedin(e.target.value)}
           placeholder="https://linkedin.com/in/yourname"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
       </div>
 
@@ -209,7 +213,7 @@ export default function ProfileEditForm({ initialValues }: Props) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition disabled:opacity-50"
+        className="w-full bg-[var(--action)] text-white rounded-md px-4 py-3 font-medium hover:bg-[var(--action-hover)] transition-colors disabled:opacity-50"
       >
         {loading ? 'Saving...' : 'Save Changes'}
       </button>

@@ -15,8 +15,9 @@ const DOMAIN_DESCRIPTIONS: Record<Domain, string> = {
   data_science: 'ML, data pipelines, SQL, visualization tools',
 }
 
-const DOMAINS = ALL_DOMAINS.map((id) => ({
+const DOMAINS = ALL_DOMAINS.map((id, index) => ({
   id,
+  index: index + 1,
   name: DOMAIN_LABELS[id],
   description: DOMAIN_DESCRIPTIONS[id],
 }))
@@ -49,39 +50,42 @@ export default function DomainSelector() {
           <button
             key={domain.id}
             onClick={() => handleSelect(domain.id)}
-            className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:border-blue-400 hover:shadow-md transition-all group"
+            className="bg-[var(--surface)] rounded-lg border border-[var(--line)] p-6 text-left hover:border-[var(--action)] hover:shadow-md transition-all group"
           >
-            <h2 className="font-semibold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors min-h-[48px] flex items-start">
+            <span className="font-mono text-xs text-[var(--signal)] mb-2 block">
+              {String(domain.index).padStart(2, '0')}
+            </span>
+            <h2 className="font-semibold text-[var(--ink)] mb-1 min-h-[48px] flex items-start">
               {domain.name}
             </h2>
-            <p className="text-sm text-gray-500">{domain.description}</p>
+            <p className="text-sm text-[var(--ink-soft)]">{domain.description}</p>
           </button>
         ))}
       </div>
 
       {/* Confirmation modal */}
       {confirming && selectedDomain && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl">
-            <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
+        <div className="fixed inset-0 bg-[var(--ink)]/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-[var(--surface)] rounded-xl p-8 max-w-md w-full shadow-xl">
+            <h2 className="text-xl font-bold text-[var(--ink)] text-center mb-2">
               Ready to start?
             </h2>
-            <p className="text-gray-600 text-center mb-1">
+            <p className="text-[var(--ink)] text-center mb-1">
               <span className="font-medium">{selectedDomain.name}</span>
             </p>
-            <p className="text-gray-500 text-sm text-center mb-6">
+            <p className="text-[var(--ink-soft)] text-sm text-center mb-6 font-mono">
               10 questions · 5 minute timer · Cannot pause
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleCancel}
-                className="flex-1 border border-gray-300 rounded-lg py-3 text-gray-700 font-medium hover:bg-gray-50 transition"
+                className="flex-1 border border-[var(--line)] rounded-md py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700 transition"
+                className="flex-1 bg-[var(--action)] text-white rounded-md py-3 font-medium hover:bg-[var(--action-hover)] transition-colors"
               >
                 Start Test
               </button>
