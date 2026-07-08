@@ -77,6 +77,12 @@ describe('proxy middleware', () => {
     expect(matcher.test('/api/stats')).toBe(false)
     expect(matcher.test('/favicon.ico')).toBe(false)
 
+    // logo.jpg is a public asset — without this exclusion, logged-out
+    // requests for it get redirected to /login, and Next's image optimizer
+    // (which fetches it internally) receives that HTML redirect instead of
+    // image bytes, breaking the logo everywhere it's rendered.
+    expect(matcher.test('/logo.jpg')).toBe(false)
+
     // Real protected routes must still be matched.
     expect(matcher.test('/dashboard')).toBe(true)
     expect(matcher.test('/profile')).toBe(true)

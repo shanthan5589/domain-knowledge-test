@@ -3,6 +3,7 @@
 // Consistent across dashboard, profile, stats, and the quiz flow.
 
 import type { ReactNode } from 'react'
+import Logo from '@/components/Logo'
 
 interface AppHeaderProps {
   right?: ReactNode
@@ -14,12 +15,7 @@ export default function AppHeader({ right, sticky }: AppHeaderProps) {
     <div
       className={`${sticky ? 'sticky top-0 z-20' : ''} flex items-center justify-between px-4 sm:px-6 h-14 bg-[var(--surface)] border-b border-[var(--line)]`}
     >
-      <span className="flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-[var(--signal)]" aria-hidden="true" />
-        <span className="text-sm font-semibold tracking-wide text-[var(--ink)] uppercase">
-          Domain Knowledge Test
-        </span>
-      </span>
+      <Logo />
       {right}
     </div>
   )
