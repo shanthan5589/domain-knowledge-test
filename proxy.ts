@@ -12,5 +12,10 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login|signup).*)'],
+  // `$` in the exclusion list matches the root path (`/`) itself — without it,
+  // the empty remainder after the leading slash doesn't start with any of the
+  // other excluded prefixes, so `/` was being treated as protected and
+  // redirected to /login even though app/page.tsx already handles showing the
+  // public landing page vs. redirecting a logged-in user to /dashboard.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login|signup|$).*)'],
 }

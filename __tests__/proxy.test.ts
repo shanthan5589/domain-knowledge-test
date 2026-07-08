@@ -59,4 +59,28 @@ describe('proxy middleware', () => {
     expect(pattern).toContain('signup')
     expect(pattern).toContain('api')
   })
+
+  // Checking the matcher string for substrings (above) isn't enough to catch a
+  // regex mistake — this actually runs the pattern against real paths, the way
+  // Next.js would, to confirm which routes the middleware fires on.
+  it('actually matches/excludes the right paths when evaluated as a regex', async () => {
+    const { config } = await import('@/proxy')
+    const matcher = new RegExp(`^${config.matcher[0]}$`)
+
+    // The public landing page must NOT be matched (must stay unprotected),
+    // otherwise logged-out visitors get redirected to /login before
+    // app/page.tsx ever renders the landing page.
+    expect(matcher.test('/')).toBe(false)
+
+    expect(matcher.test('/login')).toBe(false)
+    expect(matcher.test('/signup')).toBe(false)
+    expect(matcher.test('/api/stats')).toBe(false)
+    expect(matcher.test('/favicon.ico')).toBe(false)
+
+    // Real protected routes must still be matched.
+    expect(matcher.test('/dashboard')).toBe(true)
+    expect(matcher.test('/profile')).toBe(true)
+    expect(matcher.test('/test/ai')).toBe(true)
+    expect(matcher.test('/stats')).toBe(true)
+  })
 })
