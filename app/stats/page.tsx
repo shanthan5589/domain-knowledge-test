@@ -1091,23 +1091,35 @@ export default function StatsPage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div role="tablist" className="flex gap-1 border-b border-[var(--line)] mb-4">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition ${
-                tab === t.id
-                  ? 'border-[var(--action)] text-[var(--action)]'
-                  : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)]'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Tabs — scrolls horizontally on narrow screens instead of overflowing
+            the page, since the three labels don't fit ~340px-and-under widths.
+            The right-edge mask fades the last tab into transparency instead of
+            clipping it mid-word, so it reads as "swipe for more" rather than
+            broken text. */}
+        <div
+          className="overflow-x-auto mb-4"
+          style={{
+            maskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent)',
+            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent)',
+          }}
+        >
+          <div role="tablist" className="flex gap-1 border-b border-[var(--line)] w-max min-w-full">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => setTab(t.id)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition whitespace-nowrap flex-shrink-0 ${
+                  tab === t.id
+                    ? 'border-[var(--action)] text-[var(--action)]'
+                    : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Community Insights */}

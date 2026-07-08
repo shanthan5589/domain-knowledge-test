@@ -188,7 +188,7 @@ export default function TestPage() {
     }
     return (
       <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center px-4">
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] shadow-xl p-10 max-w-md w-full text-center">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] shadow-xl p-6 sm:p-10 max-w-md w-full text-center">
           <h1 className="text-2xl font-bold text-[var(--ink)] mb-1">Test Complete!</h1>
           <p className="text-[var(--ink-soft)] mb-6">{DOMAIN_LABELS[domain]}</p>
           <div className="mb-3">
@@ -200,7 +200,9 @@ export default function TestPage() {
           </div>
           <p className="text-sm font-semibold mb-6" style={{ color }}>{label}</p>
           <p className="text-[var(--ink-soft)] mb-8">{messages[label]}</p>
-          <div className="flex gap-3">
+          {/* Stacked on phones so the button labels don't wrap into a squeezed
+              two-column row; unchanged side-by-side layout from sm: up. */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => router.push('/dashboard')}
               className="flex-1 border border-[var(--line)] rounded-md py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors"
@@ -252,9 +254,10 @@ export default function TestPage() {
         />
       </div>
 
-      {/* Question card */}
-      <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-8">
+      {/* Question card — lighter padding on phones so option text has more
+          room to breathe before it wraps; unchanged from sm: up. */}
+      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-5 sm:p-8">
           {currentQuestion && (
             <QuizQuestion
               question={currentQuestion}
@@ -269,7 +272,7 @@ export default function TestPage() {
             <button
               onClick={handleNext}
               disabled={!selectedAnswer}
-              className="bg-[var(--action)] text-white px-8 py-3 rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--action-hover)] transition-colors"
+              className="w-full sm:w-auto bg-[var(--action)] text-white px-8 py-3 rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--action-hover)] transition-colors"
             >
               {isLastQuestion ? 'Submit Test' : 'Next Question'}
             </button>
