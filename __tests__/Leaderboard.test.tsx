@@ -54,6 +54,33 @@ describe('Leaderboard', () => {
     })
   })
 
+  it('shows a distinct message when names are withheld for a too-small filtered cohort', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ leaderboard: [], suppressedCount: 3 }),
+    })
+    render(<Leaderboard domain="ai" designation="Data Scientist" experience="all" country="India" state_region="all" city="all" />)
+    await waitFor(() => {
+      expect(
+        screen.getByText('3 people match these filters — not enough to show names safely. Try broader filters.')
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByText('No attempts yet for this domain.')).not.toBeInTheDocument()
+  })
+
+  it('uses singular wording when exactly one person matches a too-small filtered cohort', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ leaderboard: [], suppressedCount: 1 }),
+    })
+    render(<Leaderboard domain="ai" {...noFilters} />)
+    await waitFor(() => {
+      expect(
+        screen.getByText('1 person matches these filters — not enough to show names safely. Try broader filters.')
+      ).toBeInTheDocument()
+    })
+  })
+
   it('refetches when the domain prop changes', async () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => ({ leaderboard: [] }) })
     const { rerender } = render(<Leaderboard domain="ai" {...noFilters} />)

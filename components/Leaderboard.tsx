@@ -21,6 +21,10 @@ interface Props {
 
 export default function Leaderboard({ domain, designation, experience, country, state_region, city }: Props) {
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null)
+  // Set only when the API withheld names because too few people matched the
+  // active filters — lets us tell that case apart from "nobody has attempted
+  // this domain yet", which otherwise look identical (both are an empty list).
+  const [suppressedCount, setSuppressedCount] = useState<number | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -38,6 +42,7 @@ export default function Leaderboard({ domain, designation, experience, country, 
         const json = await res.json()
         if (cancelled) return
         setEntries(json.leaderboard)
+        setSuppressedCount(typeof json.suppressedCount === 'number' ? json.suppressedCount : null)
         setError('')
       } catch {
         if (!cancelled) setError('Could not load the leaderboard.')
@@ -52,6 +57,14 @@ export default function Leaderboard({ domain, designation, experience, country, 
 
   if (error) return <p className="text-red-600 text-sm">{error}</p>
   if (!entries) return <p className="text-gray-400 text-sm animate-pulse">Loading leaderboard…</p>
+  if (entries.length === 0 && suppressedCount !== null) {
+    return (
+      <p className="text-gray-500 text-sm">
+        {suppressedCount} {suppressedCount === 1 ? 'person matches' : 'people match'} these filters — not enough to
+        show names safely. Try broader filters.
+      </p>
+    )
+  }
   if (entries.length === 0) return <p className="text-gray-500 text-sm">No attempts yet for this domain.</p>
 
   return (

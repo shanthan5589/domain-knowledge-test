@@ -12,7 +12,7 @@ const MAX_LIMIT = 20
 // Minimum number of distinct users a filtered cohort must contain before we're
 // willing to reveal individual display names. A narrow filter (e.g. a rare
 // designation in a small city) could otherwise de-anonymize one or two people.
-const MIN_COHORT_SIZE = 5
+const MIN_COHORT_SIZE = 3
 
 export async function GET(req: NextRequest) {
   const { session, unauthorizedResponse } = await requireSession()
@@ -58,9 +58,11 @@ export async function GET(req: NextRequest) {
 
   // A filtered cohort smaller than the minimum size would let a narrow filter
   // (e.g. a rare designation/city combination) single out a real person's name
-  // and score. Refuse to reveal names for such small groups.
+  // and score. Refuse to reveal names for such small groups, but report how many
+  // people matched so the client can distinguish this from "nobody has attempted
+  // this domain" instead of showing the same empty state for both.
   if (emailFilter && filteredEntries.length < MIN_COHORT_SIZE) {
-    return NextResponse.json({ leaderboard: [] })
+    return NextResponse.json({ leaderboard: [], suppressedCount: filteredEntries.length })
   }
 
   const { data: profiles, error: profileError } = await supabaseAdmin

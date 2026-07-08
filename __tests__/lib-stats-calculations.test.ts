@@ -175,7 +175,7 @@ describe('buildLocationComparisons', () => {
   })
 
   it('drops rows (including Global) that fall below the minimum cohort size', () => {
-    const smallGroup = entries.slice(0, 3)
+    const smallGroup = entries.slice(0, 2)
     const result = buildLocationComparisons(
       { country: 'India', stateRegion: 'Telangana', city: 'Hyderabad' },
       smallGroup

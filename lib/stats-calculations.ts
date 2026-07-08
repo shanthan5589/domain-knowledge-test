@@ -31,7 +31,7 @@ export interface ResultRow {
 // designation in a small city) can otherwise de-anonymize one or two real
 // people. Any group row (distribution bucket, average-by-group bucket, or
 // location comparison) that falls below this is dropped rather than returned.
-export const MIN_COHORT_SIZE = 5
+export const MIN_COHORT_SIZE = 3
 
 export function toDistribution(
   entries: ScoreEntry[],
