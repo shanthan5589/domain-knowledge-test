@@ -1092,8 +1092,17 @@ export default function StatsPage() {
         )}
 
         {/* Tabs — scrolls horizontally on narrow screens instead of overflowing
-            the page, since the three labels don't fit ~340px-and-under widths. */}
-        <div className="overflow-x-auto mb-4">
+            the page, since the three labels don't fit ~340px-and-under widths.
+            The right-edge mask fades the last tab into transparency instead of
+            clipping it mid-word, so it reads as "swipe for more" rather than
+            broken text. */}
+        <div
+          className="overflow-x-auto mb-4"
+          style={{
+            maskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent)',
+            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent)',
+          }}
+        >
           <div role="tablist" className="flex gap-1 border-b border-[var(--line)] w-max min-w-full">
             {TABS.map((t) => (
               <button
