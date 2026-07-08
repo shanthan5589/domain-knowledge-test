@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
+import ScoreGauge from '@/components/ui/ScoreGauge'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { antiCheatHandlers } from '@/lib/anti-cheat'
@@ -12,10 +13,10 @@ import { antiCheatHandlers } from '@/lib/anti-cheat'
 const TOTAL_SECONDS = 300 // 5 minutes
 
 function getScoreTier(score: number) {
-  if (score >= 9) return { label: 'Excellent', color: 'text-green-600' }
-  if (score >= 7) return { label: 'Good', color: 'text-violet-600' }
-  if (score >= 5) return { label: 'Average', color: 'text-yellow-500' }
-  return { label: 'Needs improvement', color: 'text-red-500' }
+  if (score >= 9) return { label: 'Excellent', color: '#15803D' }
+  if (score >= 7) return { label: 'Good', color: '#4338CA' }
+  if (score >= 5) return { label: 'Average', color: 'var(--signal)' }
+  return { label: 'Needs improvement', color: '#B42318' }
 }
 
 type Phase = 'loading' | 'quiz' | 'submitting' | 'results' | 'error'
@@ -144,8 +145,8 @@ export default function TestPage() {
   // Auth loading or redirecting
   if (status === 'loading' || status === 'unauthenticated') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg animate-pulse">Loading…</p>
+      <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
+        <p className="text-[var(--ink-soft)] text-lg animate-pulse">Loading…</p>
       </main>
     )
   }
@@ -153,8 +154,8 @@ export default function TestPage() {
   // Loading questions
   if (phase === 'loading') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg animate-pulse">Loading questions…</p>
+      <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
+        <p className="text-[var(--ink-soft)] text-lg animate-pulse">Loading questions…</p>
       </main>
     )
   }
@@ -162,12 +163,12 @@ export default function TestPage() {
   // Error
   if (phase === 'error') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-red-600 font-medium mb-4">{errorMessage}</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="bg-[var(--action)] text-white px-6 py-2 rounded-md hover:bg-[var(--action-hover)] transition-colors"
           >
             Back to Dashboard
           </button>
@@ -186,26 +187,29 @@ export default function TestPage() {
       'Needs improvement': 'Keep going — review the concepts and try again!',
     }
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Test Complete!</h1>
-          <p className="text-gray-500 mb-6">{DOMAIN_LABELS[domain]}</p>
+      <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center px-4">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] shadow-xl p-10 max-w-md w-full text-center">
+          <h1 className="text-2xl font-bold text-[var(--ink)] mb-1">Test Complete!</h1>
+          <p className="text-[var(--ink-soft)] mb-6">{DOMAIN_LABELS[domain]}</p>
           <div className="mb-3">
-            <span className={`text-7xl font-black ${color}`}>{score}</span>
-            <span className="text-3xl font-bold text-gray-400"> / 10</span>
+            <span className="font-mono text-7xl font-bold" style={{ color }}>{score}</span>
+            <span className="text-3xl font-bold text-[var(--ink-soft)]"> / 10</span>
           </div>
-          <p className={`text-sm font-semibold mb-6 ${color}`}>{label}</p>
-          <p className="text-gray-600 mb-8">{messages[label]}</p>
+          <div className="flex justify-center mb-5">
+            <ScoreGauge score={score} size="lg" />
+          </div>
+          <p className="text-sm font-semibold mb-6" style={{ color }}>{label}</p>
+          <p className="text-[var(--ink-soft)] mb-8">{messages[label]}</p>
           <div className="flex gap-3">
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex-1 border border-gray-300 rounded-lg py-3 text-gray-700 font-medium hover:bg-gray-50 transition"
+              className="flex-1 border border-[var(--line)] rounded-md py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors"
             >
               Back to Dashboard
             </button>
             <button
               onClick={handleTryAgain}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700 transition"
+              className="flex-1 bg-[var(--action)] text-white rounded-md py-3 font-medium hover:bg-[var(--action-hover)] transition-colors"
             >
               Try Again
             </button>
@@ -218,22 +222,22 @@ export default function TestPage() {
   // Submitting
   if (phase === 'submitting') {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg animate-pulse">Submitting your answers…</p>
+      <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
+        <p className="text-[var(--ink-soft)] text-lg animate-pulse">Submitting your answers…</p>
       </main>
     )
   }
 
   // Quiz
   return (
-    <main className="min-h-screen bg-gray-50" {...antiCheatHandlers}>
+    <main className="min-h-screen bg-[var(--paper)]" {...antiCheatHandlers}>
       {/* Header bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-[var(--surface)] border-b border-[var(--line)] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-600 hidden sm:inline">
+          <span className="text-sm font-medium text-[var(--ink)] hidden sm:inline">
             {DOMAIN_LABELS[domain]}
           </span>
-          <span className="text-sm text-gray-400">
+          <span className="font-mono text-sm text-[var(--ink-soft)]">
             {currentIndex + 1} / {questions.length}
           </span>
         </div>
@@ -241,16 +245,16 @@ export default function TestPage() {
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 bg-gray-200">
+      <div className="h-1 bg-[var(--line)]">
         <div
-          className="h-1 bg-blue-500 transition-all duration-300"
+          className="h-1 bg-[var(--action)] transition-all duration-300"
           style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
         />
       </div>
 
       {/* Question card */}
       <div className="max-w-2xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] p-8">
           {currentQuestion && (
             <QuizQuestion
               question={currentQuestion}
@@ -265,7 +269,7 @@ export default function TestPage() {
             <button
               onClick={handleNext}
               disabled={!selectedAnswer}
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition"
+              className="bg-[var(--action)] text-white px-8 py-3 rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--action-hover)] transition-colors"
             >
               {isLastQuestion ? 'Submit Test' : 'Next Question'}
             </button>

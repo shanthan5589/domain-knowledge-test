@@ -56,32 +56,32 @@ export default function Leaderboard({ domain, designation, experience, country, 
   }, [domain, designation, experience, country, state_region, city])
 
   if (error) return <p className="text-red-600 text-sm">{error}</p>
-  if (!entries) return <p className="text-gray-400 text-sm animate-pulse">Loading leaderboard…</p>
+  if (!entries) return <p className="text-[var(--ink-soft)] text-sm animate-pulse">Loading leaderboard…</p>
   if (entries.length === 0 && suppressedCount !== null) {
     return (
-      <p className="text-gray-500 text-sm">
+      <p className="text-[var(--ink-soft)] text-sm">
         {suppressedCount} {suppressedCount === 1 ? 'person matches' : 'people match'} these filters — not enough to
         show names safely. Try broader filters.
       </p>
     )
   }
-  if (entries.length === 0) return <p className="text-gray-500 text-sm">No attempts yet for this domain.</p>
+  if (entries.length === 0) return <p className="text-[var(--ink-soft)] text-sm">No attempts yet for this domain.</p>
 
   return (
-    <ol data-testid="leaderboard" className="divide-y divide-gray-100">
+    <ol data-testid="leaderboard" className="divide-y divide-[var(--line)]">
       {entries.map((entry, i) => (
         <li
           key={`${entry.name}-${i}`}
-          className={`flex items-center justify-between py-2.5 px-2 rounded-lg ${entry.isYou ? 'bg-blue-50' : ''}`}
+          className={`flex items-center justify-between py-2.5 px-2 rounded-md ${entry.isYou ? 'bg-[var(--signal-soft)]' : ''}`}
         >
           <span className="flex items-center gap-3">
-            <span className="w-6 text-sm font-semibold text-gray-400">{i + 1}</span>
-            <span className={`text-sm ${entry.isYou ? 'font-semibold text-blue-700' : 'text-gray-800'}`}>
+            <span className="w-6 font-mono text-sm font-semibold text-[var(--ink-soft)]">{i + 1}</span>
+            <span className={`text-sm ${entry.isYou ? 'font-semibold text-[var(--action)]' : 'text-[var(--ink)]'}`}>
               {entry.name}
               {entry.isYou ? ' (you)' : ''}
             </span>
           </span>
-          <span className="text-sm font-bold text-gray-900">{entry.score}/10</span>
+          <span className="font-mono text-sm font-bold text-[var(--ink)]">{entry.score}/10</span>
         </li>
       ))}
     </ol>

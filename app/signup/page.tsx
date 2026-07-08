@@ -57,12 +57,12 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--paper)] px-6 py-12">
+      <div className="w-full max-w-sm">
+        <h1 className="text-2xl font-bold text-center mb-2 text-[var(--ink)]">
           Create Account
         </h1>
-        <p className="text-center text-gray-500 mb-8 text-sm">
+        <p className="text-center text-[var(--ink-soft)] mb-8 text-sm">
           Sign up to start your assessment
         </p>
 
@@ -70,7 +70,7 @@ export default function SignupPage() {
         <button
           type="button"
           onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 transition mb-6"
+          className="w-full flex items-center justify-center gap-3 border border-[var(--line)] rounded-md px-4 py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -82,15 +82,15 @@ export default function SignupPage() {
         </button>
 
         <div className="flex items-center gap-3 mb-6">
-          <hr className="flex-1 border-gray-200" />
-          <span className="text-gray-400 text-sm">or</span>
-          <hr className="flex-1 border-gray-200" />
+          <hr className="flex-1 border-[var(--line)]" />
+          <span className="text-[var(--ink-soft)] text-xs uppercase tracking-wide">or</span>
+          <hr className="flex-1 border-[var(--line)]" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--ink)] mb-1">
                 First Name
               </label>
               <input
@@ -98,12 +98,12 @@ export default function SignupPage() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-[var(--line)] rounded-md px-3 py-2 text-sm text-[var(--ink)] bg-[var(--surface)] focus:outline-none focus:ring-1 focus:ring-[var(--action)] focus:border-[var(--action)]"
                 placeholder="John"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[var(--ink)] mb-1">
                 Last Name
               </label>
               <input
@@ -111,14 +111,14 @@ export default function SignupPage() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-[var(--line)] rounded-md px-3 py-2 text-sm text-[var(--ink)] bg-[var(--surface)] focus:outline-none focus:ring-1 focus:ring-[var(--action)] focus:border-[var(--action)]"
                 placeholder="Doe"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--ink)] mb-1">
               Email
             </label>
             <input
@@ -126,13 +126,13 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-[var(--line)] rounded-md px-3 py-2 text-sm text-[var(--ink)] bg-[var(--surface)] focus:outline-none focus:ring-1 focus:ring-[var(--action)] focus:border-[var(--action)]"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--ink)] mb-1">
               Password
             </label>
             <input
@@ -141,7 +141,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-[var(--line)] rounded-md px-3 py-2 text-sm text-[var(--ink)] bg-[var(--surface)] focus:outline-none focus:ring-1 focus:ring-[var(--action)] focus:border-[var(--action)]"
               placeholder="Min. 8 characters"
             />
           </div>
@@ -153,15 +153,15 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition disabled:opacity-50"
+            className="w-full bg-[var(--action)] text-white rounded-md px-4 py-3 font-medium hover:bg-[var(--action-hover)] transition-colors disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-[var(--ink-soft)] mt-6">
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 font-medium hover:underline">
+          <Link href="/login" className="text-[var(--ink)] font-medium hover:underline">
             Sign in
           </Link>
         </p>
