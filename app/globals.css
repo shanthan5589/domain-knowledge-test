@@ -29,3 +29,23 @@ body {
   color: var(--foreground);
   font-family: var(--font-plex-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Slow ambient glow behind the homepage product preview panel. */
+@keyframes ambient-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.95; }
+}
+
+.animate-ambient {
+  animation: ambient-pulse 6s ease-in-out infinite;
+}
+
+/* Gentle scroll-cue bounce for the homepage section transition. */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}

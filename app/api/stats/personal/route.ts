@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   const timeOfDayPerformance = buildTimeOfDayPerformance(filteredAttempts)
   const pacePoints = buildPacePoints(filteredAttempts)
   const domainRanges = buildDomainRanges(myAttempts) // Intentionally global
-  const recentAttempts = buildRecentAttempts(filteredAttempts)
+  const recentAttempts = buildRecentAttempts(myAttempts)
   const weekOverWeek = buildWeekOverWeek(filteredAttempts)
 
   // Domain Radar compares your per-domain average against your city/country

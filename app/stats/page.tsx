@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Country, State, City } from 'country-state-city'
 import UserMenu from '@/components/UserMenu'
 import AppHeader from '@/components/AppHeader'
@@ -32,11 +33,16 @@ function nameToStateCode(name: string, countryCode: string): string {
   return State.getStatesOfCountry(countryCode).find((state) => state.name === name)?.isoCode ?? ''
 }
 
-export default function StatsPage() {
+function StatsContent() {
+  const searchParams = useSearchParams()
+  const initialDomain = (searchParams?.get('domain') as Domain) || 'ai'
+
   const [tab, setTab] = useState<Tab>('performance')
   const [showMoreFilters, setShowMoreFilters] = useState(false)
 
-  const [domain, setDomain] = useState<Domain>('ai')
+  const [domain, setDomain] = useState<Domain>(
+    ALL_DOMAINS.includes(initialDomain) ? initialDomain : 'ai'
+  )
   const [designation, setDesignation] = useState('all')
   const [experience, setExperience] = useState('all')
   const [countryCode, setCountryCode] = useState('')
@@ -408,3 +414,12 @@ export default function StatsPage() {
     </main>
   )
 }
+
+export default function StatsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--paper)]" />}>
+      <StatsContent />
+    </Suspense>
+  )
+}
+
