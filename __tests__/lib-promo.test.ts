@@ -73,5 +73,19 @@ describe('lib/promo', () => {
         expect(index).not.toBe(9)
       }
     })
+
+    it('returns -1 (never fires) for quizzes too short to have a valid trigger point', () => {
+      // 6 questions: valid range would be [5, 4], which is empty — the
+      // interstitial must never fire on the last question (index 5).
+      for (const totalQuestions of [1, 2, 3, 4, 5, 6]) {
+        expect(pickInterstitialTriggerIndex(totalQuestions)).toBe(-1)
+      }
+    })
+
+    it('for a 7-question quiz (the shortest with a valid trigger), only ever returns index 5', () => {
+      for (let i = 0; i < 50; i++) {
+        expect(pickInterstitialTriggerIndex(7)).toBe(5)
+      }
+    })
   })
 })

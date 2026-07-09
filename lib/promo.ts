@@ -37,8 +37,14 @@ export const PROMO_BADGE_LABEL = 'Powered by Castor AI'
 // and the last question — i.e. after Q6, Q7, Q8, or Q9 for a 10-question
 // quiz — so it never fires at the very start, right after Q5, or on the
 // final question (which submits instead of advancing).
+//
+// Returns -1 (never matches a real currentIndex, so the interstitial simply
+// never fires) if the quiz is too short to have any valid trigger point —
+// e.g. a 10-question quiz always has a valid range (5-8), but a quiz with
+// fewer than 7 questions would not.
 export function pickInterstitialTriggerIndex(totalQuestions: number): number {
   const min = 5 // index 5 = "just answered Q6"
   const max = totalQuestions - 2 // "just answered second-to-last question"
+  if (max < min) return -1
   return min + Math.floor(Math.random() * (max - min + 1))
 }
