@@ -2,6 +2,7 @@ import {
   averageScoreFor,
   averageTimeFor,
   buildActivityCalendar,
+  buildDomainRadar,
   buildDomainRanges,
   buildLocationComparisons,
   buildPacePoints,
@@ -9,6 +10,7 @@ import {
   buildRankLadder,
   buildStreaks,
   buildTimeOfDayPerformance,
+  buildTopCities,
   buildUserProgress,
   getLocationDimension,
   rankWithinCohort,
@@ -16,7 +18,9 @@ import {
   toAverageScoreByGroup,
   toDistribution,
   type DomainResultRow,
+  type DomainScoreEntry,
   type ProfileRow,
+  type RankedGroup,
   type ResultRow,
   type ScoreEntry,
 } from '@/lib/stats-calculations'
@@ -530,6 +534,85 @@ describe('buildPeerGroupRanks', () => {
     ])
     expect(result[0].label).toBe('Unknown')
     expect(result[0].rank).toBeNull()
+  })
+})
+
+describe('buildDomainRadar', () => {
+  const userEmail = 'me@test.com'
+
+  function domainEntry(overrides: Partial<DomainScoreEntry> = {}): DomainScoreEntry {
+    return { ...makeEntry(), domain: 'AI', ...overrides }
+  }
+
+  it('reports you/city/country averages per domain, withholding cohorts below the minimum size', () => {
+    const entries: DomainScoreEntry[] = [
+      domainEntry({ email: userEmail, score: 8, domain: 'AI' }),
+      domainEntry({ email: 'a@test.com', score: 6, domain: 'AI' }),
+      domainEntry({ email: 'b@test.com', score: 4, domain: 'AI' }),
+      domainEntry({ email: 'c@test.com', score: 5, domain: 'AI' }),
+      domainEntry({ email: userEmail, score: 7, domain: 'Cloud' }),
+    ]
+    const result = buildDomainRadar(entries, userEmail, { city: 'Hyderabad', country: 'India' }, [
+      'AI',
+      'Cloud',
+    ])
+    // city/country cohort is all 4 AI entries (default profile is Hyderabad/India): avg (8+6+4+5)/4 = 5.75 -> 5.8
+    expect(result).toEqual([
+      { domain: 'AI', you: 8, city: 5.8, country: 5.8 },
+      { domain: 'Cloud', you: 7, city: null, country: null },
+    ])
+  })
+
+  it('returns null you/city/country when there is no data for a domain', () => {
+    const result = buildDomainRadar([], userEmail, { city: 'Hyderabad', country: 'India' }, ['Cybersecurity'])
+    expect(result).toEqual([{ domain: 'Cybersecurity', you: null, city: null, country: null }])
+  })
+})
+
+describe('buildTopCities', () => {
+  function group(label: string, count: number, averageScore: number): RankedGroup {
+    return { label, count, averageScore }
+  }
+
+  it("returns the top 5 as-is when the user's group is already in it", () => {
+    const groups = [
+      group('Hyderabad', 20, 9),
+      group('Bengaluru', 18, 8.5),
+      group('Chennai', 15, 8),
+      group('Pune', 12, 7.5),
+      group('Mumbai', 10, 7),
+      group('Delhi', 8, 6.5),
+    ]
+    const result = buildTopCities(groups, 'Chennai')
+    expect(result).toHaveLength(5)
+    expect(result.map((r) => r.label)).toEqual(['Hyderabad', 'Bengaluru', 'Chennai', 'Pune', 'Mumbai'])
+    expect(result.find((r) => r.label === 'Chennai')).toEqual({
+      label: 'Chennai',
+      count: 15,
+      averageScore: 8,
+      rank: 3,
+      isYou: true,
+    })
+  })
+
+  it("adds the user's group as a 6th row when it didn't make the top 5", () => {
+    const groups = [
+      group('Hyderabad', 20, 9),
+      group('Bengaluru', 18, 8.5),
+      group('Chennai', 15, 8),
+      group('Pune', 12, 7.5),
+      group('Mumbai', 10, 7),
+      group('Delhi', 8, 6.5),
+    ]
+    const result = buildTopCities(groups, 'Delhi')
+    expect(result).toHaveLength(6)
+    expect(result[5]).toEqual({ label: 'Delhi', count: 8, averageScore: 6.5, rank: 6, isYou: true })
+  })
+
+  it('does not add a 6th row when the user has no group at all', () => {
+    const groups = [group('Hyderabad', 20, 9), group('Bengaluru', 18, 8.5)]
+    const result = buildTopCities(groups, null)
+    expect(result).toHaveLength(2)
   })
 })
 

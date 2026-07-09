@@ -448,6 +448,81 @@ export function buildPeerGroupRanks(
   })
 }
 
+export interface DomainScoreEntry extends ScoreEntry {
+  domain: string
+}
+
+export interface DomainRadarPoint {
+  domain: string
+  you: number | null
+  city: number | null
+  country: number | null
+}
+
+// The Domain Radar widget: per-domain average score for you, your city, and
+// your country side by side, across every domain (not just the one the rest
+// of the page is filtered to). City/country points are withheld below
+// MIN_COHORT_SIZE, same as every other crowd comparison.
+export function buildDomainRadar(
+  entries: DomainScoreEntry[],
+  userEmail: string,
+  locationParams: Pick<LocationParams, 'city' | 'country'>,
+  domains: string[]
+): DomainRadarPoint[] {
+  const { city, country } = locationParams
+
+  return domains.map((domain) => {
+    const domainEntries = entries.filter((entry) => entry.domain === domain)
+    const userEntry = domainEntries.find((entry) => entry.email === userEmail)
+
+    const cityEntries =
+      city && city !== 'all' ? domainEntries.filter((entry) => entry.profile.city === city) : []
+    const countryEntries =
+      country && country !== 'all'
+        ? domainEntries.filter((entry) => entry.profile.country === country)
+        : []
+
+    return {
+      domain,
+      you: userEntry?.score ?? null,
+      city: cityEntries.length >= MIN_COHORT_SIZE ? averageScoreFor(cityEntries) : null,
+      country: countryEntries.length >= MIN_COHORT_SIZE ? averageScoreFor(countryEntries) : null,
+    }
+  })
+}
+
+export interface RankedGroup {
+  label: string
+  count: number
+  averageScore: number
+}
+
+export interface TopGroupRow extends RankedGroup {
+  rank: number
+  isYou: boolean
+}
+
+// "Top cities — two tracks": takes a pre-sorted, pre-cohort-filtered list of
+// groups (e.g. toAverageScoreByGroup or toDistribution output) and returns
+// the real top 5, adding the user's own group as a conditional 6th row only
+// if it didn't already make the top 5. Works for either ranking track since
+// the caller controls the sort order of `groups`.
+export function buildTopCities(groups: RankedGroup[], userLabel: string | null): TopGroupRow[] {
+  const ranked = groups.map((group, index) => ({
+    ...group,
+    rank: index + 1,
+    isYou: group.label === userLabel,
+  }))
+
+  const top5 = ranked.slice(0, 5)
+  if (userLabel && !top5.some((row) => row.isYou)) {
+    const userRow = ranked.find((row) => row.label === userLabel)
+    if (userRow) return [...top5, userRow]
+  }
+
+  return top5
+}
+
 export function getLocationDimension(locationParams: LocationParams) {
   const { country, stateRegion, city } = locationParams
 
