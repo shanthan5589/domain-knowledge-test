@@ -458,6 +458,35 @@ function ConsistencyBandTile({ personal }: { personal: PersonalStatsResponse }) 
   )
 }
 
+function TotalTimeInvestedTile({ personal }: { personal: PersonalStatsResponse }) {
+  const points = personal.pacePoints
+  if (points.length === 0) {
+    return (
+      <Tile span={2} title="Total time invested">
+        <EmptyNote text="No attempts yet." />
+      </Tile>
+    )
+  }
+
+  const totalSeconds = points.reduce((sum, p) => sum + p.timeTakenSeconds, 0)
+  const averageSeconds = Math.round(totalSeconds / points.length)
+
+  return (
+    <Tile span={2} title="Total time invested" testId="total-time-tile">
+      <div className="grid grid-cols-2 gap-x-4">
+        <div>
+          <p className="text-[10px] text-[var(--ink-soft)]">Across all attempts</p>
+          <p className="font-mono text-lg font-bold text-[var(--ink)]">{formatDuration(totalSeconds)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-[var(--ink-soft)]">Average per attempt</p>
+          <p className="font-mono text-lg font-bold text-[var(--ink)]">{formatDuration(averageSeconds)}</p>
+        </div>
+      </div>
+    </Tile>
+  )
+}
+
 function RecentAttemptsTile({ personal }: { personal: PersonalStatsResponse }) {
   const attempts = personal.recentAttempts.slice(0, 6)
   if (attempts.length === 0) {
@@ -640,7 +669,7 @@ function formatDuration(totalSeconds: number) {
 function CommunitySnapshotTile({ stats }: { stats: StatsResponse }) {
   if (stats.totalUsers === 0) {
     return (
-      <Tile span={3} title="Community snapshot">
+      <Tile span={4} title="Community snapshot">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
@@ -659,7 +688,7 @@ function CommunitySnapshotTile({ stats }: { stats: StatsResponse }) {
   ]
 
   return (
-    <Tile span={3} title="Community snapshot" testId="community-snapshot-tile">
+    <Tile span={4} title="Community snapshot" testId="community-snapshot-tile">
       <div className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-6">
         {items.map((item) => (
           <div key={item.label}>
@@ -681,34 +710,18 @@ function ThisDomainTile({ stats, domain }: { stats: StatsResponse; domain: Domai
   const progress = stats.userProgress
   if (progress.attemptCount === 0) {
     return (
-      <Tile span={2} title="This domain, last time" note={DOMAIN_LABELS[domain]}>
+      <Tile span={1} title="This domain, last time" note={DOMAIN_LABELS[domain]}>
         <EmptyNote text="You haven't attempted this domain yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={2} title="This domain, last time" note={DOMAIN_LABELS[domain]} testId="this-domain-tile">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-        <div>
-          <p className="text-[10px] text-[var(--ink-soft)]">Latest score</p>
-          <p className="font-mono text-base font-bold text-[var(--ink)]">{progress.latestScore}/10</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[var(--ink-soft)]">Change</p>
-          <p className={`font-mono text-base font-bold ${changeClass(progress.scoreChange)}`}>
-            {formatChange(progress.scoreChange)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[var(--ink-soft)]">Best score</p>
-          <p className="font-mono text-base font-bold text-[var(--ink)]">{progress.bestScore}/10</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[var(--ink-soft)]">Consistency</p>
-          <p className="text-base font-bold text-[var(--ink)]">{progress.consistency.label}</p>
-        </div>
-      </div>
+    <Tile span={1} title="This domain, last time" note={DOMAIN_LABELS[domain]} testId="this-domain-tile">
+      <p className="font-mono text-2xl font-bold text-[var(--ink)]">{progress.latestScore}/10</p>
+      <p className={`mt-1 text-[11px] font-semibold ${changeClass(progress.scoreChange)}`}>
+        {formatChange(progress.scoreChange)} vs. last attempt
+      </p>
     </Tile>
   )
 }
@@ -717,20 +730,20 @@ function LocationComparisonTile({ stats }: { stats: StatsResponse }) {
   const items = stats.locationComparisons
   if (items.length === 0) {
     return (
-      <Tile span={3} title="City vs. state vs. country vs. global">
+      <Tile span={4} title="City vs. state vs. country vs. global">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={3} title="City vs. state vs. country vs. global" testId="location-comparison-tile">
+    <Tile span={4} title="City vs. state vs. country vs. global" testId="location-comparison-tile">
       <div className="flex h-24 items-end gap-3 px-1">
         {items.map((item) => (
           <div key={item.scope} className="flex flex-1 flex-col items-center gap-1.5">
             <span className="font-mono text-[10px] text-[var(--ink-soft)]">{item.averageScore ?? '—'}</span>
             <div
-              className="mx-auto w-full max-w-[32px] rounded-t bg-[var(--signal)]"
+              className="mx-auto w-full max-w-[64px] rounded-t bg-[var(--signal)]"
               style={{ height: `${((item.averageScore ?? 0) / 10) * 80}px` }}
             />
             <span className="max-w-full truncate text-[9.5px] text-[var(--ink-soft)]" title={item.label}>
@@ -762,7 +775,7 @@ function DomainRadarTile({ personal }: { personal: PersonalStatsResponse }) {
   const hasData = points.some((p) => p.you !== null || p.city !== null || p.country !== null)
   if (!hasData) {
     return (
-      <Tile span={3} title="Domain radar — you vs. crowd">
+      <Tile span={4} title="Domain radar — you vs. crowd">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
@@ -780,12 +793,12 @@ function DomainRadarTile({ personal }: { personal: PersonalStatsResponse }) {
 
   return (
     <Tile
-      span={3}
+      span={4}
       title="Domain radar — you vs. crowd"
       note="solid = you · dashed = city · dotted = country"
       testId="domain-radar-tile"
     >
-      <svg viewBox="0 0 220 192" className="mx-auto h-auto w-full max-w-[280px]">
+      <svg viewBox="0 0 220 192" className="mx-auto h-auto w-full max-w-[360px]">
         <polygon points={gridPoly} fill="none" stroke="var(--line)" strokeWidth={1} />
         <polygon
           points={countryPoly}
@@ -1075,6 +1088,7 @@ export default function CommunityInsights({
         <WhenYouTestBestTile personal={personal} />
         <PaceVsAccuracyTile personal={personal} />
         <ConsistencyBandTile personal={personal} />
+        <TotalTimeInvestedTile personal={personal} />
         <RecentAttemptsTile personal={personal} />
         <ThisWeekTile personal={personal} />
       </Chapter>
