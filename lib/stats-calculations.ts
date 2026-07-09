@@ -523,6 +523,64 @@ export function buildTopCities(groups: RankedGroup[], userLabel: string | null):
   return top5
 }
 
+export interface RecentAttempt {
+  domain: string
+  score: number
+  completedAt: string
+  scoreChangeFromPrevious: number | null
+}
+
+// The "Recent attempts" table: newest first, each row diffed against the
+// attempt immediately before it (regardless of domain), capped at `limit` rows.
+export function buildRecentAttempts(userAttempts: DomainResultRow[], limit = 8): RecentAttempt[] {
+  const sortedNewestFirst = [...userAttempts].sort((a, b) => b.completed_at.localeCompare(a.completed_at))
+
+  return sortedNewestFirst.slice(0, limit).map((attempt, index) => {
+    const previous = sortedNewestFirst[index + 1]
+    return {
+      domain: attempt.domain,
+      score: attempt.score,
+      completedAt: attempt.completed_at,
+      scoreChangeFromPrevious: previous ? attempt.score - previous.score : null,
+    }
+  })
+}
+
+export interface WeekOverWeek {
+  thisWeekAverage: number | null
+  lastWeekAverage: number | null
+  change: number | null
+}
+
+// "This week" tile: average score in the last 7 days vs. the 7 days before
+// that. `today` is injectable so tests aren't wall-clock dependent.
+export function buildWeekOverWeek(userAttempts: ResultRow[], today: Date = new Date()): WeekOverWeek {
+  const oneDayMs = 86_400_000
+  const startOfThisWeek = today.getTime() - 7 * oneDayMs
+  const startOfLastWeek = startOfThisWeek - 7 * oneDayMs
+
+  const thisWeek: number[] = []
+  const lastWeek: number[] = []
+  for (const attempt of userAttempts) {
+    const completedAt = new Date(attempt.completed_at).getTime()
+    if (completedAt >= startOfThisWeek && completedAt <= today.getTime()) {
+      thisWeek.push(attempt.score)
+    } else if (completedAt >= startOfLastWeek && completedAt < startOfThisWeek) {
+      lastWeek.push(attempt.score)
+    }
+  }
+
+  const thisWeekAverage = thisWeek.length > 0 ? roundToOne(thisWeek.reduce((s, v) => s + v, 0) / thisWeek.length) : null
+  const lastWeekAverage = lastWeek.length > 0 ? roundToOne(lastWeek.reduce((s, v) => s + v, 0) / lastWeek.length) : null
+
+  return {
+    thisWeekAverage,
+    lastWeekAverage,
+    change:
+      thisWeekAverage !== null && lastWeekAverage !== null ? roundToOne(thisWeekAverage - lastWeekAverage) : null,
+  }
+}
+
 export function getLocationDimension(locationParams: LocationParams) {
   const { country, stateRegion, city } = locationParams
 

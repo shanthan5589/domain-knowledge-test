@@ -134,6 +134,13 @@ describe('GET /api/stats/personal', () => {
     // 2026-01-02 and 2026-01-03 are consecutive days -> longest streak of 2;
     // current streak is 0 since neither day is "today" at real test-run time.
     expect(body.streaks).toEqual({ currentStreak: 0, longestStreak: 2 })
+    expect(body.recentAttempts).toEqual([
+      { domain: 'ai', score: 8, completedAt: '2026-01-03T09:00:00Z', scoreChangeFromPrevious: 2 },
+      { domain: 'cloud', score: 6, completedAt: '2026-01-02T09:00:00Z', scoreChangeFromPrevious: null },
+    ])
+    // Both attempts are from January 2026, long before the real test-run clock's
+    // "this week"/"last week" windows, so week-over-week has no data either side.
+    expect(body.weekOverWeek).toEqual({ thisWeekAverage: null, lastWeekAverage: null, change: null })
   })
 
   it('builds the domain radar from the crowd\'s latest attempt per user per domain, scoped to city/country', async () => {

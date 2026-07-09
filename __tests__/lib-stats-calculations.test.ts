@@ -8,10 +8,12 @@ import {
   buildPacePoints,
   buildPeerGroupRanks,
   buildRankLadder,
+  buildRecentAttempts,
   buildStreaks,
   buildTimeOfDayPerformance,
   buildTopCities,
   buildUserProgress,
+  buildWeekOverWeek,
   getLocationDimension,
   rankWithinCohort,
   roundToOne,
@@ -613,6 +615,73 @@ describe('buildTopCities', () => {
     const groups = [group('Hyderabad', 20, 9), group('Bengaluru', 18, 8.5)]
     const result = buildTopCities(groups, null)
     expect(result).toHaveLength(2)
+  })
+})
+
+describe('buildRecentAttempts', () => {
+  function attempt(domain: string, score: number, completedAt: string): DomainResultRow {
+    return { user_email: 'me@test.com', score, time_taken_seconds: 240, completed_at: completedAt, domain }
+  }
+
+  it('sorts newest first and diffs each attempt against the one immediately before it', () => {
+    const attempts = [
+      attempt('ai', 7, '2026-01-01T00:00:00Z'),
+      attempt('cloud', 6, '2026-01-02T00:00:00Z'),
+      attempt('ai', 9, '2026-01-03T00:00:00Z'),
+    ]
+    expect(buildRecentAttempts(attempts)).toEqual([
+      { domain: 'ai', score: 9, completedAt: '2026-01-03T00:00:00Z', scoreChangeFromPrevious: 3 },
+      { domain: 'cloud', score: 6, completedAt: '2026-01-02T00:00:00Z', scoreChangeFromPrevious: -1 },
+      { domain: 'ai', score: 7, completedAt: '2026-01-01T00:00:00Z', scoreChangeFromPrevious: null },
+    ])
+  })
+
+  it('caps the result at the given limit', () => {
+    const attempts = Array.from({ length: 10 }, (_, i) => attempt('ai', 5, `2026-01-${10 + i}T00:00:00Z`))
+    expect(buildRecentAttempts(attempts, 3)).toHaveLength(3)
+  })
+
+  it('returns an empty array for no attempts', () => {
+    expect(buildRecentAttempts([])).toEqual([])
+  })
+})
+
+describe('buildWeekOverWeek', () => {
+  function attempt(score: number, completedAt: string): ResultRow {
+    return { user_email: 'me@test.com', score, time_taken_seconds: 240, completed_at: completedAt }
+  }
+
+  it('averages this week and last week separately and computes the change', () => {
+    const today = new Date('2026-01-15T00:00:00Z')
+    const attempts = [
+      attempt(8, '2026-01-14T00:00:00Z'), // this week
+      attempt(6, '2026-01-10T00:00:00Z'), // this week
+      attempt(5, '2026-01-05T00:00:00Z'), // last week
+      attempt(3, '2026-01-01T00:00:00Z'), // last week
+    ]
+    expect(buildWeekOverWeek(attempts, today)).toEqual({
+      thisWeekAverage: 7,
+      lastWeekAverage: 4,
+      change: 3,
+    })
+  })
+
+  it('returns null averages/change when there is no data in a window', () => {
+    const today = new Date('2026-01-15T00:00:00Z')
+    expect(buildWeekOverWeek([], today)).toEqual({
+      thisWeekAverage: null,
+      lastWeekAverage: null,
+      change: null,
+    })
+  })
+
+  it('returns a null change when only one of the two weeks has data', () => {
+    const today = new Date('2026-01-15T00:00:00Z')
+    const attempts = [attempt(8, '2026-01-14T00:00:00Z')]
+    const result = buildWeekOverWeek(attempts, today)
+    expect(result.thisWeekAverage).toBe(8)
+    expect(result.lastWeekAverage).toBeNull()
+    expect(result.change).toBeNull()
   })
 })
 

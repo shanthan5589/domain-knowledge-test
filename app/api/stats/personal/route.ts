@@ -8,8 +8,10 @@ import {
   buildDomainRadar,
   buildDomainRanges,
   buildPacePoints,
+  buildRecentAttempts,
   buildStreaks,
   buildTimeOfDayPerformance,
+  buildWeekOverWeek,
   type DomainResultRow,
   type DomainScoreEntry,
   type ProfileRow,
@@ -44,6 +46,8 @@ export async function GET(req: NextRequest) {
   const timeOfDayPerformance = buildTimeOfDayPerformance(myAttempts)
   const pacePoints = buildPacePoints(myAttempts)
   const domainRanges = buildDomainRanges(myAttempts)
+  const recentAttempts = buildRecentAttempts(myAttempts)
+  const weekOverWeek = buildWeekOverWeek(myAttempts)
 
   // Domain Radar compares your per-domain average against your city/country
   // peers' per-domain average, so it needs everyone's latest attempt per
@@ -104,5 +108,7 @@ export async function GET(req: NextRequest) {
     pacePoints,
     domainRanges,
     domainRadar,
+    recentAttempts,
+    weekOverWeek,
   })
 }
