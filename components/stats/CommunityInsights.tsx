@@ -826,14 +826,14 @@ function RecentAttemptsTile({ personal }: { personal: PersonalStatsResponse }) {
   const attempts = personal.recentAttempts.slice(0, 6)
   if (attempts.length === 0) {
     return (
-      <Tile title="Recent attempts">
+      <Tile title="Recent attempts" className="flex-1">
         <EmptyNote text="No attempts yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile title="Recent attempts" testId="recent-attempts-tile">
+    <Tile title="Recent attempts" testId="recent-attempts-tile" className="flex-1">
       <table className="w-full text-[11.5px]">
         <thead>
           <tr className="text-left text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">

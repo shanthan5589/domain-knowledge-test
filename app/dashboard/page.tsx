@@ -1,5 +1,6 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import DomainSelector from '@/components/DomainSelector'
 import UserMenu from '@/components/UserMenu'
@@ -85,9 +86,10 @@ export default async function DashboardPage() {
                 const secs = result.time_taken_seconds % 60
                 const { label, color } = getScoreTier(result.score)
                 return (
-                  <div
+                  <Link
+                    href={`/stats?domain=${domain}`}
                     key={domain}
-                    className="bg-[var(--surface)] rounded-lg border border-[var(--line)] p-5"
+                    className="block bg-[var(--surface)] rounded-lg border border-[var(--line)] p-5 hover:border-gray-300 transition-colors"
                   >
                     <p className="text-xs font-medium text-[var(--ink-soft)] mb-2 uppercase tracking-wide">
                       {DOMAIN_LABELS[domain]}
@@ -109,7 +111,7 @@ export default async function DashboardPage() {
                     <div className="mt-2 text-xs font-semibold" style={{ color }}>
                       {label}
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
