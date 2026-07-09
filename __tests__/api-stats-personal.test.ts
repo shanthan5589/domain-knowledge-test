@@ -176,7 +176,7 @@ describe('GET /api/stats/personal', () => {
     const res = await GET(makeRequest('?city=Hyderabad&country=India'))
     const body = await res.json()
     const aiPoint = body.domainRadar.find((r: { domain: string }) => r.domain === 'ai')
-    // Only 1 entry (me) has a surviving profile — below MIN_COHORT_SIZE, so city/country are withheld
-    expect(aiPoint).toEqual({ domain: 'ai', you: 8, city: null, country: null })
+    // Only 1 entry (me) has a surviving profile — now shown since MIN_COHORT_SIZE is 1
+    expect(aiPoint).toEqual({ domain: 'ai', you: 8, city: 8, country: 8 })
   })
 })

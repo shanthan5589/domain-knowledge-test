@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
 
   const { data: profiles, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('email, designation, years_of_experience, country, state_region, city')
+    .select('email, full_name, designation, years_of_experience, country, state_region, city')
     .in('email', [...latestByEmail.keys()])
 
   if (profileError || !profiles) {
@@ -206,6 +206,8 @@ export async function GET(req: NextRequest) {
   // state" widgets. Computed once here, then re-sorted per widget so a city
   // that's below the cohort floor never appears in any of them.
   const userCity = entries.find((entry) => entry.email === session.user.email)?.profile.city ?? null
+  const userState = entries.find((entry) => entry.email === session.user.email)?.profile.state_region ?? null
+
   const cityGroupsByScore = withMinCohortSize(toAverageScoreByGroup(entries, (entry) => entry.profile.city))
   const cityGroupsByParticipation = [...cityGroupsByScore].sort(
     (a, b) => b.count - a.count || b.averageScore - a.averageScore
@@ -218,8 +220,6 @@ export async function GET(req: NextRequest) {
     (a, b) => b.count - a.count || b.averageScore - a.averageScore
   )
 
-  // Dynamic top 15: shows fewer rows (down to however many states have data)
-  // rather than padding out to a fixed count.
   const STATE_LEADERBOARD_SIZE = 15
 
   return NextResponse.json({
@@ -267,8 +267,8 @@ export async function GET(req: NextRequest) {
     ]),
     topCitiesByScore: buildTopCities(cityGroupsByScore, userCity),
     topCitiesByParticipation: buildTopCities(cityGroupsByParticipation, userCity),
-    averageScoreByState: stateGroupsByScore.slice(0, STATE_LEADERBOARD_SIZE),
-    testTakersByState: stateGroupsByParticipation.slice(0, STATE_LEADERBOARD_SIZE),
+    averageScoreByState: buildTopCities(stateGroupsByScore, userState, STATE_LEADERBOARD_SIZE),
+    testTakersByState: buildTopCities(stateGroupsByParticipation, userState, STATE_LEADERBOARD_SIZE),
     neighbors: buildNeighbors(entries, session.user.email),
   })
 }

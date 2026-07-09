@@ -131,6 +131,7 @@ export default function StatsPage() {
       if (!profileLocationReady) return
       try {
         const params = new URLSearchParams({
+          domain,
           city: city || 'all',
           country: countryName || 'all',
         })
@@ -147,7 +148,7 @@ export default function StatsPage() {
     return () => {
       cancelled = true
     }
-  }, [city, countryName, profileLocationReady])
+  }, [domain, city, countryName, profileLocationReady])
 
   const activeFilterCount = [countryCode, stateCode, city].filter((v) => v !== '').length
   const communityScope = city || stateName || countryName || 'everyone'

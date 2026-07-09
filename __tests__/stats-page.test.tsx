@@ -73,8 +73,8 @@ function statsBody(overrides: Record<string, unknown> = {}) {
     averageScoreByState: [{ label: 'Telangana', count: 5, averageScore: 8 }],
     testTakersByState: [{ label: 'Telangana', count: 5, averageScore: 8 }],
     neighbors: [
-      { rank: 1, score: 10, isYou: true },
-      { rank: 2, score: 8, isYou: false },
+      { rank: 1, score: 10, isYou: true, name: 'Test User' },
+      { rank: 2, score: 8, isYou: false, name: 'Ada Lovelace' },
     ],
     ...overrides,
   }
@@ -245,7 +245,7 @@ describe('StatsPage', () => {
     expect(hero).toHaveTextContent('Tests taken')
     expect(hero).toHaveTextContent('3')
     expect(hero).toHaveTextContent('Average score')
-    expect(hero).toHaveTextContent('9')
+    expect(hero).toHaveTextContent('8.7')
     expect(hero).toHaveTextContent('Best score')
     expect(hero).toHaveTextContent('10')
     expect(hero).toHaveTextContent('Percentile')
@@ -283,12 +283,13 @@ describe('StatsPage', () => {
     expect(snapshot).toHaveTextContent('Lowest')
   })
 
-  it('shows an anonymized neighbors window with no name/email', async () => {
+  it('shows neighbors with display names and no email', async () => {
     installFetchMock()
     render(<StatsPage />)
     await waitFor(() => expect(screen.getByTestId('neighbors-tile')).toBeInTheDocument())
     const neighbors = screen.getByTestId('neighbors-tile')
     expect(neighbors).toHaveTextContent('You')
+    expect(neighbors).toHaveTextContent('Ada Lovelace')
     expect(neighbors).not.toHaveTextContent('test@test.com')
   })
 

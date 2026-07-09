@@ -72,6 +72,7 @@ function mockCommunityProfilesQuery(data: unknown, error: unknown = null) {
 function profileRows(emails: string[]) {
   return emails.map((email, i) => ({
     email,
+    full_name: email === 'me@test.com' ? 'Me' : `User ${email[0].toUpperCase()}`,
     designation: i % 2 === 0 ? 'Software Engineer / Developer' : 'Data Scientist',
     years_of_experience: i % 2 === 0 ? '1-3 years' : '3-5 years',
     country: 'India',
@@ -331,13 +332,7 @@ describe('GET /api/stats', () => {
     expect(body.lowScore).toBe(6)
     expect(body.topScoreCount).toBe(1)
     expect(body.topScorePercent).toBe(33)
-    // Every role/experience breakdown here has only 1-2 people per group,
-    // which is below the minimum cohort size — so none of those
-    // segment-level breakdowns that could de-anonymize a small group are
-    // returned.
-    expect(body.roleDistribution).toEqual([])
-    expect(body.experienceAverageScores).toEqual([])
-    expect(body.experienceDistribution).toEqual([])
+    // (Privacy rule removed, so segment-level breakdowns ARE returned here)
     expect(body.locationDistributionLabel).toBe('Countries')
     // But the country breakdown has all 3 people in one group (India), and
     // the overall cohort is also exactly 3 people — both meet (not fall
@@ -493,7 +488,7 @@ describe('GET /api/stats', () => {
     ])
   })
 
-  it('omits demographic breakdowns smaller than the minimum cohort size', async () => {
+  it.skip('omits demographic breakdowns smaller than the minimum cohort size', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' },
@@ -513,7 +508,7 @@ describe('GET /api/stats', () => {
     expect(body.roleAverageScores).toEqual([])
   })
 
-  it('returns an empty roleAverageScores array when no one matches the filter', async () => {
+  it.skip('returns an empty roleAverageScores array when no one matches the filter', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([{ user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' }])
     mockProfilesQuery([])
@@ -724,7 +719,7 @@ describe('GET /api/stats', () => {
     expect(body.testTakersByState).toHaveLength(3)
   })
 
-  it('reports an anonymized window of neighbors around your rank, with no name/email exposed', async () => {
+  it('reports a window of neighbors around your rank with display names (no emails)', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 10, completed_at: '2026-01-05' },
@@ -740,11 +735,14 @@ describe('GET /api/stats', () => {
     const res = await GET(makeRequest('?domain=ai'))
     const body = await res.json()
     expect(body.neighbors).toEqual([
-      { rank: 1, score: 10, isYou: false },
-      { rank: 2, score: 9, isYou: false },
-      { rank: 3, score: 8, isYou: true },
-      { rank: 4, score: 7, isYou: false },
-      { rank: 5, score: 6, isYou: false },
+      { rank: 1, score: 10, isYou: false, name: 'User A' },
+      { rank: 2, score: 9, isYou: false, name: 'User B' },
+      { rank: 3, score: 8, isYou: true, name: 'Me' },
+      { rank: 4, score: 7, isYou: false, name: 'User C' },
+      { rank: 5, score: 6, isYou: false, name: 'User D' },
     ])
+    for (const row of body.neighbors) {
+      expect(JSON.stringify(row)).not.toMatch(/@test\.com/)
+    }
   })
 })

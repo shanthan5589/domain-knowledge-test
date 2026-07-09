@@ -41,13 +41,16 @@ export async function GET(req: NextRequest) {
 
   const myAttempts = myResults as DomainResultRow[]
 
-  const activityCalendar = buildActivityCalendar(myAttempts)
-  const streaks = buildStreaks(myAttempts)
-  const timeOfDayPerformance = buildTimeOfDayPerformance(myAttempts)
-  const pacePoints = buildPacePoints(myAttempts)
-  const domainRanges = buildDomainRanges(myAttempts)
-  const recentAttempts = buildRecentAttempts(myAttempts)
-  const weekOverWeek = buildWeekOverWeek(myAttempts)
+  const domain = req.nextUrl.searchParams.get('domain')
+  const filteredAttempts = domain && domain !== 'all' ? myAttempts.filter((a) => a.domain === domain) : myAttempts
+
+  const activityCalendar = buildActivityCalendar(filteredAttempts)
+  const streaks = buildStreaks(filteredAttempts)
+  const timeOfDayPerformance = buildTimeOfDayPerformance(filteredAttempts)
+  const pacePoints = buildPacePoints(filteredAttempts)
+  const domainRanges = buildDomainRanges(myAttempts) // Intentionally global
+  const recentAttempts = buildRecentAttempts(filteredAttempts)
+  const weekOverWeek = buildWeekOverWeek(filteredAttempts)
 
   // Domain Radar compares your per-domain average against your city/country
   // peers' per-domain average, so it needs everyone's latest attempt per

@@ -60,34 +60,36 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-const SPAN_CLASSES: Record<1 | 2 | 3 | 4, string> = {
-  1: 'sm:col-span-1',
-  2: 'sm:col-span-2',
-  3: 'sm:col-span-2 lg:col-span-3',
-  4: 'sm:col-span-2 lg:col-span-4',
+function formatDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.round(totalSeconds % 60)
+  if (minutes === 0) return `${seconds}s`
+  return `${minutes}m ${String(seconds).padStart(2, '0')}s`
 }
 
 function Tile({
-  span = 1,
   title,
   note,
   testId,
+  className = '',
   children,
 }: {
-  span?: 1 | 2 | 3 | 4
   title?: string
   note?: string
   testId?: string
+  className?: string
   children: ReactNode
 }) {
+  // Content-sized only — never force height. Stretching short content leaves
+  // hollow white space inside the card.
   return (
     <div
-      className={`col-span-1 ${SPAN_CLASSES[span]} flex min-w-0 flex-col rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm transition hover:shadow-md`}
+      className={`min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 shadow-sm flex flex-col ${className}`}
       data-testid={testId}
     >
-      {title && <p className="mb-0.5 text-[13px] font-semibold text-[var(--ink)]">{title}</p>}
-      {note && <p className="mb-2 text-[10.5px] text-[var(--ink-soft)]">{note}</p>}
-      <div className="flex flex-1 min-w-0 flex-col justify-center">{children}</div>
+      {title && <p className="mb-0.5 text-[13px] font-semibold leading-tight text-[var(--ink)]">{title}</p>}
+      {note && <p className="mb-1.5 text-[10.5px] leading-snug text-[var(--ink-soft)]">{note}</p>}
+      <div className="min-w-0 flex-1 flex flex-col">{children}</div>
     </div>
   )
 }
@@ -98,62 +100,76 @@ function EmptyNote({ text }: { text: string }) {
 
 function Chapter({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
-    <section>
-      <div className="mb-3 flex items-baseline gap-2.5">
+    <section className="space-y-3">
+      <div className="flex items-baseline gap-2.5">
         <h2 className="text-xs font-bold uppercase tracking-wide text-[var(--ink-soft)]">{title}</h2>
         <div className="h-px flex-1 bg-[var(--line)]" />
       </div>
-      {note && <p className="mb-3 text-[11px] text-[var(--ink-soft)]">{note}</p>}
-      {/* dense packing backfills any gaps a span-3/4 tile would otherwise leave
-          next to a span-1/2 tile, pulling later smaller tiles forward instead
-          of leaving empty grid cells. items-start keeps each tile at its own
-          natural height instead of stretching every tile in a row to match
-          the tallest one, which is what was making short tiles look hollow. */}
-      <div className="grid grid-flow-row-dense grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        {children}
-      </div>
+      {note && <p className="-mt-0.5 text-[11px] text-[var(--ink-soft)]">{note}</p>}
+      {children}
     </section>
   )
+}
+
+/** Side-by-side row; each tile keeps its natural height (no hollow stretch). */
+function Pair({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">{children}</div>
+}
+
+function Triple({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
 }
 
 // ===== Hero row =====
 
 function HeroRow({ stats, personal }: { stats: StatsResponse; personal: PersonalStatsResponse }) {
-  const testsTaken = personal.domainRanges.reduce((sum, d) => sum + d.count, 0)
-  const totalScoreSum = personal.domainRanges.reduce((sum, d) => sum + d.mean * d.count, 0)
-  const averageScore = testsTaken > 0 ? roundToOne(totalScoreSum / testsTaken) : null
-  const bestScore =
-    personal.domainRanges.length > 0 ? Math.max(...personal.domainRanges.map((d) => d.max)) : null
+  const testsTaken = stats.userProgress.attemptCount
+  const averageScore = stats.userProgress.consistency.averageScore
+  const bestScore = stats.userProgress.bestScore
+  const scoreChange = stats.userProgress.scoreChange
 
   return (
-    <div className="grid grid-cols-2 items-start gap-3.5 sm:grid-cols-4" data-testid="hero-row">
+    <div
+      className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+      data-testid="hero-row"
+    >
       <Tile>
         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Tests taken</p>
-        <p className="font-mono text-2xl font-bold text-[var(--ink)]">{testsTaken}</p>
+        <p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">{testsTaken}</p>
       </Tile>
       <Tile>
         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Average score</p>
-        <p className="font-mono text-2xl font-bold text-[var(--ink)]">{averageScore ?? '—'}</p>
+        <p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">{averageScore ?? '—'}</p>
       </Tile>
       <Tile>
         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Best score</p>
-        <p className="font-mono text-2xl font-bold text-[var(--ink)]">
+        <p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">
           {bestScore ?? '—'}
           {bestScore !== null && <span className="text-sm font-normal text-[var(--ink-soft)]">/10</span>}
         </p>
       </Tile>
       <Tile>
         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Percentile</p>
-        <p className="font-mono text-2xl font-bold text-[var(--ink)]">
+        <p className="mt-1 font-mono text-2xl font-bold text-[var(--ink)]">
           {stats.percentile !== null ? (
             <>
               {stats.percentile}
-              <span className="text-sm font-normal">{ordinalSuffix(stats.percentile)}</span>
+              <span className="text-sm font-normal">%</span>
             </>
           ) : (
             '—'
           )}
         </p>
+      </Tile>
+      <Tile testId="score-change-tile" className="col-span-2 sm:col-span-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Score change</p>
+        {scoreChange === null ? (
+          <p className="mt-1 font-mono text-2xl font-bold text-[var(--ink-soft)]">—</p>
+        ) : (
+          <p className={`mt-1 font-mono text-2xl font-bold ${changeClass(scoreChange)}`}>
+            {formatChange(scoreChange)}
+          </p>
+        )}
       </Tile>
     </div>
   )
@@ -165,51 +181,105 @@ function ScoreTrendTile({ personal }: { personal: PersonalStatsResponse }) {
   const points = personal.pacePoints.slice(-12)
   if (points.length === 0) {
     return (
-      <Tile span={3} title="Score trend">
+      <Tile title="Score trend">
         <EmptyNote text="No attempts yet." />
       </Tile>
     )
   }
 
-  const w = 560
-  const h = 120
-  const padX = 20
-  const padTop = 15
-  const padBottom = 105
-  const xStep = points.length > 1 ? (w - padX * 2) / (points.length - 1) : 0
+  // Plot in a 0–100 × 0–100 space so width stretch is independent of height.
+  // Labels stay HTML (always sharp). Dots stay HTML circles (never oval-blur).
+  // SVG strokes use non-scaling-stroke so they stay crisp when stretched.
   const coords = points.map((p, i) => ({
-    x: padX + i * xStep,
-    y: padBottom - (Math.max(0, Math.min(10, p.score)) / 10) * (padBottom - padTop),
+    x: points.length === 1 ? 50 : (i / (points.length - 1)) * 100,
+    y: 100 - (Math.max(0, Math.min(10, p.score)) / 10) * 100,
+    score: p.score,
   }))
-  const polylinePoints = coords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
-  const areaPoints = `${padX},${padBottom} ${polylinePoints} ${(w - padX).toFixed(1)},${padBottom}`
-  const last = coords[coords.length - 1]
+  const polylinePoints = coords.map((c) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(' ')
+  const areaPoints = `0,100 ${polylinePoints} 100,100`
+  const yTicks = [0, 5, 10]
 
   return (
-    <Tile span={3} title="Score trend" testId="score-trend">
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-auto w-full" role="img" aria-label="Score trend over your recent attempts">
-        <line x1={padX} y1={padTop} x2={w - padX} y2={padTop} stroke="var(--line)" strokeWidth={1} opacity={0.5} />
-        <line
-          x1={padX}
-          y1={(padTop + padBottom) / 2}
-          x2={w - padX}
-          y2={(padTop + padBottom) / 2}
-          stroke="var(--line)"
-          strokeWidth={1}
-          opacity={0.5}
-        />
-        <line x1={padX} y1={padBottom} x2={w - padX} y2={padBottom} stroke="var(--line)" strokeWidth={1} />
-        <polygon points={areaPoints} fill="var(--signal-soft)" opacity={0.6} />
-        <polyline
-          points={polylinePoints}
-          fill="none"
-          stroke="var(--signal)"
-          strokeWidth={2.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {last && <circle cx={last.x} cy={last.y} r={4.5} fill="var(--signal)" />}
-      </svg>
+    <Tile
+      title="Score trend"
+      note="Y = score /10 · X = attempts (oldest → newest)"
+      testId="score-trend"
+    >
+      <div
+        className="mt-1 flex gap-1.5"
+        role="img"
+        aria-label="Score trend: score on Y axis, attempts left to right from oldest to newest"
+      >
+        {/* Y-axis labels (HTML — never stretched) */}
+        <div className="flex w-4 flex-col justify-between pb-4 pt-0.5 text-right font-mono text-[10px] leading-none text-[var(--ink-soft)]">
+          {[...yTicks].reverse().map((score) => (
+            <span key={score}>{score}</span>
+          ))}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="relative h-[112px] w-full">
+            <svg
+              viewBox="0 0 100 100"
+              className="absolute inset-0 h-full w-full"
+              preserveAspectRatio="none"
+              overflow="visible"
+            >
+              {yTicks.map((score) => {
+                const y = 100 - (score / 10) * 100
+                return (
+                  <line
+                    key={score}
+                    x1={0}
+                    y1={y}
+                    x2={100}
+                    y2={y}
+                    stroke="var(--line)"
+                    strokeWidth={1}
+                    opacity={score === 0 ? 1 : 0.5}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )
+              })}
+              <polygon points={areaPoints} fill="var(--signal-soft)" opacity={0.55} />
+              <polyline
+                points={polylinePoints}
+                fill="none"
+                stroke="var(--signal)"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+
+            {/* Dots as HTML so they stay circular and sharp */}
+            {coords.map((c, i) => {
+              const isLast = i === coords.length - 1
+              return (
+                <span
+                  key={i}
+                  title={`Attempt ${i + 1}: ${c.score}/10`}
+                  className={`absolute rounded-full bg-[var(--signal)] ${
+                    isLast ? 'h-2.5 w-2.5 ring-2 ring-white' : 'h-2 w-2 opacity-90'
+                  }`}
+                  style={{
+                    left: `${c.x}%`,
+                    top: `${c.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                />
+              )
+            })}
+          </div>
+
+          <div className="mt-1 flex justify-between text-[10px] text-[var(--ink-soft)]">
+            <span>Oldest</span>
+            <span>Attempt →</span>
+            <span>Newest</span>
+          </div>
+        </div>
+      </div>
     </Tile>
   )
 }
@@ -218,97 +288,256 @@ function StreakTile({ personal }: { personal: PersonalStatsResponse }) {
   const { currentStreak, longestStreak } = personal.streaks
   const flames = Array.from({ length: 7 }, (_, i) => i < Math.min(currentStreak, 7))
   return (
-    <Tile span={1} title="Streak" testId="streak-tile">
-      <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[28px] font-bold leading-none text-[var(--ink)]">{currentStreak}</span>
-        <span className="text-[11px] text-[var(--ink-soft)]">{currentStreak === 1 ? 'day' : 'days'}</span>
+    <Tile title="Streak" testId="streak-tile">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-mono text-xl font-bold leading-none text-[var(--ink)]">
+          {currentStreak}
+          <span className="ml-1 text-[10px] font-normal text-[var(--ink-soft)]">
+            {currentStreak === 1 ? 'day' : 'days'}
+          </span>
+        </p>
+        <div className="flex w-16 gap-[2px]" aria-hidden="true">
+          {flames.map((on, i) => (
+            <div
+              key={i}
+              className={`h-4 flex-1 rounded-[2px] ${on ? 'bg-[var(--signal)]' : 'bg-[var(--paper)]'}`}
+            />
+          ))}
+        </div>
       </div>
-      <div className="mt-2.5 flex gap-[3px]">
-        {flames.map((on, i) => (
-          <div
-            key={i}
-            className={`h-3.5 flex-1 rounded-[3px] ${on ? 'bg-[var(--signal)]' : 'bg-[var(--paper)]'}`}
-          />
-        ))}
-      </div>
-      <p className="mt-2 text-[10.5px] text-[var(--ink-soft)]">
-        Best: <span className="font-mono font-semibold text-[var(--ink)]">{longestStreak}</span>{' '}
-        {longestStreak === 1 ? 'day' : 'days'}
+      <p className="mt-1 text-[10px] text-[var(--ink-soft)]">
+        Best <span className="font-mono font-semibold text-[var(--ink)]">{longestStreak}</span>
       </p>
     </Tile>
   )
 }
 
-const ACTIVITY_GRID_DAYS = 96
-const ACTIVITY_GRID_COLS = 24
+// GitHub contribution-graph: fluid cells fill the card width (still fixed rows = days).
+const ACTIVITY_WEEKS = 53
 
 function ActivityTile({ personal }: { personal: PersonalStatsResponse }) {
   const countByDate = new Map(personal.activityCalendar.map((d) => [d.date, d.count]))
-  const today = new Date()
-  const cells = Array.from({ length: ACTIVITY_GRID_DAYS }, (_, i) => {
-    const d = new Date(today)
-    d.setDate(d.getDate() - (ACTIVITY_GRID_DAYS - 1 - i))
+  const end = new Date()
+  end.setHours(0, 0, 0, 0)
+  const endDay = end.getDay() // 0 = Sunday
+  const totalDays = ACTIVITY_WEEKS * 7
+  const start = new Date(end)
+  start.setDate(end.getDate() - ((ACTIVITY_WEEKS - 1) * 7 + endDay))
+
+  const cells: Array<{ date: string; count: number; future: boolean; week: number; month: number }> = []
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
     const key = d.toISOString().slice(0, 10)
-    return { date: key, count: countByDate.get(key) ?? 0 }
-  })
-  const maxCount = Math.max(1, ...cells.map((c) => c.count))
-  const levelColors = ['var(--paper)', 'var(--signal-soft)', '#a9c0f6', 'var(--signal)', '#1d3fae']
-  function levelFor(count: number) {
-    if (count === 0) return 0
+    const future = d > end
+    cells.push({
+      date: key,
+      count: future ? 0 : (countByDate.get(key) ?? 0),
+      future,
+      week: Math.floor(i / 7),
+      month: d.getMonth(),
+    })
+  }
+
+  const maxCount = Math.max(1, ...cells.filter((c) => !c.future).map((c) => c.count))
+  const activeDays = cells.filter((c) => !c.future && c.count > 0).length
+  const totalAttempts = cells.reduce((sum, c) => sum + (c.future ? 0 : c.count), 0)
+
+  const levelColors = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
+  function levelFor(count: number, future: boolean) {
+    if (future || count === 0) return 0
+    if (maxCount === 1) return 1
     const ratio = count / maxCount
-    if (ratio > 0.8) return 4
-    if (ratio > 0.6) return 3
-    if (ratio > 0.35) return 2
+    if (ratio > 0.75) return 4
+    if (ratio > 0.5) return 3
+    if (ratio > 0.25) return 2
     return 1
   }
 
+  // Label the week that contains the 1st of each month (GitHub-style).
+  const monthLabels: Array<{ week: number; label: string }> = []
+  const labeledMonths = new Set<string>()
+  for (let week = 0; week < ACTIVITY_WEEKS; week++) {
+    for (let day = 0; day < 7; day++) {
+      const cell = cells[week * 7 + day]
+      if (!cell || cell.future) continue
+      const d = new Date(cell.date + 'T12:00:00')
+      const key = `${d.getFullYear()}-${d.getMonth()}`
+      if (d.getDate() === 1 && !labeledMonths.has(key)) {
+        labeledMonths.add(key)
+        monthLabels.push({
+          week,
+          label: d.toLocaleString(undefined, { month: 'short' }),
+        })
+      }
+    }
+  }
+  // Always label the first week if the year-window starts mid-month.
+  if (monthLabels.length === 0 || monthLabels[0].week > 0) {
+    const first = cells.find((c) => !c.future)
+    if (first) {
+      const d = new Date(first.date + 'T12:00:00')
+      const key = `${d.getFullYear()}-${d.getMonth()}`
+      if (!labeledMonths.has(key)) {
+        monthLabels.unshift({
+          week: 0,
+          label: d.toLocaleString(undefined, { month: 'short' }),
+        })
+      }
+    }
+  }
+
+  const dayLabels = [
+    { day: 1, label: 'Mon' },
+    { day: 3, label: 'Wed' },
+    { day: 5, label: 'Fri' },
+  ]
+
   return (
-    <Tile span={3} title="Activity" testId="activity-tile">
-      <div
-        className="grid gap-[3px]"
-        style={{ gridTemplateColumns: `repeat(${ACTIVITY_GRID_COLS}, minmax(0,1fr))` }}
-      >
-        {cells.map((cell) => (
+    <Tile title="Activity" testId="activity-tile">
+      <p className="mb-1.5 text-[12px] text-[var(--ink)]">
+        <b className="font-mono">{totalAttempts}</b> attempts in the last year
+        {activeDays > 0 && (
+          <span className="text-[var(--ink-soft)]">
+            {' '}
+            · <b className="font-mono text-[var(--ink)]">{activeDays}</b> active days
+          </span>
+        )}
+      </p>
+
+      <div className="flex gap-1">
+        <div className="grid w-7 flex-shrink-0 grid-rows-7 gap-[3px] pt-[18px] text-right text-[9px] leading-none text-[var(--ink-soft)]">
+          {Array.from({ length: 7 }, (_, day) => {
+            const hit = dayLabels.find((d) => d.day === day)
+            return (
+              <span key={day} className="flex items-center justify-end pr-1" style={{ height: 12 }}>
+                {hit?.label ?? ''}
+              </span>
+            )
+          })}
+        </div>
+
+        <div className="min-w-0 flex-1">
           <div
-            key={cell.date}
-            title={`${cell.date}: ${cell.count} ${cell.count === 1 ? 'attempt' : 'attempts'}`}
-            className="aspect-square rounded-[2px]"
-            style={{ background: levelColors[levelFor(cell.count)] }}
-          />
-        ))}
+            className="mb-1 grid text-[9px] text-[var(--ink-soft)]"
+            style={{ gridTemplateColumns: `repeat(${ACTIVITY_WEEKS}, minmax(0, 1fr))` }}
+          >
+            {Array.from({ length: ACTIVITY_WEEKS }, (_, week) => {
+              const label = monthLabels.find((m) => m.week === week)?.label
+              return (
+                <span key={week} className="overflow-hidden whitespace-nowrap">
+                  {label ?? ''}
+                </span>
+              )
+            })}
+          </div>
+
+          <div
+            className="grid gap-[3px]"
+            style={{
+              gridTemplateColumns: `repeat(${ACTIVITY_WEEKS}, minmax(0, 1fr))`,
+              gridTemplateRows: 'repeat(7, 12px)',
+              gridAutoFlow: 'column',
+            }}
+          >
+            {cells.map((cell) => (
+              <div
+                key={cell.date}
+                title={
+                  cell.future
+                    ? ''
+                    : `${cell.date}: ${cell.count} ${cell.count === 1 ? 'attempt' : 'attempts'}`
+                }
+                className="min-w-0 rounded-[2px]"
+                style={{
+                  background: cell.future ? 'transparent' : levelColors[levelFor(cell.count, cell.future)],
+                  boxShadow: cell.future ? 'none' : 'inset 0 0 0 1px rgba(27, 31, 35, 0.06)',
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="mt-1.5 flex items-center justify-end gap-1 text-[10px] text-[var(--ink-soft)]">
+            <span className="mr-0.5">Less</span>
+            {levelColors.map((c, i) => (
+              <span
+                key={i}
+                className="inline-block h-2.5 w-2.5 rounded-[2px]"
+                style={{ background: c, boxShadow: 'inset 0 0 0 1px rgba(27, 31, 35, 0.06)' }}
+              />
+            ))}
+            <span className="ml-0.5">More</span>
+          </div>
+        </div>
       </div>
     </Tile>
   )
 }
 
 function DomainsCoveredTile({ personal }: { personal: PersonalStatsResponse }) {
-  const attempted = personal.domainRanges.length
+  const attemptedIds = new Set(personal.domainRanges.map((d) => d.domain))
+  const attempted = attemptedIds.size
   const total = ALL_DOMAINS.length
-  const r = 38
+
+  // Proper donut: larger radius, thinner stroke, butt caps so the arc
+  // doesn't blob at small sizes (round caps + thick stroke was the issue).
+  const size = 44
+  const stroke = 5
+  const r = (size - stroke) / 2
   const circumference = 2 * Math.PI * r
-  const fraction = total > 0 ? attempted / total : 0
-  const dash = circumference * fraction
+  const fraction = total > 0 ? Math.min(1, attempted / total) : 0
+  const progress = circumference * fraction
 
   return (
-    <Tile span={1} title="Domains covered" testId="domains-covered-tile">
-      <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
-        <svg viewBox="0 0 100 100" className="h-20 w-20 -rotate-90">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="var(--paper)" strokeWidth="14" />
-          <circle
-            cx="50"
-            cy="50"
-            r={r}
-            fill="none"
-            stroke="var(--signal)"
-            strokeWidth="14"
-            strokeLinecap="round"
-            strokeDasharray={`${dash} ${circumference - dash}`}
-          />
-        </svg>
-        <span className="absolute font-mono text-sm font-bold text-[var(--ink)]">
-          {attempted}
-          <span className="text-[10px] font-normal text-[var(--ink-soft)]">/{total}</span>
-        </span>
+    <Tile title="Domains covered" testId="domains-covered-tile">
+      <div className="flex items-center gap-2.5">
+        <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+            <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                fill="none"
+                stroke="#e8eaed"
+                strokeWidth={stroke}
+              />
+              {fraction > 0 && (
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={r}
+                  fill="none"
+                  stroke="var(--signal)"
+                  strokeWidth={stroke}
+                  strokeLinecap="butt"
+                  strokeDasharray={`${progress} ${circumference - progress}`}
+                />
+              )}
+            </g>
+          </svg>
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-[11px] font-bold tabular-nums text-[var(--ink)]">
+            {attempted}
+            <span className="text-[9px] font-normal text-[var(--ink-soft)]">/{total}</span>
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap gap-1">
+            {ALL_DOMAINS.map((d) => {
+              const on = attemptedIds.has(d)
+              return (
+                <span
+                  key={d}
+                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+                    on ? 'bg-[var(--signal)] text-white' : 'bg-[var(--paper)] text-[var(--ink-soft)]'
+                  }`}
+                >
+                  {radarLabel(d)}
+                </span>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </Tile>
   )
@@ -338,7 +567,7 @@ function WhenYouTestBestTile({ personal }: { personal: PersonalStatsResponse }) 
 
   if (allScores.length === 0) {
     return (
-      <Tile span={2} title="When you test best" note="day × time of day, color = your avg score there">
+      <Tile title="When you test best" note="Darker = higher average score at that day/time">
         <EmptyNote text="Not enough attempts yet." />
       </Tile>
     )
@@ -355,7 +584,18 @@ function WhenYouTestBestTile({ personal }: { personal: PersonalStatsResponse }) 
   }
 
   return (
-    <Tile span={2} title="When you test best" note="day × time of day, color = your avg score there" testId="time-of-day-tile">
+    <Tile
+      title="When you test best"
+      note="Rows = day of week · columns = Night / Morning / Afternoon / Evening · darker = higher score"
+      testId="time-of-day-tile"
+    >
+      <div className="mb-1 flex gap-[3px] pl-3">
+        {TIME_OF_DAY_BUCKETS.map((bucket) => (
+          <span key={bucket.label} className="flex-1 text-center text-[8px] text-[var(--ink-soft)]" title={bucket.label}>
+            {bucket.label}
+          </span>
+        ))}
+      </div>
       <div className="space-y-[3px]">
         {DAY_LABELS.map((day, dayOfWeek) => (
           <div key={dayOfWeek} className="flex items-center gap-[3px]">
@@ -363,7 +603,7 @@ function WhenYouTestBestTile({ personal }: { personal: PersonalStatsResponse }) 
             {TIME_OF_DAY_BUCKETS.map((bucket, bucketIndex) => (
               <div
                 key={bucket.label}
-                className="h-3 flex-1 rounded-sm"
+                className="h-3.5 flex-1 rounded-sm"
                 style={{ background: colorFor(grid[dayOfWeek][bucketIndex]) }}
                 title={`${day} ${bucket.label}: ${grid[dayOfWeek][bucketIndex] ?? 'no data'}`}
               />
@@ -376,80 +616,168 @@ function WhenYouTestBestTile({ personal }: { personal: PersonalStatsResponse }) 
 }
 
 function PaceVsAccuracyTile({ personal }: { personal: PersonalStatsResponse }) {
-  const points = personal.pacePoints.slice(-24)
+  // Most recent first — row list is easier to read than a scatter when n is small.
+  const points = personal.pacePoints.slice(-8).reverse()
   if (points.length === 0) {
     return (
-      <Tile span={2} title="Pace vs. accuracy" note="time taken vs. score, one dot per attempt">
+      <Tile title="Pace vs. accuracy" note="Did you score higher when you went faster or slower?">
         <EmptyNote text="No attempts yet." />
       </Tile>
     )
   }
 
-  const w = 220
-  const h = 70
-  const padX = 22
-  const padTop = 8
-  const padBottom = 52
-  const maxTime = Math.max(300, ...points.map((p) => p.timeTakenSeconds))
+  // Quiz timer is 5 minutes, so every bar is on the same absolute scale.
+  const MAX_SECONDS = 300
+  const avgTime = Math.round(points.reduce((s, p) => s + p.timeTakenSeconds, 0) / points.length)
+  const avgScore = roundToOne(points.reduce((s, p) => s + p.score, 0) / points.length)
 
   return (
-    <Tile span={2} title="Pace vs. accuracy" note="time taken vs. score, one dot per attempt" testId="pace-vs-accuracy-tile">
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-auto w-full">
-        <line x1={padX} y1={padBottom} x2={w - 4} y2={padBottom} stroke="var(--line)" strokeWidth={1} />
-        <line x1={padX} y1={padTop} x2={padX} y2={padBottom} stroke="var(--line)" strokeWidth={1} />
+    <Tile
+      title="Pace vs. accuracy"
+      note="Each row is one attempt. Bar length = time used of the 5-minute limit."
+      testId="pace-vs-accuracy-tile"
+    >
+      <div className="mb-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-[var(--ink-soft)]">
+        <span>
+          Avg time <b className="font-mono text-[var(--ink)]">{formatDuration(avgTime)}</b>
+        </span>
+        <span>
+          Avg score <b className="font-mono text-[var(--ink)]">{avgScore}/10</b>
+        </span>
+      </div>
+      <div className="mb-1 grid grid-cols-[2.5rem_1fr_3.25rem] gap-2 text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+        <span className="text-right">Score</span>
+        <span>Time used (0 → 5 min)</span>
+        <span className="text-right">Duration</span>
+      </div>
+      <div className="space-y-2">
         {points.map((p, i) => {
-          const x = padX + (Math.min(p.timeTakenSeconds, maxTime) / maxTime) * (w - padX - 8)
-          const y = padBottom - (Math.max(0, Math.min(10, p.score)) / 10) * (padBottom - padTop)
-          return <circle key={i} cx={x} cy={y} r={3.2} fill="var(--signal)" opacity={0.7} />
+          const widthPct = Math.min(100, (p.timeTakenSeconds / MAX_SECONDS) * 100)
+          const high = p.score >= 8
+          const mid = p.score >= 5
+          return (
+            <div key={`${p.completedAt}-${i}`} className="grid grid-cols-[2.5rem_1fr_3.25rem] items-center gap-2">
+              <span
+                className={`text-right font-mono text-[12px] font-bold tabular-nums ${
+                  high ? 'text-green-600' : mid ? 'text-[var(--ink)]' : 'text-red-500'
+                }`}
+              >
+                {p.score}
+                <span className="text-[9px] font-normal text-[var(--ink-soft)]">/10</span>
+              </span>
+              <div className="relative h-2.5 overflow-hidden rounded-full bg-[var(--paper)]">
+                <div
+                  className="h-full rounded-full bg-[var(--signal)]"
+                  style={{ width: `${Math.max(widthPct, 3)}%` }}
+                  title={`${p.score}/10 in ${formatDuration(p.timeTakenSeconds)}`}
+                />
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-[var(--ink-soft)] opacity-50"
+                  style={{ left: `${(avgTime / MAX_SECONDS) * 100}%` }}
+                  title={`Your avg: ${formatDuration(avgTime)}`}
+                />
+              </div>
+              <span className="text-right font-mono text-[10px] tabular-nums text-[var(--ink-soft)]">
+                {formatDuration(p.timeTakenSeconds)}
+              </span>
+            </div>
+          )
         })}
-      </svg>
+      </div>
+      <p className="mt-2 text-[9.5px] text-[var(--ink-soft)]">
+        Thin vertical line = your average time · left of it = faster than usual
+      </p>
     </Tile>
   )
 }
 
 function ConsistencyBandTile({ personal }: { personal: PersonalStatsResponse }) {
-  const ranges = personal.domainRanges
-  if (ranges.length === 0) {
-    return (
-      <Tile span={2} title="Consistency band" note="your lowest, typical, and best score in each domain">
-        <EmptyNote text="No attempts yet." />
-      </Tile>
-    )
-  }
+  // Always show every domain so unattempted ones are visible, not missing.
+  const byDomain = new Map(personal.domainRanges.map((r) => [r.domain, r]))
+  const rows = ALL_DOMAINS.map((domain) => ({
+    domain,
+    range: byDomain.get(domain) ?? null,
+  }))
 
   return (
     <Tile
-      span={2}
-      title="Consistency band"
-      note="your lowest, typical, and best score in each domain"
+      title="Score range by domain"
+      note="Short bar = steady scores. Long bar = scores jump around. Dot = your average."
       testId="consistency-band-tile"
+      className="flex-1 flex flex-col"
     >
-      <div className="space-y-2.5">
-        {ranges.map((r) => {
-          const color = domainColor(r.domain)
+      <div className="mb-2 flex items-center gap-3 text-[9.5px] text-[var(--ink-soft)]">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block h-1.5 w-6 rounded-full bg-[var(--signal)] opacity-40" />
+          min → max
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-[var(--signal)]" />
+          average
+        </span>
+      </div>
+      <div className="flex-1 flex flex-col justify-between">
+        {rows.map(({ domain, range: r }) => {
+          const color = domainColor(domain)
+          if (!r) {
+            return (
+              <div key={domain}>
+                <div className="mb-0.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                  <span className="text-[11px] font-semibold text-[var(--ink)]" title={domainLabel(domain)}>
+                    {domainLabel(domain)}
+                  </span>
+                  <span className="text-[10px] text-[var(--ink-soft)]">Not attempted yet</span>
+                </div>
+                <div className="relative h-2.5 w-full rounded-full bg-[var(--paper)]" />
+                <div className="mt-1 grid grid-cols-3 font-mono text-[10px] tabular-nums text-[var(--ink-soft)]">
+                  <span>Low —</span>
+                  <span className="text-center">Avg —</span>
+                  <span className="text-right">Best —</span>
+                </div>
+              </div>
+            )
+          }
+
+          const spread = r.max - r.min
+          const steady = spread <= 1
+          const swingLabel = steady ? 'Steady' : spread <= 3 ? 'Some swing' : 'Wide swing'
           return (
-            <div key={r.domain} className="flex items-center gap-2">
-              <span className="w-16 flex-shrink-0 truncate text-[10px] text-[var(--ink-soft)]" title={domainLabel(r.domain)}>
-                {domainLabel(r.domain)}
-              </span>
-              <div className="relative h-1.5 flex-1">
+            <div key={domain}>
+              <div className="mb-0.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                <span className="text-[11px] font-semibold text-[var(--ink)]" title={domainLabel(domain)}>
+                  {domainLabel(domain)}
+                </span>
+                <span className="text-[10px] text-[var(--ink-soft)]">
+                  {swingLabel} · {r.count} attempt{r.count === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div className="relative h-2.5 w-full rounded-full bg-[var(--paper)]">
                 <div
-                  className="absolute inset-y-0 rounded-full"
+                  className="absolute inset-y-0.5 rounded-full"
                   style={{
                     left: `${(r.min / 10) * 100}%`,
-                    right: `${100 - (r.max / 10) * 100}%`,
+                    width: `${Math.max(((r.max - r.min) / 10) * 100, 1.5)}%`,
                     background: color,
-                    opacity: 0.35,
+                    opacity: 0.45,
                   }}
                 />
                 <div
-                  className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm"
                   style={{ left: `${(r.mean / 10) * 100}%`, background: color }}
+                  title={`Average ${r.mean}`}
                 />
               </div>
-              <span className="w-8 flex-shrink-0 text-right font-mono text-[10px] text-[var(--ink-soft)]">
-                {r.mean}
-              </span>
+              <div className="mt-1 grid grid-cols-3 font-mono text-[10px] tabular-nums text-[var(--ink-soft)]">
+                <span>
+                  Low <b className="text-[var(--ink)]">{r.min}</b>
+                </span>
+                <span className="text-center">
+                  Avg <b className="text-[var(--ink)]">{r.mean}</b>
+                </span>
+                <span className="text-right">
+                  Best <b className="text-[var(--ink)]">{r.max}</b>
+                </span>
+              </div>
             </div>
           )
         })}
@@ -462,7 +790,7 @@ function TotalTimeInvestedTile({ personal }: { personal: PersonalStatsResponse }
   const points = personal.pacePoints
   if (points.length === 0) {
     return (
-      <Tile span={2} title="Total time invested">
+      <Tile title="Time invested">
         <EmptyNote text="No attempts yet." />
       </Tile>
     )
@@ -472,17 +800,24 @@ function TotalTimeInvestedTile({ personal }: { personal: PersonalStatsResponse }
   const averageSeconds = Math.round(totalSeconds / points.length)
 
   return (
-    <Tile span={2} title="Total time invested" testId="total-time-tile">
-      <div className="grid grid-cols-2 gap-x-4">
+    <Tile title="Time invested" testId="total-time-tile">
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <p className="text-[10px] text-[var(--ink-soft)]">Across all attempts</p>
-          <p className="font-mono text-lg font-bold text-[var(--ink)]">{formatDuration(totalSeconds)}</p>
+          <p className="text-[10px] text-[var(--ink-soft)]">Total</p>
+          <p className="font-mono text-lg font-bold leading-tight text-[var(--ink)]">
+            {formatDuration(totalSeconds)}
+          </p>
         </div>
-        <div>
-          <p className="text-[10px] text-[var(--ink-soft)]">Average per attempt</p>
-          <p className="font-mono text-lg font-bold text-[var(--ink)]">{formatDuration(averageSeconds)}</p>
+        <div className="text-right">
+          <p className="text-[10px] text-[var(--ink-soft)]">Avg / try</p>
+          <p className="font-mono text-lg font-bold leading-tight text-[var(--ink)]">
+            {formatDuration(averageSeconds)}
+          </p>
         </div>
       </div>
+      <p className="mt-1 text-[10px] text-[var(--ink-soft)]">
+        <b className="font-mono text-[var(--ink)]">{points.length}</b> attempts
+      </p>
     </Tile>
   )
 }
@@ -491,14 +826,14 @@ function RecentAttemptsTile({ personal }: { personal: PersonalStatsResponse }) {
   const attempts = personal.recentAttempts.slice(0, 6)
   if (attempts.length === 0) {
     return (
-      <Tile span={3} title="Recent attempts">
+      <Tile title="Recent attempts">
         <EmptyNote text="No attempts yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={3} title="Recent attempts" testId="recent-attempts-tile">
+    <Tile title="Recent attempts" testId="recent-attempts-tile">
       <table className="w-full text-[11.5px]">
         <thead>
           <tr className="text-left text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
@@ -532,136 +867,124 @@ function RecentAttemptsTile({ personal }: { personal: PersonalStatsResponse }) {
   )
 }
 
-function ThisWeekTile({ personal }: { personal: PersonalStatsResponse }) {
-  const { change } = personal.weekOverWeek
-  return (
-    <Tile span={1} title="This week" testId="this-week-tile">
-      {change === null ? (
-        <EmptyNote text="Not enough data yet." />
-      ) : (
-        <>
-          <span className={`font-mono text-2xl font-bold ${changeClass(change)}`}>{formatChange(change)}</span>
-          <p className="mt-1.5 text-[10.5px] text-[var(--ink-soft)]">avg vs. last week</p>
-        </>
-      )}
-    </Tile>
-  )
-}
-
 // ===== Chapter 2: Where you stand =====
+
+/** Short scope labels so "State / Region" doesn't wrap and break column alignment. */
+const SCOPE_LABELS: Record<string, string> = {
+  City: 'City',
+  State: 'State',
+  'State / Region': 'State',
+  Country: 'Country',
+  Global: 'Global',
+}
 
 function RankLadderTile({ stats, domain }: { stats: StatsResponse; domain: Domain }) {
   const rungs = stats.rankLadder
   if (rungs.length === 0) {
     return (
-      <Tile span={3} title="Your rank">
+      <Tile title="Your rank">
         <EmptyNote text="Not enough data yet for this filter." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={3} title="Your rank" note={`In ${DOMAIN_LABELS[domain]}`} testId="rank-ladder-tile">
-      <div className="space-y-2.5">
-        {rungs.map((rung) => (
-          <div key={rung.scope} className="grid grid-cols-[64px_1fr_auto] items-center gap-2.5">
-            <span className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
-              {rung.scope}
-            </span>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--paper)]">
-              {rung.percentile !== null && (
-                <div className="h-full rounded-full bg-[var(--signal)]" style={{ width: `${rung.percentile}%` }} />
-              )}
-            </div>
-            <span className="whitespace-nowrap text-right font-mono text-[11px] text-[var(--ink)]">
-              {rung.rank !== null ? (
-                <>
-                  <b>#{rung.rank}</b> of {rung.cohortSize}
-                </>
-              ) : (
-                'Not enough data'
-              )}{' '}
-              <span className="text-[var(--ink-soft)]">· {rung.label}</span>
-            </span>
-          </div>
-        ))}
-      </div>
-    </Tile>
-  )
-}
-
-function PercentileMedalTile({ stats }: { stats: StatsResponse }) {
-  const pct = stats.percentile
-  if (pct === null) {
-    return (
-      <Tile span={1} title="Percentile">
-        <EmptyNote text="Not enough data yet." />
-      </Tile>
-    )
-  }
-
-  const topPercent = Math.max(1, 100 - pct)
-
-  return (
-    <Tile span={1} title="Percentile" testId="percentile-medal-tile">
-      <div className="flex items-center gap-2.5">
-        <div
-          className="relative h-11 w-11 flex-shrink-0 rounded-full"
-          style={{ background: `conic-gradient(var(--signal) 0 ${pct}%, var(--paper) ${pct}% 100%)` }}
-        >
-          <div className="absolute inset-[5px] flex items-center justify-center rounded-full bg-[var(--surface)]">
-            <span className="font-mono text-[11px] font-bold text-[var(--ink)]">
-              {pct}
-              <span className="text-[9px]">{ordinalSuffix(pct)}</span>
-            </span>
-          </div>
+    <Tile
+      title="Your rank"
+      note={`${DOMAIN_LABELS[domain]} · blue bar = % of people you outscored (higher is better)`}
+      testId="rank-ladder-tile"
+    >
+      {/* Fixed columns so every "#N of M · place" lines up across rows */}
+      <div className="mt-1 space-y-2">
+        <div className="grid grid-cols-[3.25rem_minmax(0,1fr)_4.75rem_minmax(4.5rem,auto)] items-center gap-x-2 text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+          <span>Scope</span>
+          <span>Beat rate</span>
+          <span className="text-right">Your rank</span>
+          <span className="text-right">Place</span>
         </div>
-        <p className="text-[11px] text-[var(--ink-soft)]">
-          Top {topPercent}%
-        </p>
+        {rungs.map((rung) => {
+          const scopeLabel = SCOPE_LABELS[rung.scope] ?? rung.scope
+          const pct = rung.percentile ?? 0
+          return (
+            <div
+              key={rung.scope}
+              className="grid grid-cols-[3.25rem_minmax(0,1fr)_4.75rem_minmax(4.5rem,auto)] items-center gap-x-2"
+            >
+              <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]" title={rung.scope}>
+                {scopeLabel}
+              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--paper)]">
+                  {rung.percentile !== null && (
+                    <div
+                      className="h-full rounded-full bg-[var(--signal)]"
+                      style={{ width: `${Math.max(pct, pct > 0 ? 4 : 0)}%` }}
+                      title={`${pct}th percentile — you outscored ${pct}% of peers`}
+                    />
+                  )}
+                </div>
+                <span className="w-7 flex-shrink-0 text-right font-mono text-[10px] tabular-nums text-[var(--ink-soft)]">
+                  {rung.percentile !== null ? `${rung.percentile}%` : '—'}
+                </span>
+              </div>
+              <span className="text-right font-mono text-[11px] tabular-nums text-[var(--ink)]">
+                {rung.rank !== null ? (
+                  <>
+                    <b>#{rung.rank}</b>
+                    <span className="text-[var(--ink-soft)]">/{rung.cohortSize}</span>
+                  </>
+                ) : (
+                  <span className="text-[var(--ink-soft)]">—</span>
+                )}
+              </span>
+              <span
+                className="truncate text-right text-[11px] text-[var(--ink-soft)]"
+                title={rung.label}
+              >
+                {rung.label}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </Tile>
   )
 }
 
-// A window of ranks immediately above/below the user — anonymized (rank +
-// score only, no name/email) so it can't single anyone out, unlike a
-// "R. Iyer" style leaderboard neighbor list.
 function NeighborsTile({ stats }: { stats: StatsResponse }) {
   const rows = stats.neighbors
   if (rows.length === 0) {
     return (
-      <Tile span={1} title="Neighbors">
+      <Tile title="People near your rank">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={1} title="Neighbors" testId="neighbors-tile">
+    <Tile
+      title="People near your rank"
+      note="Scores just above and below you"
+      testId="neighbors-tile"
+    >
       <div className="overflow-hidden rounded-lg border border-[var(--line)]">
         {rows.map((row, i) => (
           <div
             key={i}
-            className={`grid grid-cols-[26px_1fr_auto] items-center gap-1.5 px-2.5 py-1.5 text-[11px] ${
+            className={`grid grid-cols-[2.5rem_1fr_auto] items-center gap-1.5 px-2.5 py-1.5 text-[12px] ${
               i > 0 ? 'border-t border-[var(--line)]' : ''
-            } ${row.isYou ? 'bg-[var(--signal-soft)] font-bold text-[var(--signal)]' : ''}`}
+            } ${row.isYou ? 'bg-[var(--signal-soft)] font-bold text-[var(--signal)]' : 'text-[var(--ink)]'}`}
           >
-            <span className="font-mono text-[var(--ink-soft)]">#{row.rank}</span>
-            <span>{row.isYou ? 'You' : 'Test-taker'}</span>
-            <span className="font-mono">{row.score}</span>
+            <span className="font-mono tabular-nums text-[var(--ink-soft)]">#{row.rank}</span>
+            <span className="truncate" title={row.name}>
+              {row.isYou ? 'You' : row.name}
+            </span>
+            <span className="font-mono tabular-nums font-semibold">{row.score}/10</span>
           </div>
         ))}
       </div>
     </Tile>
   )
-}
-
-function formatDuration(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = Math.round(totalSeconds % 60)
-  if (minutes === 0) return `${seconds}s`
-  return `${minutes}m ${String(seconds).padStart(2, '0')}s`
 }
 
 // Crowd-wide numbers (median/mode/top/low/avg time/test-takers) that were
@@ -669,7 +992,7 @@ function formatDuration(totalSeconds: number) {
 function CommunitySnapshotTile({ stats }: { stats: StatsResponse }) {
   if (stats.totalUsers === 0) {
     return (
-      <Tile span={4} title="Community snapshot">
+      <Tile title="Crowd snapshot">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
@@ -688,14 +1011,18 @@ function CommunitySnapshotTile({ stats }: { stats: StatsResponse }) {
   ]
 
   return (
-    <Tile span={4} title="Community snapshot" testId="community-snapshot-tile">
-      <div className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-6">
+    <Tile
+      title="Crowd snapshot"
+      note="Updates when you change domain, designation, experience, or location above"
+      testId="community-snapshot-tile"
+    >
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
         {items.map((item) => (
-          <div key={item.label}>
-            <p className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+          <div key={item.label} className="rounded-lg bg-[var(--paper)] px-2 py-1.5">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
               {item.label}
             </p>
-            <p className="font-mono text-sm font-bold text-[var(--ink)]">{item.value}</p>
+            <p className="font-mono text-sm font-bold leading-tight text-[var(--ink)]">{item.value}</p>
           </div>
         ))}
       </div>
@@ -710,18 +1037,40 @@ function ThisDomainTile({ stats, domain }: { stats: StatsResponse; domain: Domai
   const progress = stats.userProgress
   if (progress.attemptCount === 0) {
     return (
-      <Tile span={1} title="This domain, last time" note={DOMAIN_LABELS[domain]}>
+      <Tile title="This domain" note={DOMAIN_LABELS[domain]}>
         <EmptyNote text="You haven't attempted this domain yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={1} title="This domain, last time" note={DOMAIN_LABELS[domain]} testId="this-domain-tile">
-      <p className="font-mono text-2xl font-bold text-[var(--ink)]">{progress.latestScore}/10</p>
-      <p className={`mt-1 text-[11px] font-semibold ${changeClass(progress.scoreChange)}`}>
-        {formatChange(progress.scoreChange)} vs. last attempt
-      </p>
+    <Tile title="This domain" note={DOMAIN_LABELS[domain]} testId="this-domain-tile">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        <div>
+          <p className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Latest</p>
+          <p className="font-mono text-xl font-bold text-[var(--ink)]">{progress.latestScore}/10</p>
+        </div>
+        <div>
+          <p className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Best</p>
+          <p className="font-mono text-xl font-bold text-[var(--ink)]">{progress.bestScore}/10</p>
+        </div>
+        <div>
+          <p className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">vs last</p>
+          <p className={`font-mono text-lg font-bold ${changeClass(progress.scoreChange)}`}>
+            {formatChange(progress.scoreChange)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">Attempts</p>
+          <p className="font-mono text-lg font-bold text-[var(--ink)]">{progress.attemptCount}</p>
+        </div>
+      </div>
+      {progress.averageTimePerQuestionSeconds != null && (
+        <p className="mt-2 text-[10.5px] text-[var(--ink-soft)]">
+          ~{progress.averageTimePerQuestionSeconds}s per question ·{' '}
+          {progress.scorePerMinute != null ? `${progress.scorePerMinute} pts/min` : null}
+        </p>
+      )}
     </Tile>
   )
 }
@@ -730,147 +1079,131 @@ function LocationComparisonTile({ stats }: { stats: StatsResponse }) {
   const items = stats.locationComparisons
   if (items.length === 0) {
     return (
-      <Tile span={4} title="City vs. state vs. country vs. global">
+      <Tile title="Average score by place">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
+  const yourScore = stats.yourScore
+
   return (
-    <Tile span={4} title="City vs. state vs. country vs. global" testId="location-comparison-tile">
-      <div className="flex h-24 items-end gap-3 px-1">
-        {items.map((item) => (
-          <div key={item.scope} className="flex flex-1 flex-col items-center gap-1.5">
-            <span className="font-mono text-[10px] text-[var(--ink-soft)]">{item.averageScore ?? '—'}</span>
-            <div
-              className="mx-auto w-full max-w-[64px] rounded-t bg-[var(--signal)]"
-              style={{ height: `${((item.averageScore ?? 0) / 10) * 80}px` }}
-            />
-            <span className="max-w-full truncate text-[9.5px] text-[var(--ink-soft)]" title={item.label}>
-              {item.label}
-            </span>
-          </div>
-        ))}
+    <Tile
+      title="Average score by place"
+      note={
+        yourScore !== null
+          ? `Bar = crowd average (0–10). Your latest here: ${yourScore}/10. Δ = you minus average.`
+          : 'Bar = crowd average score (0–10) at each place'
+      }
+      testId="location-comparison-tile"
+    >
+      <div className="mb-1 grid grid-cols-[4.5rem_1fr_2.5rem_2rem] items-center gap-2 text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
+        <span>Place</span>
+        <span>Avg score</span>
+        <span className="text-right">Avg</span>
+        <span className="text-right">Δ you</span>
+      </div>
+      <div className="space-y-2">
+        {items.map((item) => {
+          const avg = item.averageScore
+          const vsYou =
+            yourScore !== null && avg !== null ? roundToOne(yourScore - avg) : null
+          return (
+            <div key={item.scope} className="grid grid-cols-[4.5rem_1fr_2.5rem_2rem] items-center gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold text-[var(--ink)]" title={item.label}>
+                  {item.label}
+                </p>
+                <p className="text-[9px] uppercase tracking-wide text-[var(--ink-soft)]">{item.scope}</p>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--paper)]">
+                {avg !== null && (
+                  <div
+                    className="h-full rounded-full bg-[var(--signal)]"
+                    style={{ width: `${(avg / 10) * 100}%` }}
+                  />
+                )}
+              </div>
+              <span className="text-right font-mono text-[12px] font-bold tabular-nums text-[var(--ink)]">
+                {avg ?? '—'}
+              </span>
+              <span className={`text-right font-mono text-[10px] tabular-nums ${changeClass(vsYou)}`}>
+                {vsYou === null ? '—' : vsYou > 0 ? `+${vsYou}` : String(vsYou)}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </Tile>
   )
 }
 
-function axisPoint(
-  value: number,
-  maxValue: number,
-  radius: number,
-  cx: number,
-  cy: number,
-  index: number,
-  total: number
-) {
-  const angle = (Math.PI * 2 * index) / total - Math.PI / 2
-  const r = (Math.max(0, value) / maxValue) * radius
-  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
-}
-
-function polygonPoints(values: number[], maxValue: number, radius: number, cx: number, cy: number) {
-  const n = values.length
-  if (n === 0) return ''
-  return values
-    .map((v, i) => {
-      const { x, y } = axisPoint(v, maxValue, radius, cx, cy, i, n)
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    .join(' ')
-}
-
-function DomainRadarTile({ personal }: { personal: PersonalStatsResponse }) {
+function DomainCompareTile({ personal }: { personal: PersonalStatsResponse }) {
   const points = personal.domainRadar
   const hasData = points.some((p) => p.you !== null || p.city !== null || p.country !== null)
   if (!hasData) {
     return (
-      <Tile span={4} title="Domain radar — you vs. crowd">
+      <Tile title="You vs. crowd by domain">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
-  const maxValue = 10
-  const radius = 64
-  const cx = 130
-  const cy = 96
-  const labelRadius = radius + 22
-  const cityPoly = polygonPoints(points.map((p) => p.city ?? 0), maxValue, radius, cx, cy)
-  const countryPoly = polygonPoints(points.map((p) => p.country ?? 0), maxValue, radius, cx, cy)
-  const gridPoly = polygonPoints(points.map(() => maxValue), maxValue, radius, cx, cy)
-
-  // A polygon through mostly-zero axes (attempted only 1-2 domains) degenerates
-  // into a near-invisible sliver rather than a readable shape, so below 3
-  // attempted domains we plot just the attempted axes as dots instead of
-  // drawing a misleading "full" polygon that collapses toward the center.
-  const attemptedCount = points.filter((p) => p.you !== null).length
-  const showYouPolygon = attemptedCount >= 3
-  const youPoly = showYouPolygon ? polygonPoints(points.map((p) => p.you ?? 0), maxValue, radius, cx, cy) : ''
-
+  // Always bars — radar legends (solid/dashed/dotted) were unreadable.
   return (
     <Tile
-      span={4}
-      title="Domain radar — you vs. crowd"
-      note={
-        showYouPolygon
-          ? 'solid = you · dashed = city · dotted = country'
-          : 'dot = you (attempt 3+ domains for a full shape) · dashed = city · dotted = country'
-      }
+      title="You vs. crowd by domain"
+      note="Bar length = average score out of 10. City/country use the location filter above."
       testId="domain-radar-tile"
     >
-      <svg viewBox="0 0 260 192" className="mx-auto h-auto w-full max-w-[420px]">
-        <polygon points={gridPoly} fill="none" stroke="var(--line)" strokeWidth={1} />
-        <polygon
-          points={countryPoly}
-          fill="var(--signal)"
-          fillOpacity={0.08}
-          stroke="var(--ink-soft)"
-          strokeWidth={1}
-          strokeDasharray="1 3"
-        />
-        <polygon
-          points={cityPoly}
-          fill="var(--signal)"
-          fillOpacity={0.12}
-          stroke="var(--ink-soft)"
-          strokeWidth={1.2}
-          strokeDasharray="3 2"
-        />
-        {showYouPolygon ? (
-          <polygon points={youPoly} fill="var(--signal)" fillOpacity={0.24} stroke="var(--signal)" strokeWidth={2} />
-        ) : (
-          points.map((p, i) => {
-            if (p.you === null) return null
-            const { x, y } = axisPoint(p.you, maxValue, radius, cx, cy, i, points.length)
-            return (
-              <circle key={`you-${p.domain}`} cx={x} cy={y} r={4} fill="var(--signal)" stroke="var(--surface)" strokeWidth={1.5} />
-            )
-          })
-        )}
-        {points.map((p, i) => {
-          const angle = (Math.PI * 2 * i) / points.length - Math.PI / 2
-          const lx = cx + labelRadius * Math.cos(angle)
-          const ly = cy + labelRadius * Math.sin(angle)
-          // Anchor left/right-of-center labels away from the point so long
-          // words like "DevOps" grow outward instead of centering off-canvas.
-          const anchor = Math.cos(angle) > 0.3 ? 'start' : Math.cos(angle) < -0.3 ? 'end' : 'middle'
+      <div className="mb-1.5 flex flex-wrap items-center gap-3 text-[10px] text-[var(--ink-soft)]">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-[var(--signal)]" /> You
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-[#8aa4f2]" /> City avg
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-[#c7d6fb]" /> Country avg
+        </span>
+        <span className="text-[9px]">(scale 0–10)</span>
+      </div>
+      <div className="space-y-2">
+        {points.map((p) => {
+          const series = [
+            { key: 'you', label: 'You', value: p.you, color: 'var(--signal)' },
+            { key: 'city', label: 'City', value: p.city, color: '#8aa4f2' },
+            { key: 'country', label: 'Country', value: p.country, color: '#c7d6fb' },
+          ]
           return (
-            <text
-              key={p.domain}
-              x={lx}
-              y={ly}
-              textAnchor={anchor}
-              dominantBaseline="middle"
-              fontSize={11}
-              fill="var(--ink-soft)"
-            >
-              {radarLabel(p.domain)}
-            </text>
+            <div key={p.domain}>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-semibold text-[var(--ink)]">{radarLabel(p.domain)}</span>
+                {p.you === null && (
+                  <span className="text-[10px] text-[var(--ink-soft)]">Not attempted yet</span>
+                )}
+              </div>
+              <div className="flex h-3.5 items-stretch gap-1">
+                {series.map((s) => (
+                  <div key={s.key} className="relative min-w-0 flex-1 overflow-hidden rounded bg-[var(--paper)]" title={`${s.label}: ${s.value ?? 'n/a'}`}>
+                    {s.value !== null && (
+                      <div
+                        className="absolute inset-y-0 left-0 rounded"
+                        style={{ width: `${(s.value / 10) * 100}%`, background: s.color }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-0.5 grid grid-cols-3 gap-1 text-center font-mono text-[9px] tabular-nums text-[var(--ink-soft)]">
+                {series.map((s) => (
+                  <span key={s.key}>{s.value ?? '—'}</span>
+                ))}
+              </div>
+            </div>
           )
         })}
-      </svg>
+      </div>
     </Tile>
   )
 }
@@ -878,40 +1211,62 @@ function DomainRadarTile({ personal }: { personal: PersonalStatsResponse }) {
 function ScoreDistributionTile({ stats }: { stats: StatsResponse }) {
   if (stats.totalUsers === 0) {
     return (
-      <Tile span={2} title="Score distribution" note="how many people scored each range — your score marked">
+      <Tile title="How the crowd scored" note="Number of people at each score 0–10">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
   const maxCount = Math.max(1, ...stats.histogram)
+  const yourScore = stats.yourScore
 
   return (
     <Tile
-      span={2}
-      title="Score distribution"
-      note="how many people scored each range — your score marked"
+      title="How the crowd scored"
+      note={
+        yourScore !== null
+          ? `Y = number of people · X = score (0–10) · dark bar = your score (${yourScore}/10)`
+          : 'Y = number of people · X = score (0–10) · taller = more people'
+      }
       testId="score-distribution-tile"
     >
-      <div className="flex h-16 items-end gap-1">
-        {stats.histogram.map((count, score) => {
-          const isYou = stats.yourScore === score
-          return (
-            <div key={score} className="flex h-full flex-1 flex-col items-end justify-end">
-              <div
-                className={`w-full rounded-t-sm ${isYou ? 'bg-[var(--signal)]' : 'bg-[var(--signal-soft)]'}`}
-                style={{ height: `${(count / maxCount) * 100}%`, minHeight: count > 0 ? '2px' : '0' }}
-              />
-            </div>
-          )
-        })}
-      </div>
       <div className="mt-1 flex gap-1">
-        {stats.histogram.map((_, score) => (
-          <span key={score} className="flex-1 text-center font-mono text-[8px] text-[var(--ink-soft)]">
-            {score}
-          </span>
-        ))}
+        <div className="flex w-5 flex-col justify-between pb-4 pt-0.5 text-right font-mono text-[8px] text-[var(--ink-soft)]">
+          <span>{maxCount}</span>
+          <span>0</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex h-20 items-end gap-1">
+            {stats.histogram.map((count, score) => {
+              const isYou = yourScore === score
+              return (
+                <div key={score} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5">
+                  <span className="font-mono text-[8px] tabular-nums text-[var(--ink-soft)]">
+                    {count > 0 ? count : ''}
+                  </span>
+                  <div
+                    className={`w-full rounded-t-sm ${isYou ? 'bg-[var(--signal)]' : 'bg-[var(--signal-soft)]'}`}
+                    style={{ height: `${(count / maxCount) * 100}%`, minHeight: count > 0 ? '3px' : '0' }}
+                    title={`${count} people scored ${score}/10${isYou ? ' (you)' : ''}`}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-1 flex gap-1">
+            {stats.histogram.map((_, score) => (
+              <span
+                key={score}
+                className={`flex-1 text-center font-mono text-[8px] ${
+                  yourScore === score ? 'font-bold text-[var(--signal)]' : 'text-[var(--ink-soft)]'
+                }`}
+              >
+                {score}
+              </span>
+            ))}
+          </div>
+          <p className="mt-0.5 text-center text-[9px] text-[var(--ink-soft)]">Score →</p>
+        </div>
       </div>
     </Tile>
   )
@@ -921,38 +1276,43 @@ function PeerGroupsTile({ stats }: { stats: StatsResponse }) {
   const rows = stats.peerGroupRanks.filter((row) => row.rank !== null)
   if (rows.length === 0) {
     return (
-      <Tile span={4} title="Peer groups">
+      <Tile title="Peer groups">
         <EmptyNote text="Not enough data yet in any of your peer groups." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={4} title="Peer groups" testId="peer-groups-tile">
-      <table className="w-full text-[11.5px]">
-        <thead>
-          <tr className="text-left text-[9px] font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
-            <th className="pb-1.5 pr-2">Cohort</th>
-            <th className="pb-1.5 pr-2">Test-takers</th>
-            <th className="pb-1.5 pr-2">You</th>
-            <th className="pb-1.5 pr-2">Average</th>
-            <th className="pb-1.5">Your rank</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.dimension} className="border-t border-[var(--line)]">
-              <td className="py-1.5 pr-2 text-[var(--ink)]">
-                {row.dimension} · {row.label}
-              </td>
-              <td className="py-1.5 pr-2 font-mono text-[var(--ink-soft)]">{row.cohortSize}</td>
-              <td className="py-1.5 pr-2 font-mono font-semibold text-[var(--ink)]">{stats.yourScore ?? '—'}</td>
-              <td className="py-1.5 pr-2 font-mono text-[var(--ink-soft)]">{row.averageScore ?? '—'}</td>
-              <td className="py-1.5 font-mono font-semibold text-[var(--signal)]">#{row.rank}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <Tile title="Peer groups" testId="peer-groups-tile">
+      <div className="space-y-2.5">
+        {rows.map((row) => (
+          <div
+            key={row.dimension}
+            className="rounded-lg border border-[var(--line)] bg-[var(--paper)]/50 px-3 py-2.5"
+          >
+            <p className="text-[11px] font-semibold text-[var(--ink)]">
+              {row.dimension} · {row.label}
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-[9px] uppercase tracking-wide text-[var(--ink-soft)]">You</p>
+                <p className="font-mono text-sm font-bold text-[var(--ink)]">{stats.yourScore ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-wide text-[var(--ink-soft)]">Avg</p>
+                <p className="font-mono text-sm font-bold text-[var(--ink-soft)]">{row.averageScore ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-wide text-[var(--ink-soft)]">Rank</p>
+                <p className="font-mono text-sm font-bold text-[var(--signal)]">
+                  #{row.rank}
+                  <span className="text-[10px] font-normal text-[var(--ink-soft)]">/{row.cohortSize}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </Tile>
   )
 }
@@ -977,24 +1337,15 @@ function AverageScoreByStateTile({ stats }: { stats: StatsResponse }) {
   const items = stats.averageScoreByState
   if (items.length === 0) {
     return (
-      <Tile span={2} title="Average score by state">
+      <Tile title="Average score by state">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
-  const half = Math.ceil(items.length / 2)
-
   return (
-    <Tile
-      span={2}
-      title={`Average score by state — top ${items.length}`}
-      testId="average-score-by-state-tile"
-    >
-      <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
-        <RankedGroupTable items={items.slice(0, half)} />
-        <RankedGroupTable items={items.slice(half)} />
-      </div>
+    <Tile title={`Average score by state — top ${items.length}`} testId="average-score-by-state-tile">
+      <TopGroupTrack title="Highest avg" items={items} />
     </Tile>
   )
 }
@@ -1003,21 +1354,15 @@ function TestTakersByStateTile({ stats }: { stats: StatsResponse }) {
   const items = stats.testTakersByState
   if (items.length === 0) {
     return (
-      <Tile span={2} title="Test-takers by state">
+      <Tile title="Test-takers by state">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
-  const half = Math.ceil(items.length / 2)
-  const asCountRows = items.map((item) => ({ label: item.label, count: item.count, averageScore: item.count }))
-
   return (
-    <Tile span={2} title={`Test-takers by state — top ${items.length}`} testId="test-takers-by-state-tile">
-      <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
-        <RankedGroupTable items={asCountRows.slice(0, half)} />
-        <RankedGroupTable items={asCountRows.slice(half)} />
-      </div>
+    <Tile title={`Test-takers by state — top ${items.length}`} testId="test-takers-by-state-tile">
+      <TopGroupTrack title="Most active" items={items.map((item) => ({ ...item, averageScore: item.count }))} />
     </Tile>
   )
 }
@@ -1049,14 +1394,14 @@ function TopGroupTrack({ title, items }: { title: string; items: StatsResponse['
 function TopCitiesTile({ stats }: { stats: StatsResponse }) {
   if (stats.topCitiesByScore.length === 0 && stats.topCitiesByParticipation.length === 0) {
     return (
-      <Tile span={2} title="Top cities — two tracks">
+      <Tile title="Top cities — two tracks">
         <EmptyNote text="Not enough data yet." />
       </Tile>
     )
   }
 
   return (
-    <Tile span={2} title="Top cities — two tracks" testId="top-cities-tile">
+    <Tile title="Top cities — two tracks" testId="top-cities-tile">
       <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">
         <TopGroupTrack title="Highest avg" items={stats.topCitiesByScore} />
         <TopGroupTrack
@@ -1102,7 +1447,7 @@ export default function CommunityInsights({
   }
 
   return (
-    <div className="space-y-8" data-testid="community-insights">
+    <div className="space-y-5" data-testid="community-insights">
       {stats.totalUsers === 0 && (
         <p className="text-sm text-[var(--ink-soft)]" data-testid="no-attempts-yet">
           Nobody in {hasSpecificCommunity ? communityScope : 'this group'} has taken the {DOMAIN_LABELS[domain]}{' '}
@@ -1113,31 +1458,72 @@ export default function CommunityInsights({
       <HeroRow stats={stats} personal={personal} />
 
       <Chapter title="You, over time">
+        {/*
+          Full-width rows + equal 3-up KPI strip + two balanced columns.
+          Never put a short stack beside a tall chart (that left a dead gap).
+        */}
         <ScoreTrendTile personal={personal} />
-        <StreakTile personal={personal} />
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StreakTile personal={personal} />
+          <DomainsCoveredTile personal={personal} />
+          <TotalTimeInvestedTile personal={personal} />
+        </div>
+
         <ActivityTile personal={personal} />
-        <DomainsCoveredTile personal={personal} />
-        <WhenYouTestBestTile personal={personal} />
-        <PaceVsAccuracyTile personal={personal} />
-        <ConsistencyBandTile personal={personal} />
-        <TotalTimeInvestedTile personal={personal} />
-        <RecentAttemptsTile personal={personal} />
-        <ThisWeekTile personal={personal} />
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <WhenYouTestBestTile personal={personal} />
+            <ConsistencyBandTile personal={personal} />
+          </div>
+          <div className="flex flex-col gap-3">
+            <PaceVsAccuracyTile personal={personal} />
+            <RecentAttemptsTile personal={personal} />
+          </div>
+        </div>
       </Chapter>
 
       <Chapter title="Where you stand">
-        <RankLadderTile stats={stats} domain={domain} />
-        <PercentileMedalTile stats={stats} />
-        <NeighborsTile stats={stats} />
-        <ThisDomainTile stats={stats} domain={domain} />
-        <CommunitySnapshotTile stats={stats} />
-        <LocationComparisonTile stats={stats} />
-        <DomainRadarTile personal={personal} />
-        <ScoreDistributionTile stats={stats} />
-        <PeerGroupsTile stats={stats} />
-        <AverageScoreByStateTile stats={stats} />
-        <TopCitiesTile stats={stats} />
-        <TestTakersByStateTile stats={stats} />
+        {/*
+          CSS multi-column packing: widgets flow top-to-bottom, then into the
+          next column — no tall empty pocket under a short card in a rigid row.
+        */}
+        <div className="md:columns-2 md:gap-3 [column-fill:_balance]">
+          <div className="mb-3 break-inside-avoid">
+            <RankLadderTile stats={stats} domain={domain} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <NeighborsTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <ThisDomainTile stats={stats} domain={domain} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <CommunitySnapshotTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <ScoreDistributionTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <LocationComparisonTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <DomainCompareTile personal={personal} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <PeerGroupsTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <AverageScoreByStateTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <TestTakersByStateTile stats={stats} />
+          </div>
+          <div className="mb-3 break-inside-avoid">
+            <TopCitiesTile stats={stats} />
+          </div>
+        </div>
       </Chapter>
     </div>
   )

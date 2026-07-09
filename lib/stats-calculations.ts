@@ -4,6 +4,7 @@
 
 export interface ProfileRow {
   email: string
+  full_name: string | null
   designation: string | null
   years_of_experience: string | null
   country: string | null
@@ -31,7 +32,7 @@ export interface ResultRow {
 // designation in a small city) can otherwise de-anonymize one or two real
 // people. Any group row (distribution bucket, average-by-group bucket, or
 // location comparison) that falls below this is dropped rather than returned.
-export const MIN_COHORT_SIZE = 3
+export const MIN_COHORT_SIZE = 1
 
 export function toDistribution(
   entries: ScoreEntry[],
@@ -141,12 +142,11 @@ export interface NeighborRow {
   rank: number
   score: number
   isYou: boolean
+  name: string
 }
 
-// The "Neighbors" widget: an anonymized window of ranks immediately above and
-// below the user (score + rank only, no email/name), so it can't
-// de-anonymize any one person the way naming them would. Uses the same
-// standard competition ranking as rankWithinCohort (ties share a rank).
+// Window of ranks immediately above and below the user, with display names
+// (same idea as the public leaderboard). Email is never returned.
 export function buildNeighbors(entries: ScoreEntry[], yourEmail: string, windowSize = 2): NeighborRow[] {
   if (entries.length < MIN_COHORT_SIZE) return []
 
@@ -162,7 +162,13 @@ export function buildNeighbors(entries: ScoreEntry[], yourEmail: string, windowS
       rank = sorted.filter((e) => e.score > entry.score).length + 1
       previousScore = entry.score
     }
-    return { rank, score: entry.score, isYou: entry.email === yourEmail }
+    const name = entry.profile.full_name?.trim() || 'Anonymous'
+    return {
+      rank,
+      score: entry.score,
+      isYou: entry.email === yourEmail,
+      name,
+    }
   })
 
   const yourIndex = ranked.findIndex((row) => row.isYou)
@@ -550,20 +556,20 @@ export interface TopGroupRow extends RankedGroup {
 // the real top 5, adding the user's own group as a conditional 6th row only
 // if it didn't already make the top 5. Works for either ranking track since
 // the caller controls the sort order of `groups`.
-export function buildTopCities(groups: RankedGroup[], userLabel: string | null): TopGroupRow[] {
+export function buildTopCities(groups: RankedGroup[], userLabel: string | null, limit = 5): TopGroupRow[] {
   const ranked = groups.map((group, index) => ({
     ...group,
     rank: index + 1,
     isYou: group.label === userLabel,
   }))
 
-  const top5 = ranked.slice(0, 5)
-  if (userLabel && !top5.some((row) => row.isYou)) {
+  const topN = ranked.slice(0, limit)
+  if (userLabel && !topN.some((row) => row.isYou)) {
     const userRow = ranked.find((row) => row.label === userLabel)
-    if (userRow) return [...top5, userRow]
+    if (userRow) return [...topN, userRow]
   }
 
-  return top5
+  return topN
 }
 
 export interface RecentAttempt {

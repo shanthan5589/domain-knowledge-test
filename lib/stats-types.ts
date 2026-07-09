@@ -71,6 +71,7 @@ export interface NeighborRow {
   rank: number
   score: number
   isYou: boolean
+  name: string
 }
 
 export interface StatsResponse {
@@ -100,8 +101,8 @@ export interface StatsResponse {
   peerGroupRanks: PeerGroupRankItem[]
   topCitiesByScore: TopGroupRow[]
   topCitiesByParticipation: TopGroupRow[]
-  averageScoreByState: RankedGroup[]
-  testTakersByState: RankedGroup[]
+  averageScoreByState: TopGroupRow[]
+  testTakersByState: TopGroupRow[]
   neighbors: NeighborRow[]
 }
 

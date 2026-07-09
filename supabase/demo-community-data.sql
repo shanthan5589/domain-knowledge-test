@@ -80,6 +80,17 @@ INSERT INTO test_results (
   ('demo.community.09@example.com', 'demo.community.09@example.com', 'ai', 8, 240, NOW() - INTERVAL '4 days'),
   ('demo.community.10@example.com', 'demo.community.10@example.com', 'ai', 4, 300, NOW() - INTERVAL '3 days'),
   ('demo.community.11@example.com', 'demo.community.11@example.com', 'ai', 9, 220, NOW() - INTERVAL '2 days'),
-  ('demo.community.12@example.com', 'demo.community.12@example.com', 'ai', 6, 275, NOW() - INTERVAL '1 day');
+  ('demo.community.12@example.com', 'demo.community.12@example.com', 'ai', 6, 275, NOW() - INTERVAL '1 day'),
+  
+  ('demo.community.01@example.com', 'demo.community.01@example.com', 'cloud', 8, 200, NOW() - INTERVAL '10 days'),
+  ('demo.community.02@example.com', 'demo.community.02@example.com', 'cloud', 9, 215, NOW() - INTERVAL '9 days'),
+  ('demo.community.03@example.com', 'demo.community.03@example.com', 'cloud', 5, 260, NOW() - INTERVAL '8 days'),
+  ('demo.community.04@example.com', 'demo.community.04@example.com', 'cloud', 7, 225, NOW() - INTERVAL '7 days'),
+  ('demo.community.05@example.com', 'demo.community.05@example.com', 'cloud', 6, 285, NOW() - INTERVAL '6 days'),
+  ('demo.community.06@example.com', 'demo.community.06@example.com', 'cloud', 8, 250, NOW() - INTERVAL '5 days'),
+  
+  ('demo.community.07@example.com', 'demo.community.07@example.com', 'cybersecurity', 9, 195, NOW() - INTERVAL '5 days'),
+  ('demo.community.08@example.com', 'demo.community.08@example.com', 'cybersecurity', 7, 275, NOW() - INTERVAL '4 days'),
+  ('demo.community.09@example.com', 'demo.community.09@example.com', 'cybersecurity', 8, 230, NOW() - INTERVAL '3 days');
 
 COMMIT;
