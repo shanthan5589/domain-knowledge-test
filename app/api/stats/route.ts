@@ -9,6 +9,7 @@ import {
   MIN_COHORT_SIZE,
   averageTimeFor,
   buildLocationComparisons,
+  buildNeighbors,
   buildPeerGroupRanks,
   buildRankLadder,
   buildTopCities,
@@ -105,6 +106,7 @@ export async function GET(req: NextRequest) {
       topCitiesByParticipation: [],
       averageScoreByState: [],
       testTakersByState: [],
+      neighbors: [],
     })
   }
 
@@ -267,5 +269,6 @@ export async function GET(req: NextRequest) {
     topCitiesByParticipation: buildTopCities(cityGroupsByParticipation, userCity),
     averageScoreByState: stateGroupsByScore.slice(0, STATE_LEADERBOARD_SIZE),
     testTakersByState: stateGroupsByParticipation.slice(0, STATE_LEADERBOARD_SIZE),
+    neighbors: buildNeighbors(entries, session.user.email),
   })
 }

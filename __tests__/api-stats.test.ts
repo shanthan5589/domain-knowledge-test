@@ -723,4 +723,28 @@ describe('GET /api/stats', () => {
     expect(body.averageScoreByState).toHaveLength(3)
     expect(body.testTakersByState).toHaveLength(3)
   })
+
+  it('reports an anonymized window of neighbors around your rank, with no name/email exposed', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 10, completed_at: '2026-01-05' },
+      { user_email: 'b@test.com', score: 9, completed_at: '2026-01-04' },
+      { user_email: 'me@test.com', score: 8, completed_at: '2026-01-03' },
+      { user_email: 'c@test.com', score: 7, completed_at: '2026-01-02' },
+      { user_email: 'd@test.com', score: 6, completed_at: '2026-01-01' },
+    ])
+    mockCommunityProfilesQuery(
+      profileRows(['a@test.com', 'b@test.com', 'me@test.com', 'c@test.com', 'd@test.com'])
+    )
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.neighbors).toEqual([
+      { rank: 1, score: 10, isYou: false },
+      { rank: 2, score: 9, isYou: false },
+      { rank: 3, score: 8, isYou: true },
+      { rank: 4, score: 7, isYou: false },
+      { rank: 5, score: 6, isYou: false },
+    ])
+  })
 })

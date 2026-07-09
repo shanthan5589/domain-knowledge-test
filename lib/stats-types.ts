@@ -67,6 +67,12 @@ export interface TopGroupRow extends RankedGroup {
   isYou: boolean
 }
 
+export interface NeighborRow {
+  rank: number
+  score: number
+  isYou: boolean
+}
+
 export interface StatsResponse {
   histogram: number[]
   totalUsers: number
@@ -96,6 +102,7 @@ export interface StatsResponse {
   topCitiesByParticipation: TopGroupRow[]
   averageScoreByState: RankedGroup[]
   testTakersByState: RankedGroup[]
+  neighbors: NeighborRow[]
 }
 
 export interface ActivityDay {

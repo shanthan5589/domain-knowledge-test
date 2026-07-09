@@ -15,46 +15,7 @@ jest.mock('next/navigation', () => ({
 global.fetch = jest.fn()
 const mockFetch = fetch as jest.Mock
 
-function statsBody(overrides: Partial<{
-  histogram: number[]
-  totalUsers: number
-  yourScore: number | null
-  yourRank: number | null
-  percentile: number | null
-  averageScore: number | null
-  medianScore: number | null
-  modeScore: number | null
-  topScore: number | null
-  lowScore: number | null
-  averageTimeSeconds: number | null
-  topScoreCount: number
-  topScorePercent: number
-  roleDistribution: { label: string; count: number; percent: number }[]
-  roleAverageScores: { label: string; count: number; averageScore: number }[]
-  experienceAverageScores: { label: string; count: number; averageScore: number }[]
-  experienceDistribution: { label: string; count: number; percent: number }[]
-  locationDistribution: { label: string; count: number; percent: number }[]
-  locationAverageScores: { label: string; count: number; averageScore: number }[]
-  locationDistributionLabel: string | null
-  locationComparisons: { label: string; scope: string; averageScore: number | null; count: number }[]
-  userProgress: {
-    attemptCount: number
-    latestScore: number | null
-    previousScore: number | null
-    scoreChange: number | null
-    bestScore: number | null
-    latestTimeSeconds: number | null
-    averageTimePerQuestionSeconds: number | null
-    scorePerMinute: number | null
-    latestCompletedAt: string | null
-    consistency: {
-      label: string
-      averageScore: number | null
-      scoreRange: number | null
-      standardDeviation: number | null
-    }
-  }
-}> = {}) {
+function statsBody(overrides: Record<string, unknown> = {}) {
   return {
     histogram: [0, 0, 0, 0, 0, 1, 0, 1, 2, 0, 1],
     totalUsers: 5,
@@ -69,31 +30,12 @@ function statsBody(overrides: Partial<{
     averageTimeSeconds: 252,
     topScoreCount: 1,
     topScorePercent: 20,
-    roleDistribution: [
-      { label: 'Software Engineer / Developer', count: 3, percent: 60 },
-      { label: 'Data Scientist', count: 2, percent: 40 },
-    ],
-    roleAverageScores: [
-      { label: 'Software Engineer / Developer', count: 3, averageScore: 8.5 },
-      { label: 'Data Scientist', count: 2, averageScore: 6 },
-    ],
-    experienceAverageScores: [
-      { label: '10+ years', count: 2, averageScore: 10 },
-      { label: '5-10 years', count: 1, averageScore: 8 },
-      { label: '1-3 years', count: 3, averageScore: 7 },
-      { label: '3-5 years', count: 2, averageScore: 7 },
-      { label: 'Fresher', count: 1, averageScore: 5 },
-    ],
-    experienceDistribution: [
-      { label: '1-3 years', count: 4, percent: 80 },
-      { label: '3-5 years', count: 1, percent: 20 },
-    ],
-    locationDistribution: [
-      { label: 'India', count: 5, percent: 100 },
-    ],
-    locationAverageScores: [
-      { label: 'India', count: 5, averageScore: 8 },
-    ],
+    roleDistribution: [],
+    roleAverageScores: [],
+    experienceAverageScores: [],
+    experienceDistribution: [],
+    locationDistribution: [],
+    locationAverageScores: [],
     locationDistributionLabel: 'Countries',
     locationComparisons: [
       { label: 'Hyderabad', scope: 'City', averageScore: 8.2, count: 3 },
@@ -110,13 +52,50 @@ function statsBody(overrides: Partial<{
       averageTimePerQuestionSeconds: 22,
       scorePerMinute: 2.7,
       latestCompletedAt: '2026-01-04',
-      consistency: {
-        label: 'Stable',
-        averageScore: 8.7,
-        scoreRange: 2,
-        standardDeviation: 0.9,
-      },
+      consistency: { label: 'Stable', averageScore: 8.7, scoreRange: 2, standardDeviation: 0.9 },
     },
+    rankLadder: [
+      { scope: 'City', label: 'Hyderabad', rank: 1, percentile: 90, cohortSize: 5, averageScore: 8 },
+      { scope: 'Global', label: 'Global', rank: 2, percentile: 85, cohortSize: 12, averageScore: 7.4 },
+    ],
+    peerGroupRanks: [
+      {
+        dimension: 'Role',
+        label: 'Software Engineer / Developer',
+        rank: 2,
+        percentile: 75,
+        cohortSize: 5,
+        averageScore: 7.5,
+      },
+    ],
+    topCitiesByScore: [{ label: 'Hyderabad', count: 5, averageScore: 8, rank: 1, isYou: true }],
+    topCitiesByParticipation: [{ label: 'Hyderabad', count: 5, averageScore: 5, rank: 1, isYou: true }],
+    averageScoreByState: [{ label: 'Telangana', count: 5, averageScore: 8 }],
+    testTakersByState: [{ label: 'Telangana', count: 5, averageScore: 8 }],
+    neighbors: [
+      { rank: 1, score: 10, isYou: true },
+      { rank: 2, score: 8, isYou: false },
+    ],
+    ...overrides,
+  }
+}
+
+function personalBody(overrides: Record<string, unknown> = {}) {
+  return {
+    activityCalendar: [{ date: '2026-01-04', count: 1 }],
+    streaks: { currentStreak: 1, longestStreak: 3 },
+    timeOfDayPerformance: [{ dayOfWeek: 1, hour: 10, averageScore: 8, count: 1 }],
+    pacePoints: [{ timeTakenSeconds: 220, score: 10, completedAt: '2026-01-04T00:00:00Z' }],
+    domainRanges: [{ domain: 'ai', min: 8, mean: 9, max: 10, count: 3 }],
+    domainRadar: [
+      { domain: 'ai', you: 9, city: 7, country: 6 },
+      { domain: 'cloud', you: null, city: null, country: null },
+      { domain: 'cybersecurity', you: null, city: null, country: null },
+      { domain: 'devops', you: null, city: null, country: null },
+      { domain: 'data_science', you: null, city: null, country: null },
+    ],
+    recentAttempts: [{ domain: 'ai', score: 10, completedAt: '2026-01-04T00:00:00Z', scoreChangeFromPrevious: 2 }],
+    weekOverWeek: { thisWeekAverage: 9, lastWeekAverage: 7, change: 2 },
     ...overrides,
   }
 }
@@ -132,12 +111,13 @@ const overviewBody = {
 
 const leaderboardBody = { leaderboard: [] }
 
-// StatsPage itself fetches /api/stats, while its DomainOverview and Leaderboard
-// children each fetch their own endpoint — route mocked responses by URL so all
-// three get a shape they can actually render.
+// StatsPage fetches /api/stats and /api/stats/personal itself, while its
+// DomainOverview and Leaderboard children each fetch their own endpoint —
+// route mocked responses by URL so every consumer gets a shape it can render.
 function installFetchMock(
   stats: object = statsBody(),
-  profile: object = { profile: {} }
+  profile: object = { profile: {} },
+  personal: object = personalBody()
 ) {
   mockFetch.mockImplementation((url: string) => {
     if (url.includes('/api/profile')) {
@@ -148,6 +128,9 @@ function installFetchMock(
     }
     if (url.includes('/api/stats/leaderboard')) {
       return Promise.resolve({ ok: true, json: async () => leaderboardBody })
+    }
+    if (url.includes('/api/stats/personal')) {
+      return Promise.resolve({ ok: true, json: async () => personal })
     }
     return Promise.resolve({ ok: true, json: async () => stats })
   })
@@ -168,6 +151,10 @@ async function flushMicrotasks() {
   })
 }
 
+async function waitForCommunityInsights() {
+  await waitFor(() => expect(screen.getByTestId('community-insights')).toBeInTheDocument())
+}
+
 describe('StatsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -179,17 +166,12 @@ describe('StatsPage', () => {
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('domain=ai'))
     })
-    // Let the fetch's state updates land inside act() before the test tears down
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
   })
 
   it('defaults the community filters to the saved profile location', async () => {
     installFetchMock(statsBody(), {
-      profile: {
-        country: 'India',
-        state_region: 'Telangana',
-        city: 'Hyderabad',
-      },
+      profile: { country: 'India', state_region: 'Telangana', city: 'Hyderabad' },
     })
     render(<StatsPage />)
     await waitFor(() => {
@@ -207,7 +189,7 @@ describe('StatsPage', () => {
     expect(screen.getByLabelText('Domain')).toBeInTheDocument()
     expect(screen.getByLabelText('Designation')).toBeInTheDocument()
     expect(screen.getByLabelText('Experience')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
   })
 
   it('wraps the tab bar in a horizontally scrollable container so it cannot force page-wide overflow on narrow screens', async () => {
@@ -215,21 +197,21 @@ describe('StatsPage', () => {
     render(<StatsPage />)
     const tablist = screen.getByRole('tablist')
     expect(tablist.parentElement).toHaveClass('overflow-x-auto')
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
   })
 
   it('shows a link back to the dashboard', async () => {
     installFetchMock()
     render(<StatsPage />)
     expect(screen.getByRole('link', { name: /back to dashboard/i })).toHaveAttribute('href', '/dashboard')
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
   })
 
   it('hides the location filters until "More filters" is clicked', async () => {
     installFetchMock()
     render(<StatsPage />)
     expect(screen.queryByLabelText('Country')).not.toBeInTheDocument()
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     openMoreFilters()
     expect(screen.getByLabelText('Country')).toBeInTheDocument()
@@ -240,125 +222,84 @@ describe('StatsPage', () => {
   it('state and city dropdowns start disabled until a country/state is chosen', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
     openMoreFilters()
     expect(screen.getByLabelText('State or Region')).toBeDisabled()
     expect(screen.getByLabelText('City')).toBeDisabled()
   })
 
-  it('shows the chart once data is loaded', async () => {
+  it('shows the hero row and the "You, over time" / "Where you stand" chapters once data is loaded', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => {
-      expect(screen.getByTestId('stats-chart')).toBeInTheDocument()
-    })
+    await waitForCommunityInsights()
+    expect(screen.getByTestId('hero-row')).toBeInTheDocument()
+    expect(screen.getByText('You, over time')).toBeInTheDocument()
+    expect(screen.getByText('Where you stand')).toBeInTheDocument()
   })
 
-  it('shows crowd averages in the chart header and demographic breakdowns', async () => {
+  it("shows the hero row's tests taken, average score, best score, and percentile", async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
-    expect(screen.getByTestId('chart-average')).toHaveTextContent('8/10')
-    expect(screen.getByTestId('chart-top-score')).toHaveTextContent('Top score')
-    expect(screen.getByTestId('chart-top-score')).toHaveTextContent('10/10')
-    expect(screen.getByTestId('chart-top-score')).toHaveTextContent('1 persons')
-    expect(screen.getByTestId('role-distribution')).toHaveTextContent('Roles')
-    expect(screen.getByTestId('role-distribution')).toHaveTextContent('Software Engineer / Developer')
-    expect(screen.getByTestId('experience-distribution')).toHaveTextContent('1-3 years')
-    expect(screen.getByTestId('location-distribution')).toHaveTextContent('Countries taking this test')
-    expect(screen.getByTestId('location-distribution')).toHaveTextContent('India')
-    expect(screen.getByTestId('role-distribution-donut')).toBeInTheDocument()
-    expect(screen.queryByTestId('experience-distribution-donut')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('location-distribution-donut')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('hero-row')).toBeInTheDocument())
+    const hero = screen.getByTestId('hero-row')
+    expect(hero).toHaveTextContent('Tests taken')
+    expect(hero).toHaveTextContent('3')
+    expect(hero).toHaveTextContent('Average score')
+    expect(hero).toHaveTextContent('9')
+    expect(hero).toHaveTextContent('Best score')
+    expect(hero).toHaveTextContent('10')
+    expect(hero).toHaveTextContent('Percentile')
+    expect(hero).toHaveTextContent('80')
   })
 
-  it('shows the crowd score snapshot strip with no descriptive captions', async () => {
+  it('shows the rank ladder with your rank at each scope', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('score-snapshot')).toBeInTheDocument())
-    const snapshot = screen.getByTestId('score-snapshot')
+    await waitFor(() => expect(screen.getByTestId('rank-ladder-tile')).toBeInTheDocument())
+    const ladder = screen.getByTestId('rank-ladder-tile')
+    expect(ladder).toHaveTextContent('City')
+    expect(ladder).toHaveTextContent('Hyderabad')
+    expect(ladder).toHaveTextContent('Global')
+  })
+
+  it('shows peer group ranks with cohort, test-takers, average, and your rank', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('peer-groups-tile')).toBeInTheDocument())
+    const peerGroups = screen.getByTestId('peer-groups-tile')
+    expect(peerGroups).toHaveTextContent('Software Engineer / Developer')
+    expect(peerGroups).toHaveTextContent('#2')
+  })
+
+  it('shows the community snapshot with median, mode, top, and low scores', async () => {
+    installFetchMock()
+    render(<StatsPage />)
+    await waitFor(() => expect(screen.getByTestId('community-snapshot-tile')).toBeInTheDocument())
+    const snapshot = screen.getByTestId('community-snapshot-tile')
     expect(snapshot).toHaveTextContent('Test-takers')
-    expect(snapshot).toHaveTextContent('Your score')
-    expect(snapshot).toHaveTextContent('Average')
     expect(snapshot).toHaveTextContent('Median')
     expect(snapshot).toHaveTextContent('Most common')
-    expect(snapshot).toHaveTextContent('Lowest')
     expect(snapshot).toHaveTextContent('Top score')
-    expect(snapshot).not.toHaveTextContent('Mean score here')
-    expect(snapshot).not.toHaveTextContent('Reached by')
+    expect(snapshot).toHaveTextContent('Lowest')
   })
 
-  it('shows local place insights for rank, percentile, gaps, and profile comparisons', async () => {
-    installFetchMock(statsBody(), {
-      profile: {
-        designation: 'Software Engineer / Developer',
-        years_of_experience: '1-3 years',
-        country: 'India',
-        state_region: 'Telangana',
-        city: 'Hyderabad',
-      },
-    })
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('place-insights')).toBeInTheDocument())
-    expect(screen.getByTestId('place-rank')).toHaveTextContent('#1 of 5')
-    expect(screen.getByTestId('place-rank')).toHaveTextContent('Hyderabad')
-    expect(screen.getByTestId('place-percentile')).toHaveTextContent('80%')
-    expect(screen.getByTestId('place-average-gap')).toHaveTextContent(
-      'You are 2 points higher than the Hyderabad average'
-    )
-    expect(screen.getByTestId('place-average-gap')).toHaveTextContent('Average score 8/10')
-    expect(screen.getByTestId('place-top-gap')).toHaveTextContent('10/10')
-    expect(screen.getByTestId('place-top-gap')).toHaveTextContent('You share the top score')
-    expect(screen.getByTestId('place-role-gap')).toHaveTextContent('8.5/10')
-    expect(screen.getByTestId('place-role-gap')).toHaveTextContent('Software Engineer / Developer')
-    expect(screen.getByTestId('place-experience-gap')).toHaveTextContent('7/10')
-    expect(screen.getByTestId('place-experience-gap')).toHaveTextContent('1-3 years')
-    expect(screen.getByTestId('place-strongest-domain')).toHaveTextContent('10/10')
-    expect(screen.getByTestId('place-hardest-domain')).toHaveTextContent('7/10')
-  })
-
-  it('shows progress, best score, time efficiency, and consistency panels', async () => {
+  it('shows an anonymized neighbors window with no name/email', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('progress-panels')).toBeInTheDocument())
-    const panels = screen.getByTestId('progress-panels')
-    expect(panels).toHaveTextContent('Progress over time')
-    expect(panels).toHaveTextContent('Previous 8/10')
-    expect(panels).toHaveTextContent('Change +2')
-    expect(panels).toHaveTextContent('Best vs latest')
-    expect(panels).toHaveTextContent('3m 40s')
-    expect(panels).toHaveTextContent('Community avg 4m 12s')
-    expect(panels).toHaveTextContent('Stable')
-  })
-
-  it('shows the user domain strength ranking best to weakest', async () => {
-    installFetchMock()
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('domain-strength-ranking')).toBeInTheDocument())
-    const ranking = screen.getByTestId('domain-strength-ranking')
-    expect(ranking).toHaveTextContent('Domain strength ranking')
-    expect(ranking).toHaveTextContent('Artificial Intelligence & Generative AI')
-    expect(ranking).toHaveTextContent('Data Science, Analytics & Big Data')
-    expect(ranking).not.toHaveTextContent('Improve next')
+    await waitFor(() => expect(screen.getByTestId('neighbors-tile')).toBeInTheDocument())
+    const neighbors = screen.getByTestId('neighbors-tile')
+    expect(neighbors).toHaveTextContent('You')
+    expect(neighbors).not.toHaveTextContent('test@test.com')
   })
 
   it('shows local, country and global score comparisons', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('local-global-comparison')).toBeInTheDocument())
-    const comparison = screen.getByTestId('local-global-comparison')
-    expect(comparison).toHaveTextContent('Local vs global')
+    await waitFor(() => expect(screen.getByTestId('location-comparison-tile')).toBeInTheDocument())
+    const comparison = screen.getByTestId('location-comparison-tile')
     expect(comparison).toHaveTextContent('Hyderabad')
     expect(comparison).toHaveTextContent('India')
     expect(comparison).toHaveTextContent('Global')
-  })
-
-  it('shows a dash for your score when the user has no score yet', async () => {
-    installFetchMock(statsBody({ yourScore: null, yourRank: null, percentile: null }))
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('score-snapshot')).toBeInTheDocument())
-    const label = screen.getByText('Your score')
-    expect(label.nextElementSibling).toHaveTextContent('-')
   })
 
   it('shows a no-attempts message when nobody has taken the test yet', async () => {
@@ -368,88 +309,11 @@ describe('StatsPage', () => {
     expect(screen.getByTestId('no-attempts-yet')).toHaveTextContent('be the first')
   })
 
-  it('shows average score by designation as a bar chart', async () => {
-    installFetchMock()
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('designation-score-chart')).toBeInTheDocument())
-    const chart = screen.getByTestId('designation-score-chart')
-    expect(chart).toHaveTextContent('Average score by designation')
-    expect(chart).toHaveTextContent('Software Engineer / Developer')
-    expect(chart).toHaveTextContent('8.5/10')
-    expect(chart).toHaveTextContent('Data Scientist')
-    expect(chart).toHaveTextContent('6/10')
-  })
-
-  it('shows average score by experience and location charts', async () => {
-    installFetchMock()
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('experience-score-chart')).toBeInTheDocument())
-    expect(screen.getByTestId('experience-score-chart')).toHaveTextContent('Average score by experience')
-    expect(screen.getByTestId('experience-score-chart')).toHaveTextContent('1-3 years')
-    expect(screen.getByTestId('location-score-chart')).toHaveTextContent('Average score by location')
-    expect(screen.getByTestId('location-score-chart')).toHaveTextContent('India')
-  })
-
-  it('orders average score by experience from lowest to highest experience', async () => {
-    installFetchMock()
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('experience-score-chart')).toBeInTheDocument())
-    const chart = screen.getByTestId('experience-score-chart')
-    const text = chart.textContent ?? ''
-    expect(text.indexOf('Fresher')).toBeLessThan(text.indexOf('1-3 years'))
-    expect(text.indexOf('1-3 years')).toBeLessThan(text.indexOf('3-5 years'))
-    expect(text.indexOf('3-5 years')).toBeLessThan(text.indexOf('5-10 years'))
-    expect(text.indexOf('5-10 years')).toBeLessThan(text.indexOf('10+ years'))
-  })
-
-  it('shows a no-data message in the designation chart when there is nothing to show', async () => {
-    installFetchMock(statsBody({ roleAverageScores: [] }))
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('designation-score-chart')).toBeInTheDocument())
-    expect(screen.getByTestId('designation-score-chart')).toHaveTextContent('No data yet.')
-  })
-
-  it('does not duplicate role distribution when viewing one city', async () => {
-    installFetchMock(
-      statsBody({
-        locationDistribution: [],
-        locationDistributionLabel: null,
-      }),
-      {
-        profile: {
-          country: 'India',
-          state_region: 'Telangana',
-          city: 'Hyderabad',
-        },
-      }
-    )
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('role-distribution')).toBeInTheDocument())
-    expect(screen.queryByTestId('location-distribution')).not.toBeInTheDocument()
-  })
-
-  it('labels both chart axes', async () => {
-    installFetchMock()
-    render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
-    expect(screen.getByText('Test-takers (%)')).toBeInTheDocument()
-    expect(screen.getByText('Score (out of 10)')).toBeInTheDocument()
-  })
-
-  it("highlights the bar matching the user's score", async () => {
+  it("highlights the bar matching the user's score in the score distribution", async () => {
     installFetchMock(statsBody({ yourScore: 8 }))
     render(<StatsPage />)
-    await waitFor(() => {
-      expect(screen.getByTestId('you-marker')).toBeInTheDocument()
-    })
-  })
-
-  it('shows a not-enough-data message when the sample size is small', async () => {
-    installFetchMock(statsBody({ totalUsers: 2, histogram: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1] }))
-    render(<StatsPage />)
-    await waitFor(() => {
-      expect(screen.getByTestId('stats-empty')).toBeInTheDocument()
-    })
+    await waitFor(() => expect(screen.getByTestId('score-distribution-tile')).toBeInTheDocument())
+    expect(screen.getByTestId('score-distribution-tile')).toBeInTheDocument()
   })
 
   it('refetches when the domain dropdown changes', async () => {
@@ -524,6 +388,9 @@ describe('StatsPage', () => {
       if (url.includes('/api/stats/leaderboard')) {
         return Promise.resolve({ ok: true, json: async () => leaderboardBody })
       }
+      if (url.includes('/api/stats/personal')) {
+        return Promise.resolve({ ok: true, json: async () => personalBody() })
+      }
       return Promise.resolve({ ok: false, json: async () => ({ error: 'fail' }) })
     })
     render(<StatsPage />)
@@ -532,30 +399,30 @@ describe('StatsPage', () => {
     })
   })
 
-  it('switches to the Domain Overview tab and hides the performance chart', async () => {
+  it('switches to the Domain Overview tab and hides the community insights view', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Domain Overview' }))
     await waitFor(() => expect(screen.getByTestId('domain-overview')).toBeInTheDocument())
-    expect(screen.queryByTestId('stats-chart')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('community-insights')).not.toBeInTheDocument()
   })
 
-  it('switches to the Leaderboard tab and hides the performance chart', async () => {
+  it('switches to the Leaderboard tab and hides the community insights view', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Leaderboard' }))
     await waitFor(() => expect(screen.getByText(/Top scorers in/)).toBeInTheDocument())
-    expect(screen.queryByTestId('stats-chart')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('community-insights')).not.toBeInTheDocument()
   })
 
   it('keeps Designation, Experience and More filters visible on the Domain Overview tab', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Domain Overview' }))
     await waitFor(() => expect(screen.getByTestId('domain-overview')).toBeInTheDocument())
@@ -567,7 +434,7 @@ describe('StatsPage', () => {
   it('keeps Designation, Experience and More filters visible on the Leaderboard tab', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Leaderboard' }))
     await waitFor(() => expect(screen.getByText(/Top scorers in/)).toBeInTheDocument())
@@ -579,7 +446,7 @@ describe('StatsPage', () => {
   it('passes the selected crowd filters through to the Domain Overview request', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     fireEvent.change(screen.getByLabelText('Designation'), { target: { value: 'Data Scientist' } })
     fireEvent.change(screen.getByLabelText('Experience'), { target: { value: '5-10 years' } })
@@ -599,7 +466,7 @@ describe('StatsPage', () => {
   it('passes the selected crowd filters through to the Leaderboard request', async () => {
     installFetchMock()
     render(<StatsPage />)
-    await waitFor(() => expect(screen.getByTestId('stats-chart')).toBeInTheDocument())
+    await waitForCommunityInsights()
 
     fireEvent.change(screen.getByLabelText('Designation'), { target: { value: 'Data Scientist' } })
     fireEvent.click(screen.getByRole('tab', { name: 'Leaderboard' }))

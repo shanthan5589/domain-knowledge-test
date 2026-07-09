@@ -137,6 +137,40 @@ export function buildLocationComparisons(locationParams: LocationParams, entries
   return comparisons
 }
 
+export interface NeighborRow {
+  rank: number
+  score: number
+  isYou: boolean
+}
+
+// The "Neighbors" widget: an anonymized window of ranks immediately above and
+// below the user (score + rank only, no email/name), so it can't
+// de-anonymize any one person the way naming them would. Uses the same
+// standard competition ranking as rankWithinCohort (ties share a rank).
+export function buildNeighbors(entries: ScoreEntry[], yourEmail: string, windowSize = 2): NeighborRow[] {
+  if (entries.length < MIN_COHORT_SIZE) return []
+
+  const yourEntry = entries.find((entry) => entry.email === yourEmail)
+  if (!yourEntry) return []
+
+  const sorted = [...entries].sort((a, b) => b.score - a.score || a.email.localeCompare(b.email))
+
+  let rank = 0
+  let previousScore: number | null = null
+  const ranked = sorted.map((entry) => {
+    if (entry.score !== previousScore) {
+      rank = sorted.filter((e) => e.score > entry.score).length + 1
+      previousScore = entry.score
+    }
+    return { rank, score: entry.score, isYou: entry.email === yourEmail }
+  })
+
+  const yourIndex = ranked.findIndex((row) => row.isYou)
+  const start = Math.max(0, yourIndex - windowSize)
+  const end = Math.min(ranked.length, yourIndex + windowSize + 1)
+  return ranked.slice(start, end)
+}
+
 export function buildUserProgress(userAttempts: ResultRow[]) {
   const latest = userAttempts[0] ?? null
   const previous = userAttempts[1] ?? null

@@ -5,6 +5,7 @@ import {
   buildDomainRadar,
   buildDomainRanges,
   buildLocationComparisons,
+  buildNeighbors,
   buildPacePoints,
   buildPeerGroupRanks,
   buildRankLadder,
@@ -196,6 +197,63 @@ describe('buildLocationComparisons', () => {
       smallGroup
     )
     expect(result).toEqual([])
+  })
+})
+
+describe('buildNeighbors', () => {
+  const userEmail = 'me@test.com'
+
+  function makeCrowd(): ScoreEntry[] {
+    return [
+      makeEntry({ email: 'a@test.com', score: 10 }),
+      makeEntry({ email: 'b@test.com', score: 9 }),
+      makeEntry({ email: userEmail, score: 8 }),
+      makeEntry({ email: 'c@test.com', score: 7 }),
+      makeEntry({ email: 'd@test.com', score: 6 }),
+    ]
+  }
+
+  it('returns a window of ranks immediately above and below the user, with no name/email exposed', () => {
+    const result = buildNeighbors(makeCrowd(), userEmail, 1)
+    expect(result).toEqual([
+      { rank: 2, score: 9, isYou: false },
+      { rank: 3, score: 8, isYou: true },
+      { rank: 4, score: 7, isYou: false },
+    ])
+  })
+
+  it('defaults to a window of 2 on each side', () => {
+    const result = buildNeighbors(makeCrowd(), userEmail)
+    expect(result.map((r) => r.rank)).toEqual([1, 2, 3, 4, 5])
+  })
+
+  it('clamps the window at the top of the leaderboard instead of going out of bounds', () => {
+    const result = buildNeighbors(makeCrowd(), 'a@test.com', 2)
+    expect(result.map((r) => r.rank)).toEqual([1, 2, 3])
+  })
+
+  it('gives tied scores the same rank', () => {
+    const entries = [
+      makeEntry({ email: 'a@test.com', score: 9 }),
+      makeEntry({ email: userEmail, score: 8 }),
+      makeEntry({ email: 'b@test.com', score: 8 }),
+      makeEntry({ email: 'c@test.com', score: 5 }),
+    ]
+    const result = buildNeighbors(entries, userEmail, 2)
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { rank: 2, score: 8, isYou: true },
+        { rank: 2, score: 8, isYou: false },
+      ])
+    )
+  })
+
+  it('returns an empty array when the user is not part of the cohort', () => {
+    expect(buildNeighbors(makeCrowd(), 'stranger@test.com')).toEqual([])
+  })
+
+  it('returns an empty array when the cohort is below the minimum size', () => {
+    expect(buildNeighbors(makeCrowd().slice(0, 2), userEmail)).toEqual([])
   })
 })
 
