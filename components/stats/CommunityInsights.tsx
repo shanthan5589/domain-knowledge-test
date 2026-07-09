@@ -756,15 +756,26 @@ function LocationComparisonTile({ stats }: { stats: StatsResponse }) {
   )
 }
 
+function axisPoint(
+  value: number,
+  maxValue: number,
+  radius: number,
+  cx: number,
+  cy: number,
+  index: number,
+  total: number
+) {
+  const angle = (Math.PI * 2 * index) / total - Math.PI / 2
+  const r = (Math.max(0, value) / maxValue) * radius
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+}
+
 function polygonPoints(values: number[], maxValue: number, radius: number, cx: number, cy: number) {
   const n = values.length
   if (n === 0) return ''
   return values
     .map((v, i) => {
-      const angle = (Math.PI * 2 * i) / n - Math.PI / 2
-      const r = (Math.max(0, v) / maxValue) * radius
-      const x = cx + r * Math.cos(angle)
-      const y = cy + r * Math.sin(angle)
+      const { x, y } = axisPoint(v, maxValue, radius, cx, cy, i, n)
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')
@@ -783,22 +794,33 @@ function DomainRadarTile({ personal }: { personal: PersonalStatsResponse }) {
 
   const maxValue = 10
   const radius = 64
-  const cx = 110
+  const cx = 130
   const cy = 96
-  const labelRadius = radius + 24
-  const youPoly = polygonPoints(points.map((p) => p.you ?? 0), maxValue, radius, cx, cy)
+  const labelRadius = radius + 22
   const cityPoly = polygonPoints(points.map((p) => p.city ?? 0), maxValue, radius, cx, cy)
   const countryPoly = polygonPoints(points.map((p) => p.country ?? 0), maxValue, radius, cx, cy)
   const gridPoly = polygonPoints(points.map(() => maxValue), maxValue, radius, cx, cy)
+
+  // A polygon through mostly-zero axes (attempted only 1-2 domains) degenerates
+  // into a near-invisible sliver rather than a readable shape, so below 3
+  // attempted domains we plot just the attempted axes as dots instead of
+  // drawing a misleading "full" polygon that collapses toward the center.
+  const attemptedCount = points.filter((p) => p.you !== null).length
+  const showYouPolygon = attemptedCount >= 3
+  const youPoly = showYouPolygon ? polygonPoints(points.map((p) => p.you ?? 0), maxValue, radius, cx, cy) : ''
 
   return (
     <Tile
       span={4}
       title="Domain radar — you vs. crowd"
-      note="solid = you · dashed = city · dotted = country"
+      note={
+        showYouPolygon
+          ? 'solid = you · dashed = city · dotted = country'
+          : 'dot = you (attempt 3+ domains for a full shape) · dashed = city · dotted = country'
+      }
       testId="domain-radar-tile"
     >
-      <svg viewBox="0 0 220 192" className="mx-auto h-auto w-full max-w-[360px]">
+      <svg viewBox="0 0 260 192" className="mx-auto h-auto w-full max-w-[420px]">
         <polygon points={gridPoly} fill="none" stroke="var(--line)" strokeWidth={1} />
         <polygon
           points={countryPoly}
@@ -816,7 +838,17 @@ function DomainRadarTile({ personal }: { personal: PersonalStatsResponse }) {
           strokeWidth={1.2}
           strokeDasharray="3 2"
         />
-        <polygon points={youPoly} fill="var(--signal)" fillOpacity={0.24} stroke="var(--signal)" strokeWidth={2} />
+        {showYouPolygon ? (
+          <polygon points={youPoly} fill="var(--signal)" fillOpacity={0.24} stroke="var(--signal)" strokeWidth={2} />
+        ) : (
+          points.map((p, i) => {
+            if (p.you === null) return null
+            const { x, y } = axisPoint(p.you, maxValue, radius, cx, cy, i, points.length)
+            return (
+              <circle key={`you-${p.domain}`} cx={x} cy={y} r={4} fill="var(--signal)" stroke="var(--surface)" strokeWidth={1.5} />
+            )
+          })
+        )}
         {points.map((p, i) => {
           const angle = (Math.PI * 2 * i) / points.length - Math.PI / 2
           const lx = cx + labelRadius * Math.cos(angle)
