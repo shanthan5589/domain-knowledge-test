@@ -404,37 +404,41 @@ describe('buildDomainRanges', () => {
 })
 
 describe('rankWithinCohort', () => {
-  it('returns nulls when the user is not part of the cohort', () => {
+  it('returns nulls when the user is not part of the cohort, but still reports the crowd average', () => {
     expect(rankWithinCohort(8, [5, 6, 7], false)).toEqual({
       rank: null,
       percentile: null,
       cohortSize: 3,
+      averageScore: 6,
     })
   })
 
-  it('returns nulls when the user score is null', () => {
+  it('returns nulls when the user score is null, but still reports the crowd average', () => {
     expect(rankWithinCohort(null, [5, 6, 7], true)).toEqual({
       rank: null,
       percentile: null,
       cohortSize: 3,
+      averageScore: 6,
     })
   })
 
-  it('returns nulls when the cohort is below the minimum size', () => {
+  it('returns nulls (including averageScore) when the cohort is below the minimum size', () => {
     expect(rankWithinCohort(8, [8, 6], true)).toEqual({
       rank: null,
       percentile: null,
       cohortSize: 2,
+      averageScore: null,
     })
   })
 
   it('ranks with standard competition ranking and excludes self from the percentile denominator', () => {
     // cohort of 5 scores, user scores 8 -> 1 person scored higher (rank 2),
-    // 3 of the 4 peers scored lower -> 75th percentile.
+    // 3 of the 4 peers scored lower -> 75th percentile; average (10+8+6+5+4)/5 = 6.6
     expect(rankWithinCohort(8, [10, 8, 6, 5, 4], true)).toEqual({
       rank: 2,
       percentile: 75,
       cohortSize: 5,
+      averageScore: 6.6,
     })
   })
 
@@ -444,6 +448,7 @@ describe('rankWithinCohort', () => {
       rank: 1,
       percentile: 75,
       cohortSize: 5,
+      averageScore: 6,
     })
   })
 })
@@ -484,13 +489,28 @@ describe('buildRankLadder', () => {
       userEmail
     )
     expect(result.map((r) => r.scope)).toEqual(['City', 'State / Region', 'Country', 'Global'])
-    // City/State/Country cohort is the same 5 Hyderabad entries -> rank 2 of 5
-    expect(result[0]).toEqual({ scope: 'City', label: 'Hyderabad', rank: 2, percentile: 75, cohortSize: 5 })
-    expect(result[2]).toEqual({ scope: 'Country', label: 'India', rank: 2, percentile: 75, cohortSize: 5 })
+    // City/State/Country cohort is the same 5 Hyderabad entries (8,9,6,5,4) -> rank 2 of 5, avg 6.4
+    expect(result[0]).toEqual({
+      scope: 'City',
+      label: 'Hyderabad',
+      rank: 2,
+      percentile: 75,
+      cohortSize: 5,
+      averageScore: 6.4,
+    })
+    expect(result[2]).toEqual({
+      scope: 'Country',
+      label: 'India',
+      rank: 2,
+      percentile: 75,
+      cohortSize: 5,
+      averageScore: 6.4,
+    })
     // Global cohort is all 7 entries -> 2 people (scores 9 and 10) scored higher -> rank 3
     expect(result[3].scope).toBe('Global')
     expect(result[3].rank).toBe(3)
     expect(result[3].cohortSize).toBe(7)
+    expect(result[3].averageScore).toBe(6.4)
   })
 
   it('omits rungs for scopes that are unset or "all"', () => {
@@ -517,7 +537,7 @@ describe('buildPeerGroupRanks', () => {
       { dimension: 'Role', getLabel: (entry) => entry.profile.designation },
     ])
     expect(result).toEqual([
-      { dimension: 'Role', label: 'Data Scientist', rank: 2, percentile: 67, cohortSize: 4 },
+      { dimension: 'Role', label: 'Data Scientist', rank: 2, percentile: 67, cohortSize: 4, averageScore: 6.3 },
     ])
   })
 
@@ -525,7 +545,9 @@ describe('buildPeerGroupRanks', () => {
     const result = buildPeerGroupRanks(makeCrowd(), 'stranger@test.com', [
       { dimension: 'Role', getLabel: (entry) => entry.profile.designation },
     ])
-    expect(result).toEqual([{ dimension: 'Role', label: null, rank: null, percentile: null, cohortSize: 0 }])
+    expect(result).toEqual([
+      { dimension: 'Role', label: null, rank: null, percentile: null, cohortSize: 0, averageScore: null },
+    ])
   })
 
   it('falls back to an "Unknown" cohort when the profile field is blank, but withholds rank below the cohort floor', () => {

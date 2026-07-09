@@ -597,7 +597,14 @@ describe('GET /api/stats', () => {
       'Global',
     ])
     const countryRung = body.rankLadder.find((r: { scope: string }) => r.scope === 'Country')
-    expect(countryRung).toEqual({ scope: 'Country', label: 'India', rank: 2, percentile: 67, cohortSize: 4 })
+    expect(countryRung).toEqual({
+      scope: 'Country',
+      label: 'India',
+      rank: 2,
+      percentile: 67,
+      cohortSize: 4,
+      averageScore: 7,
+    })
   })
 
   it('reports peer group ranks across role/experience/location dimensions', async () => {
@@ -637,6 +644,7 @@ describe('GET /api/stats', () => {
       rank: 1,
       percentile: 75,
       cohortSize: 5,
+      averageScore: 7.8,
     })
   })
 

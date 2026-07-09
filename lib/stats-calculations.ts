@@ -337,6 +337,7 @@ export interface CohortRank {
   rank: number | null
   percentile: number | null
   cohortSize: number
+  averageScore: number | null
 }
 
 // Standard competition ranking (1224-style: ties share a rank, the next rank
@@ -344,15 +345,23 @@ export interface CohortRank {
 // logic in /api/stats, extracted so the Rank Ladder and Peer Groups widgets
 // can reuse it across multiple scopes at once. Returns nulls when the user
 // isn't part of the cohort, or the cohort is too small to report without
-// risking de-anonymization.
+// risking de-anonymization. averageScore is a crowd stat, not a personal one,
+// so it's withheld purely on cohort size — it doesn't require the user to
+// belong to the cohort (e.g. a Rank Ladder rung for a location you've
+// filtered to but don't personally live in).
 export function rankWithinCohort(
   userScore: number | null,
   cohortScores: number[],
   userIsInCohort: boolean
 ): CohortRank {
   const cohortSize = cohortScores.length
+  const averageScore =
+    cohortSize >= MIN_COHORT_SIZE
+      ? roundToOne(cohortScores.reduce((sum, score) => sum + score, 0) / cohortSize)
+      : null
+
   if (userScore === null || !userIsInCohort || cohortSize < MIN_COHORT_SIZE) {
-    return { rank: null, percentile: null, cohortSize }
+    return { rank: null, percentile: null, cohortSize, averageScore }
   }
 
   const rank = cohortScores.filter((score) => score > userScore).length + 1
@@ -363,7 +372,7 @@ export function rankWithinCohort(
       ? Math.round((cohortScores.filter((score) => score < userScore).length / peerCount) * 100)
       : null
 
-  return { rank, percentile, cohortSize }
+  return { rank, percentile, cohortSize, averageScore }
 }
 
 export interface ScopeRank extends CohortRank {
@@ -434,7 +443,7 @@ export function buildPeerGroupRanks(
   return dimensions.map(({ dimension, getLabel }) => {
     const userLabel = userEntry ? getLabel(userEntry)?.trim() || 'Unknown' : null
     if (userLabel === null) {
-      return { dimension, label: null, rank: null, percentile: null, cohortSize: 0 }
+      return { dimension, label: null, rank: null, percentile: null, cohortSize: 0, averageScore: null }
     }
 
     const cohort = entries.filter((entry) => (getLabel(entry)?.trim() || 'Unknown') === userLabel)
