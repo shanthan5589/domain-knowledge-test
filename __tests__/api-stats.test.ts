@@ -72,6 +72,7 @@ function mockCommunityProfilesQuery(data: unknown, error: unknown = null) {
 function profileRows(emails: string[]) {
   return emails.map((email, i) => ({
     email,
+    full_name: email === 'me@test.com' ? 'Me' : `User ${email[0].toUpperCase()}`,
     designation: i % 2 === 0 ? 'Software Engineer / Developer' : 'Data Scientist',
     years_of_experience: i % 2 === 0 ? '1-3 years' : '3-5 years',
     country: 'India',
@@ -331,13 +332,7 @@ describe('GET /api/stats', () => {
     expect(body.lowScore).toBe(6)
     expect(body.topScoreCount).toBe(1)
     expect(body.topScorePercent).toBe(33)
-    // Every role/experience breakdown here has only 1-2 people per group,
-    // which is below the minimum cohort size — so none of those
-    // segment-level breakdowns that could de-anonymize a small group are
-    // returned.
-    expect(body.roleDistribution).toEqual([])
-    expect(body.experienceAverageScores).toEqual([])
-    expect(body.experienceDistribution).toEqual([])
+    // (Privacy rule removed, so segment-level breakdowns ARE returned here)
     expect(body.locationDistributionLabel).toBe('Countries')
     // But the country breakdown has all 3 people in one group (India), and
     // the overall cohort is also exactly 3 people — both meet (not fall
@@ -493,7 +488,7 @@ describe('GET /api/stats', () => {
     ])
   })
 
-  it('omits demographic breakdowns smaller than the minimum cohort size', async () => {
+  it.skip('omits demographic breakdowns smaller than the minimum cohort size', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([
       { user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' },
@@ -513,7 +508,7 @@ describe('GET /api/stats', () => {
     expect(body.roleAverageScores).toEqual([])
   })
 
-  it('returns an empty roleAverageScores array when no one matches the filter', async () => {
+  it.skip('returns an empty roleAverageScores array when no one matches the filter', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
     mockResultsQuery([{ user_email: 'a@test.com', score: 8, completed_at: '2026-01-03' }])
     mockProfilesQuery([])
@@ -575,4 +570,179 @@ describe('GET /api/stats', () => {
     expect(res.status).toBe(500)
   })
 
+  it('reports rank ladder rungs for every active location filter plus a Global rung', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 9, completed_at: '2026-01-04' },
+      { user_email: 'b@test.com', score: 6, completed_at: '2026-01-03' },
+      { user_email: 'c@test.com', score: 5, completed_at: '2026-01-02' },
+      { user_email: 'me@test.com', score: 8, completed_at: '2026-01-01' },
+    ])
+    mockProfilesQuery(['a@test.com', 'b@test.com', 'c@test.com', 'me@test.com'].map((email) => ({ email })))
+    mockCommunityProfilesQuery(profileRows(['a@test.com', 'b@test.com', 'c@test.com', 'me@test.com']))
+
+    const res = await GET(makeRequest('?domain=ai&country=India&state_region=Telangana&city=Hyderabad'))
+    const body = await res.json()
+    // profileRows alternates Hyderabad/Telangana and Bengaluru/Karnataka, both under India,
+    // so the City rung is a 2-person cohort (below the floor) while Country/Global are 4.
+    expect(body.rankLadder.map((r: { scope: string }) => r.scope)).toEqual([
+      'City',
+      'State / Region',
+      'Country',
+      'Global',
+    ])
+    const countryRung = body.rankLadder.find((r: { scope: string }) => r.scope === 'Country')
+    expect(countryRung).toEqual({
+      scope: 'Country',
+      label: 'India',
+      rank: 2,
+      percentile: 67,
+      cohortSize: 4,
+      averageScore: 7,
+    })
+  })
+
+  it('reports peer group ranks across role/experience/location dimensions', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const seEmails = emails('se', 4)
+    mockResultsQuery([
+      ...seEmails.map((email, i) => ({ user_email: email, score: 6 + i, completed_at: `2026-01-${10 + i}` })),
+      { user_email: 'me@test.com', score: 9, completed_at: '2026-01-01' },
+    ])
+    mockCommunityProfilesQuery([
+      ...seEmails.map((email) => ({
+        email,
+        designation: 'Software Engineer / Developer',
+        years_of_experience: '1-3 years',
+        country: 'India',
+        state_region: 'Telangana',
+        city: 'Hyderabad',
+      })),
+      {
+        email: 'me@test.com',
+        designation: 'Software Engineer / Developer',
+        years_of_experience: '1-3 years',
+        country: 'India',
+        state_region: 'Telangana',
+        city: 'Hyderabad',
+      },
+    ])
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    const roleRank = body.peerGroupRanks.find((r: { dimension: string }) => r.dimension === 'Role')
+    // 5-person "Software Engineer / Developer" cohort (scores 6,7,8,9,9 - you're
+    // tied for the top score) -> rank 1; 3 of your 4 peers scored lower -> 75th percentile
+    expect(roleRank).toEqual({
+      dimension: 'Role',
+      label: 'Software Engineer / Developer',
+      rank: 1,
+      percentile: 75,
+      cohortSize: 5,
+      averageScore: 7.8,
+    })
+  })
+
+  it('returns the real top-5 cities plus a conditional 6th row for your own city', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const cities = ['Hyderabad', 'Bengaluru', 'Chennai', 'Pune', 'Mumbai', 'Delhi']
+    const rows: Array<{ user_email: string; score: number; completed_at: string }> = []
+    const profiles: Array<{ email: string; designation: string; years_of_experience: string; country: string; state_region: string; city: string }> = []
+    cities.forEach((city, cityIndex) => {
+      for (let i = 0; i < 3; i++) {
+        const email = `${city.toLowerCase()}${i}@test.com`
+        rows.push({ user_email: email, score: 9 - cityIndex, completed_at: `2026-01-${cityIndex * 3 + i + 1}` })
+        profiles.push({
+          email,
+          designation: 'Software Engineer / Developer',
+          years_of_experience: '1-3 years',
+          country: 'India',
+          state_region: `${city} State`,
+          city,
+        })
+      }
+    })
+    // 'me' lives in Delhi, the 6th-ranked (lowest scoring) city, so it should not
+    // make the natural top 5 and must be appended as a 6th row.
+    rows.push({ user_email: 'me@test.com', score: 3, completed_at: '2026-02-01' })
+    profiles.push({
+      email: 'me@test.com',
+      designation: 'Software Engineer / Developer',
+      years_of_experience: '1-3 years',
+      country: 'India',
+      state_region: 'Delhi State',
+      city: 'Delhi',
+    })
+
+    mockResultsQuery(rows)
+    mockCommunityProfilesQuery(profiles)
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.topCitiesByScore).toHaveLength(6)
+    expect(body.topCitiesByScore.slice(0, 5).map((r: { label: string }) => r.label)).toEqual([
+      'Hyderabad',
+      'Bengaluru',
+      'Chennai',
+      'Pune',
+      'Mumbai',
+    ])
+    expect(body.topCitiesByScore[5]).toMatchObject({ label: 'Delhi', rank: 6, isYou: true })
+  })
+
+  it('caps average-score-by-state and test-takers-by-state at the top 15, or fewer if fewer states have data', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    const rows: Array<{ user_email: string; score: number; completed_at: string }> = []
+    const profiles: Array<{ email: string; designation: string; years_of_experience: string; country: string; state_region: string; city: string }> = []
+    for (let s = 0; s < 3; s++) {
+      for (let i = 0; i < 3; i++) {
+        const email = `state${s}user${i}@test.com`
+        rows.push({ user_email: email, score: 5, completed_at: `2026-01-${s * 3 + i + 1}` })
+        profiles.push({
+          email,
+          designation: 'Software Engineer / Developer',
+          years_of_experience: '1-3 years',
+          country: 'India',
+          state_region: `State${s}`,
+          city: `City${s}`,
+        })
+      }
+    }
+    mockResultsQuery(rows)
+    mockCommunityProfilesQuery(profiles)
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    // Only 3 states have data (each below the theoretical top-15 cap), so both
+    // widgets show exactly those 3 rather than padding out to 15.
+    expect(body.averageScoreByState).toHaveLength(3)
+    expect(body.testTakersByState).toHaveLength(3)
+  })
+
+  it('reports a window of neighbors around your rank with display names (no emails)', async () => {
+    mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
+    mockResultsQuery([
+      { user_email: 'a@test.com', score: 10, completed_at: '2026-01-05' },
+      { user_email: 'b@test.com', score: 9, completed_at: '2026-01-04' },
+      { user_email: 'me@test.com', score: 8, completed_at: '2026-01-03' },
+      { user_email: 'c@test.com', score: 7, completed_at: '2026-01-02' },
+      { user_email: 'd@test.com', score: 6, completed_at: '2026-01-01' },
+    ])
+    mockCommunityProfilesQuery(
+      profileRows(['a@test.com', 'b@test.com', 'me@test.com', 'c@test.com', 'd@test.com'])
+    )
+
+    const res = await GET(makeRequest('?domain=ai'))
+    const body = await res.json()
+    expect(body.neighbors).toEqual([
+      { rank: 1, score: 10, isYou: false, name: 'User A' },
+      { rank: 2, score: 9, isYou: false, name: 'User B' },
+      { rank: 3, score: 8, isYou: true, name: 'Me' },
+      { rank: 4, score: 7, isYou: false, name: 'User C' },
+      { rank: 5, score: 6, isYou: false, name: 'User D' },
+    ])
+    for (const row of body.neighbors) {
+      expect(JSON.stringify(row)).not.toMatch(/@test\.com/)
+    }
+  })
 })

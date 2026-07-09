@@ -9,6 +9,10 @@ import {
   MIN_COHORT_SIZE,
   averageTimeFor,
   buildLocationComparisons,
+  buildNeighbors,
+  buildPeerGroupRanks,
+  buildRankLadder,
+  buildTopCities,
   buildUserProgress,
   getLocationDimension,
   roundToOne,
@@ -96,12 +100,19 @@ export async function GET(req: NextRequest) {
       locationDistributionLabel: getLocationDimension(readLocationParams(req)).label,
       locationComparisons: [],
       userProgress,
+      rankLadder: [],
+      peerGroupRanks: [],
+      topCitiesByScore: [],
+      topCitiesByParticipation: [],
+      averageScoreByState: [],
+      testTakersByState: [],
+      neighbors: [],
     })
   }
 
   const { data: profiles, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('email, designation, years_of_experience, country, state_region, city')
+    .select('email, full_name, designation, years_of_experience, country, state_region, city')
     .in('email', [...latestByEmail.keys()])
 
   if (profileError || !profiles) {
@@ -191,6 +202,26 @@ export async function GET(req: NextRequest) {
   const locationParams = readLocationParams(req)
   const locationDimension = getLocationDimension(locationParams)
 
+  // City rankings feed both the "Top cities" and "Average/test-takers by
+  // state" widgets. Computed once here, then re-sorted per widget so a city
+  // that's below the cohort floor never appears in any of them.
+  const userCity = entries.find((entry) => entry.email === session.user.email)?.profile.city ?? null
+  const userState = entries.find((entry) => entry.email === session.user.email)?.profile.state_region ?? null
+
+  const cityGroupsByScore = withMinCohortSize(toAverageScoreByGroup(entries, (entry) => entry.profile.city))
+  const cityGroupsByParticipation = [...cityGroupsByScore].sort(
+    (a, b) => b.count - a.count || b.averageScore - a.averageScore
+  )
+
+  const stateGroupsByScore = withMinCohortSize(
+    toAverageScoreByGroup(entries, (entry) => entry.profile.state_region)
+  )
+  const stateGroupsByParticipation = [...stateGroupsByScore].sort(
+    (a, b) => b.count - a.count || b.averageScore - a.averageScore
+  )
+
+  const STATE_LEADERBOARD_SIZE = 15
+
   return NextResponse.json({
     histogram,
     totalUsers,
@@ -226,5 +257,18 @@ export async function GET(req: NextRequest) {
     // crowd that includes people outside the active filters.
     locationComparisons: buildLocationComparisons(locationParams, entries),
     userProgress,
+    rankLadder: buildRankLadder(locationParams, entries, session.user.email),
+    peerGroupRanks: buildPeerGroupRanks(entries, session.user.email, [
+      { dimension: 'Role', getLabel: (entry) => entry.profile.designation },
+      { dimension: 'Experience', getLabel: (entry) => entry.profile.years_of_experience },
+      { dimension: 'City', getLabel: (entry) => entry.profile.city },
+      { dimension: 'State / Region', getLabel: (entry) => entry.profile.state_region },
+      { dimension: 'Country', getLabel: (entry) => entry.profile.country },
+    ]),
+    topCitiesByScore: buildTopCities(cityGroupsByScore, userCity),
+    topCitiesByParticipation: buildTopCities(cityGroupsByParticipation, userCity),
+    averageScoreByState: buildTopCities(stateGroupsByScore, userState, STATE_LEADERBOARD_SIZE),
+    testTakersByState: buildTopCities(stateGroupsByParticipation, userState, STATE_LEADERBOARD_SIZE),
+    neighbors: buildNeighbors(entries, session.user.email),
   })
 }
