@@ -187,6 +187,152 @@ export function buildUserProgress(userAttempts: ResultRow[]) {
   }
 }
 
+export interface DayActivity {
+  date: string
+  count: number
+}
+
+// Buckets a user's attempts by calendar day (UTC), for an activity-calendar
+// heatmap. completed_at is an ISO timestamp; only the date portion matters.
+export function buildActivityCalendar(userAttempts: ResultRow[]): DayActivity[] {
+  const counts = new Map<string, number>()
+  for (const attempt of userAttempts) {
+    const date = attempt.completed_at.slice(0, 10)
+    counts.set(date, (counts.get(date) ?? 0) + 1)
+  }
+
+  return [...counts.entries()]
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export interface StreakInfo {
+  currentStreak: number
+  longestStreak: number
+}
+
+// today defaults to now but is injectable so tests aren't wall-clock dependent.
+export function buildStreaks(userAttempts: ResultRow[], today: Date = new Date()): StreakInfo {
+  const days = new Set(userAttempts.map((attempt) => attempt.completed_at.slice(0, 10)))
+  if (days.size === 0) return { currentStreak: 0, longestStreak: 0 }
+
+  const sortedDays = [...days].sort()
+
+  let longestStreak = 1
+  let run = 1
+  for (let i = 1; i < sortedDays.length; i++) {
+    const prev = new Date(`${sortedDays[i - 1]}T00:00:00Z`)
+    const curr = new Date(`${sortedDays[i]}T00:00:00Z`)
+    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86_400_000)
+    run = diffDays === 1 ? run + 1 : 1
+    longestStreak = Math.max(longestStreak, run)
+  }
+
+  // A streak survives if today is already logged, or if today isn't over yet
+  // but yesterday is logged (so the user hasn't broken the chain, just hasn't
+  // played today). It doesn't survive if the most recent attempt was before
+  // yesterday.
+  const todayStr = today.toISOString().slice(0, 10)
+  const yesterdayDate = new Date(today)
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
+  const yesterdayStr = yesterdayDate.toISOString().slice(0, 10)
+
+  let currentStreak = 0
+  if (days.has(todayStr) || days.has(yesterdayStr)) {
+    let cursor = days.has(todayStr) ? todayStr : yesterdayStr
+    while (days.has(cursor)) {
+      currentStreak += 1
+      const cursorDate = new Date(`${cursor}T00:00:00Z`)
+      cursorDate.setUTCDate(cursorDate.getUTCDate() - 1)
+      cursor = cursorDate.toISOString().slice(0, 10)
+    }
+  }
+
+  return { currentStreak, longestStreak }
+}
+
+export interface TimeOfDayBucket {
+  dayOfWeek: number
+  hour: number
+  averageScore: number
+  count: number
+}
+
+// Groups attempts by (day of week, hour) so the UI can answer "when do I
+// actually test best" instead of just "when do I test most".
+export function buildTimeOfDayPerformance(userAttempts: ResultRow[]): TimeOfDayBucket[] {
+  const groups = new Map<string, { sum: number; count: number; dayOfWeek: number; hour: number }>()
+  for (const attempt of userAttempts) {
+    const completedAt = new Date(attempt.completed_at)
+    const dayOfWeek = completedAt.getUTCDay()
+    const hour = completedAt.getUTCHours()
+    const key = `${dayOfWeek}-${hour}`
+    const group = groups.get(key) ?? { sum: 0, count: 0, dayOfWeek, hour }
+    group.sum += attempt.score
+    group.count += 1
+    groups.set(key, group)
+  }
+
+  return [...groups.values()]
+    .map(({ sum, count, dayOfWeek, hour }) => ({
+      dayOfWeek,
+      hour,
+      count,
+      averageScore: roundToOne(sum / count),
+    }))
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.hour - b.hour)
+}
+
+export interface PacePoint {
+  timeTakenSeconds: number
+  score: number
+  completedAt: string
+}
+
+// Raw (time, score) pairs for a pace-vs-accuracy scatter plot, newest last.
+export function buildPacePoints(userAttempts: ResultRow[]): PacePoint[] {
+  return [...userAttempts]
+    .sort((a, b) => a.completed_at.localeCompare(b.completed_at))
+    .map((attempt) => ({
+      timeTakenSeconds: attempt.time_taken_seconds,
+      score: attempt.score,
+      completedAt: attempt.completed_at,
+    }))
+}
+
+export interface DomainResultRow extends ResultRow {
+  domain: string
+}
+
+export interface DomainRange {
+  domain: string
+  min: number
+  mean: number
+  max: number
+  count: number
+}
+
+// Per-domain min/mean/max, used by the "pace vs. accuracy" and domain-spread
+// widgets to show a user's range rather than just a single average.
+export function buildDomainRanges(userAttempts: DomainResultRow[]): DomainRange[] {
+  const groups = new Map<string, number[]>()
+  for (const attempt of userAttempts) {
+    const scores = groups.get(attempt.domain) ?? []
+    scores.push(attempt.score)
+    groups.set(attempt.domain, scores)
+  }
+
+  return [...groups.entries()]
+    .map(([domain, scores]) => ({
+      domain,
+      min: Math.min(...scores),
+      max: Math.max(...scores),
+      mean: roundToOne(scores.reduce((sum, score) => sum + score, 0) / scores.length),
+      count: scores.length,
+    }))
+    .sort((a, b) => b.mean - a.mean)
+}
+
 export function getLocationDimension(locationParams: LocationParams) {
   const { country, stateRegion, city } = locationParams
 

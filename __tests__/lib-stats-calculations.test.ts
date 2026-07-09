@@ -1,12 +1,18 @@
 import {
   averageScoreFor,
   averageTimeFor,
+  buildActivityCalendar,
+  buildDomainRanges,
   buildLocationComparisons,
+  buildPacePoints,
+  buildStreaks,
+  buildTimeOfDayPerformance,
   buildUserProgress,
   getLocationDimension,
   roundToOne,
   toAverageScoreByGroup,
   toDistribution,
+  type DomainResultRow,
   type ProfileRow,
   type ResultRow,
   type ScoreEntry,
@@ -235,6 +241,156 @@ describe('buildUserProgress', () => {
   it('returns null scorePerMinute when the latest attempt took zero seconds', () => {
     const attempts = [attempt({ score: 5, time_taken_seconds: 0 })]
     expect(buildUserProgress(attempts).scorePerMinute).toBeNull()
+  })
+})
+
+describe('buildActivityCalendar', () => {
+  function attempt(overrides: Partial<ResultRow> = {}): ResultRow {
+    return {
+      user_email: 'me@test.com',
+      score: 7,
+      time_taken_seconds: 240,
+      completed_at: '2026-01-01T10:00:00Z',
+      ...overrides,
+    }
+  }
+
+  it('counts attempts per calendar day and sorts oldest first', () => {
+    const attempts = [
+      attempt({ completed_at: '2026-01-03T09:00:00Z' }),
+      attempt({ completed_at: '2026-01-01T08:00:00Z' }),
+      attempt({ completed_at: '2026-01-01T20:00:00Z' }),
+    ]
+    expect(buildActivityCalendar(attempts)).toEqual([
+      { date: '2026-01-01', count: 2 },
+      { date: '2026-01-03', count: 1 },
+    ])
+  })
+
+  it('returns an empty array for no attempts', () => {
+    expect(buildActivityCalendar([])).toEqual([])
+  })
+})
+
+describe('buildStreaks', () => {
+  function attempt(completedAt: string): ResultRow {
+    return {
+      user_email: 'me@test.com',
+      score: 7,
+      time_taken_seconds: 240,
+      completed_at: completedAt,
+    }
+  }
+
+  it('returns zero streaks for no attempts', () => {
+    expect(buildStreaks([])).toEqual({ currentStreak: 0, longestStreak: 0 })
+  })
+
+  it('counts a current streak that runs up through today', () => {
+    const today = new Date('2026-01-05T12:00:00Z')
+    const attempts = [
+      attempt('2026-01-03T09:00:00Z'),
+      attempt('2026-01-04T09:00:00Z'),
+      attempt('2026-01-05T09:00:00Z'),
+    ]
+    expect(buildStreaks(attempts, today)).toEqual({ currentStreak: 3, longestStreak: 3 })
+  })
+
+  it('keeps the streak alive when the latest attempt was yesterday, not today', () => {
+    const today = new Date('2026-01-05T12:00:00Z')
+    const attempts = [attempt('2026-01-03T09:00:00Z'), attempt('2026-01-04T09:00:00Z')]
+    expect(buildStreaks(attempts, today).currentStreak).toBe(2)
+  })
+
+  it('resets the current streak to zero once a day is missed', () => {
+    const today = new Date('2026-01-10T12:00:00Z')
+    const attempts = [attempt('2026-01-01T09:00:00Z'), attempt('2026-01-02T09:00:00Z')]
+    expect(buildStreaks(attempts, today).currentStreak).toBe(0)
+  })
+
+  it('tracks the longest streak separately from a broken current streak', () => {
+    const today = new Date('2026-01-20T12:00:00Z')
+    const attempts = [
+      attempt('2026-01-01T09:00:00Z'),
+      attempt('2026-01-02T09:00:00Z'),
+      attempt('2026-01-03T09:00:00Z'),
+      attempt('2026-01-04T09:00:00Z'),
+      attempt('2026-01-10T09:00:00Z'),
+    ]
+    expect(buildStreaks(attempts, today)).toEqual({ currentStreak: 0, longestStreak: 4 })
+  })
+
+  it('treats repeated attempts on the same day as a single streak day', () => {
+    const today = new Date('2026-01-01T23:00:00Z')
+    const attempts = [attempt('2026-01-01T08:00:00Z'), attempt('2026-01-01T20:00:00Z')]
+    expect(buildStreaks(attempts, today)).toEqual({ currentStreak: 1, longestStreak: 1 })
+  })
+})
+
+describe('buildTimeOfDayPerformance', () => {
+  function attempt(completedAt: string, score: number): ResultRow {
+    return { user_email: 'me@test.com', score, time_taken_seconds: 240, completed_at: completedAt }
+  }
+
+  it('averages scores per day-of-week/hour bucket', () => {
+    // 2026-01-04 is a Sunday (dayOfWeek 0)
+    const attempts = [
+      attempt('2026-01-04T09:00:00Z', 8),
+      attempt('2026-01-04T09:30:00Z', 6),
+      attempt('2026-01-04T14:00:00Z', 10),
+    ]
+    const result = buildTimeOfDayPerformance(attempts)
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { dayOfWeek: 0, hour: 9, count: 2, averageScore: 7 },
+        { dayOfWeek: 0, hour: 14, count: 1, averageScore: 10 },
+      ])
+    )
+  })
+
+  it('returns an empty array for no attempts', () => {
+    expect(buildTimeOfDayPerformance([])).toEqual([])
+  })
+})
+
+describe('buildPacePoints', () => {
+  it('maps attempts to time/score pairs sorted oldest first', () => {
+    const attempts: ResultRow[] = [
+      { user_email: 'me@test.com', score: 8, time_taken_seconds: 200, completed_at: '2026-01-03T00:00:00Z' },
+      { user_email: 'me@test.com', score: 6, time_taken_seconds: 260, completed_at: '2026-01-01T00:00:00Z' },
+    ]
+    expect(buildPacePoints(attempts)).toEqual([
+      { timeTakenSeconds: 260, score: 6, completedAt: '2026-01-01T00:00:00Z' },
+      { timeTakenSeconds: 200, score: 8, completedAt: '2026-01-03T00:00:00Z' },
+    ])
+  })
+})
+
+describe('buildDomainRanges', () => {
+  function attempt(domain: string, score: number): DomainResultRow {
+    return {
+      user_email: 'me@test.com',
+      score,
+      time_taken_seconds: 240,
+      completed_at: '2026-01-01T00:00:00Z',
+      domain,
+    }
+  }
+
+  it('computes min/mean/max per domain and sorts by mean descending', () => {
+    const attempts = [
+      attempt('AI', 6),
+      attempt('AI', 8),
+      attempt('Cloud', 9),
+    ]
+    expect(buildDomainRanges(attempts)).toEqual([
+      { domain: 'Cloud', min: 9, max: 9, mean: 9, count: 1 },
+      { domain: 'AI', min: 6, max: 8, mean: 7, count: 2 },
+    ])
+  })
+
+  it('returns an empty array for no attempts', () => {
+    expect(buildDomainRanges([])).toEqual([])
   })
 })
 
