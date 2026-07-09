@@ -333,6 +333,121 @@ export function buildDomainRanges(userAttempts: DomainResultRow[]): DomainRange[
     .sort((a, b) => b.mean - a.mean)
 }
 
+export interface CohortRank {
+  rank: number | null
+  percentile: number | null
+  cohortSize: number
+}
+
+// Standard competition ranking (1224-style: ties share a rank, the next rank
+// skips) plus a self-excluded percentile — mirrors the yourRank/percentile
+// logic in /api/stats, extracted so the Rank Ladder and Peer Groups widgets
+// can reuse it across multiple scopes at once. Returns nulls when the user
+// isn't part of the cohort, or the cohort is too small to report without
+// risking de-anonymization.
+export function rankWithinCohort(
+  userScore: number | null,
+  cohortScores: number[],
+  userIsInCohort: boolean
+): CohortRank {
+  const cohortSize = cohortScores.length
+  if (userScore === null || !userIsInCohort || cohortSize < MIN_COHORT_SIZE) {
+    return { rank: null, percentile: null, cohortSize }
+  }
+
+  const rank = cohortScores.filter((score) => score > userScore).length + 1
+
+  const peerCount = cohortSize - 1
+  const percentile =
+    peerCount > 0
+      ? Math.round((cohortScores.filter((score) => score < userScore).length / peerCount) * 100)
+      : null
+
+  return { rank, percentile, cohortSize }
+}
+
+export interface ScopeRank extends CohortRank {
+  scope: string
+  label: string
+}
+
+// The Rank Ladder widget: the user's rank/percentile at every geographic
+// scope simultaneously (City, State/Region, Country, Global), so switching
+// scopes doesn't require a re-fetch. Rungs for a scope the user hasn't set
+// (or filtered to "all") are omitted rather than shown as a meaningless
+// "You rank #1 of 1".
+export function buildRankLadder(
+  locationParams: LocationParams,
+  entries: ScoreEntry[],
+  userEmail: string
+): ScopeRank[] {
+  const userEntry = entries.find((entry) => entry.email === userEmail)
+  const userScore = userEntry?.score ?? null
+  const { country, stateRegion, city } = locationParams
+
+  const rungs: Array<{ label: string; scope: string; matches: (entry: ScoreEntry) => boolean }> = []
+  if (city && city !== 'all') {
+    rungs.push({ label: city, scope: 'City', matches: (entry) => entry.profile.city === city })
+  }
+  if (stateRegion && stateRegion !== 'all') {
+    rungs.push({
+      label: stateRegion,
+      scope: 'State / Region',
+      matches: (entry) => entry.profile.state_region === stateRegion,
+    })
+  }
+  if (country && country !== 'all') {
+    rungs.push({ label: country, scope: 'Country', matches: (entry) => entry.profile.country === country })
+  }
+  rungs.push({ label: 'Global', scope: 'Global', matches: () => true })
+
+  return rungs.map(({ label, scope, matches }) => {
+    const cohort = entries.filter(matches)
+    const cohortScores = cohort.map((entry) => entry.score)
+    const userIsInCohort = cohort.some((entry) => entry.email === userEmail)
+    return { scope, label, ...rankWithinCohort(userScore, cohortScores, userIsInCohort) }
+  })
+}
+
+export interface PeerGroupRank extends CohortRank {
+  dimension: string
+  label: string | null
+}
+
+export interface PeerGroupDimension {
+  dimension: string
+  getLabel: (entry: ScoreEntry) => string | null | undefined
+}
+
+// The Peer Groups table's "Your rank" column: rank-within-cohort across
+// several dimensions (role, experience, city, state, country) at once. Uses
+// the same "Unknown" fallback as toDistribution/toAverageScoreByGroup so a
+// user's rank among peers with a blank profile field still resolves.
+export function buildPeerGroupRanks(
+  entries: ScoreEntry[],
+  userEmail: string,
+  dimensions: PeerGroupDimension[]
+): PeerGroupRank[] {
+  const userEntry = entries.find((entry) => entry.email === userEmail)
+  const userScore = userEntry?.score ?? null
+
+  return dimensions.map(({ dimension, getLabel }) => {
+    const userLabel = userEntry ? getLabel(userEntry)?.trim() || 'Unknown' : null
+    if (userLabel === null) {
+      return { dimension, label: null, rank: null, percentile: null, cohortSize: 0 }
+    }
+
+    const cohort = entries.filter((entry) => (getLabel(entry)?.trim() || 'Unknown') === userLabel)
+    const cohortScores = cohort.map((entry) => entry.score)
+    const userIsInCohort = cohort.some((entry) => entry.email === userEmail)
+    return {
+      dimension,
+      label: userLabel,
+      ...rankWithinCohort(userScore, cohortScores, userIsInCohort),
+    }
+  })
+}
+
 export function getLocationDimension(locationParams: LocationParams) {
   const { country, stateRegion, city } = locationParams
 
