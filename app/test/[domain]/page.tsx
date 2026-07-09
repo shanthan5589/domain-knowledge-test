@@ -5,10 +5,13 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
+import PromoInterstitial from '@/components/PromoInterstitial'
+import PromoBadge from '@/components/PromoBadge'
 import ScoreGauge from '@/components/ui/ScoreGauge'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { antiCheatHandlers } from '@/lib/anti-cheat'
+import { PROMO_BADGE_ENABLED, PROMO_INTERSTITIAL_ENABLED, pickInterstitialTriggerIndex } from '@/lib/promo'
 
 const TOTAL_SECONDS = 300 // 5 minutes
 
@@ -46,6 +49,13 @@ export default function TestPage() {
   // landing at nearly the same instant the timer expires.
   const hasSubmittedRef = useRef(false)
 
+  // Mid-quiz Castor AI promo: shown once per attempt, at a randomized
+  // question index re-rolled alongside hasSubmittedRef below so retakes get
+  // a fresh (and unpredictable) trigger point each time.
+  const [showInterstitial, setShowInterstitial] = useState(false)
+  const interstitialShownRef = useRef(false)
+  const interstitialTriggerRef = useRef(5)
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
@@ -65,6 +75,10 @@ export default function TestPage() {
     // external system (the API), not a cascading-render anti-pattern.
     async function fetchQuestions() {
       hasSubmittedRef.current = false
+      // Reset together with hasSubmittedRef above — both guard per-attempt
+      // one-time behavior, so a future edit to one should touch the other.
+      interstitialShownRef.current = false
+      setShowInterstitial(false)
       setPhase('loading')
       setQuestions([])
       setCurrentIndex(0)
@@ -77,6 +91,7 @@ export default function TestPage() {
         const res = await fetch(`/api/questions/${domain}`)
         if (!res.ok) throw new Error('Failed to load questions')
         const data = await res.json()
+        interstitialTriggerRef.current = pickInterstitialTriggerIndex(data.questions.length)
         setQuestions(data.questions)
         setStartTime(Date.now()) // start timer only when questions are ready
         setPhase('quiz')
@@ -131,11 +146,25 @@ export default function TestPage() {
   }
 
   function handleNext() {
+    if (
+      PROMO_INTERSTITIAL_ENABLED &&
+      currentIndex === interstitialTriggerRef.current &&
+      !interstitialShownRef.current
+    ) {
+      interstitialShownRef.current = true
+      setShowInterstitial(true)
+      return // Continue Quiz (handleInterstitialContinue) advances currentIndex, not this click
+    }
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((i) => i + 1)
     } else {
       submitTest({ ...answers })
     }
+  }
+
+  function handleInterstitialContinue() {
+    setShowInterstitial(false)
+    setCurrentIndex((i) => i + 1)
   }
 
   const currentQuestion = questions[currentIndex]
@@ -234,17 +263,26 @@ export default function TestPage() {
   return (
     <main className="min-h-screen bg-[var(--paper)]" {...antiCheatHandlers}>
       {/* Header bar */}
-      <div className="sticky top-0 z-10 bg-[var(--surface)] border-b border-[var(--line)] px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-[var(--ink)] hidden sm:inline">
-            {DOMAIN_LABELS[domain]}
-          </span>
-          <span className="font-mono text-sm text-[var(--ink-soft)]">
-            {currentIndex + 1} / {questions.length}
-          </span>
+      <div className="sticky top-0 z-10 bg-[var(--surface)] border-b border-[var(--line)]">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-[var(--ink)] hidden sm:inline">
+              {DOMAIN_LABELS[domain]}
+            </span>
+            <span className="font-mono text-sm text-[var(--ink-soft)]">
+              {currentIndex + 1} / {questions.length}
+            </span>
+          </div>
+          <QuizTimer totalSeconds={TOTAL_SECONDS} onExpire={handleTimerExpire} paused={showInterstitial} />
         </div>
-        <QuizTimer totalSeconds={TOTAL_SECONDS} onExpire={handleTimerExpire} />
+        {PROMO_BADGE_ENABLED && (
+          <div className="px-4 pb-1.5 flex justify-center sm:justify-end">
+            <PromoBadge />
+          </div>
+        )}
       </div>
+
+      {showInterstitial && <PromoInterstitial onContinue={handleInterstitialContinue} />}
 
       {/* Progress bar */}
       <div className="h-1 bg-[var(--line)]">

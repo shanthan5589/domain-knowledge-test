@@ -12,12 +12,22 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
+// The interstitial's trigger question is randomized per attempt — mock it to
+// a fixed value so tests are deterministic instead of flaky. Everything else
+// from lib/promo (copy, URLs, both enabled flags) stays real.
+jest.mock('@/lib/promo', () => ({
+  ...jest.requireActual('@/lib/promo'),
+  pickInterstitialTriggerIndex: jest.fn(),
+}))
+
 import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
+import { pickInterstitialTriggerIndex } from '@/lib/promo'
 
 const mockUseSession = useSession as jest.Mock
 const mockUseParams = useParams as jest.Mock
 const mockUseRouter = useRouter as jest.Mock
+const mockPickTrigger = pickInterstitialTriggerIndex as jest.Mock
 
 const push = jest.fn()
 
@@ -39,6 +49,17 @@ function mockQuestionsResponse(count = 10) {
   }
 }
 
+// Answers the current question and clicks Next/Submit, dismissing the promo
+// interstitial via "Continue Quiz" if it happens to appear on that click.
+// Shared by every test that just needs to power through the quiz without
+// caring exactly where the (mocked) interstitial trigger falls.
+function answerAndAdvance() {
+  fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+  fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+  const continueButton = screen.queryByRole('button', { name: /Continue Quiz/i })
+  if (continueButton) fireEvent.click(continueButton)
+}
+
 describe('TestPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -46,6 +67,11 @@ describe('TestPage', () => {
     mockUseParams.mockReturnValue({ domain: 'devops' })
     mockUseRouter.mockReturnValue({ push })
     global.fetch = jest.fn()
+    // Default trigger for tests that don't care about the exact question —
+    // index 6 (fires after answering the 7th question) is comfortably inside
+    // the valid {5,6,7,8} range.
+    mockPickTrigger.mockReset()
+    mockPickTrigger.mockReturnValue(6)
   })
 
   afterEach(() => {
@@ -71,8 +97,7 @@ describe('TestPage', () => {
     await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
 
     for (let i = 0; i < 10; i++) {
-      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
-      fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+      answerAndAdvance()
     }
 
     await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
@@ -97,9 +122,7 @@ describe('TestPage', () => {
 
       // Answer all 10 questions to reach submit
       for (let i = 0; i < 10; i++) {
-        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
-        const button = screen.getByRole('button', { name: /Next Question|Submit Test/i })
-        fireEvent.click(button)
+        answerAndAdvance()
       }
 
       // Results screen shown
@@ -139,8 +162,7 @@ describe('TestPage', () => {
 
       // Answer all questions up to the last one
       for (let i = 0; i < 9; i++) {
-        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
-        fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+        answerAndAdvance()
       }
 
       // On the last question, select an answer and click submit twice rapidly
@@ -161,6 +183,97 @@ describe('TestPage', () => {
       await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
       // Still exactly 2 fetch calls total (1 questions + 1 results) — no duplicate submit.
       expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('mid-quiz interstitial', () => {
+    it('appears once at the (mocked) trigger question, blocks advancing until dismissed, and never reappears', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce(mockQuestionsResponse())
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 6 }) })
+
+      render(<TestPage />)
+      await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
+
+      // Answer Q1-Q6 (currentIndex 0-5) — interstitial must not appear yet,
+      // trigger is mocked to fire after currentIndex 6 (Q7).
+      for (let i = 0; i < 6; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+        expect(screen.queryByTestId('promo-interstitial')).not.toBeInTheDocument()
+      }
+      expect(screen.getByText('Question 6?')).toBeInTheDocument()
+      expect(screen.getByText('7 / 10')).toBeInTheDocument()
+
+      // Answering Q7 (currentIndex 6) and clicking Next shows the
+      // interstitial instead of advancing to Q8.
+      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+
+      expect(screen.getByTestId('promo-interstitial')).toBeInTheDocument()
+      expect(screen.getByTestId('quiz-timer-paused-label')).toBeInTheDocument()
+      expect(screen.getByText('7 / 10')).toBeInTheDocument() // currentIndex has not advanced
+      expect(screen.queryByText('Question 7?')).not.toBeInTheDocument()
+
+      // Dismiss it
+      fireEvent.click(screen.getByRole('button', { name: /Continue Quiz/i }))
+      expect(screen.queryByTestId('promo-interstitial')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('quiz-timer-paused-label')).not.toBeInTheDocument()
+      expect(screen.getByText('Question 7?')).toBeInTheDocument()
+      expect(screen.getByText('8 / 10')).toBeInTheDocument()
+
+      // Never reappears for the rest of the same attempt
+      for (let i = 7; i < 10; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+        expect(screen.queryByTestId('promo-interstitial')).not.toBeInTheDocument()
+      }
+      await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    })
+
+    it('re-triggers once on a Try Again retake, at a freshly resolved trigger point', async () => {
+      mockPickTrigger.mockReturnValueOnce(6).mockReturnValueOnce(7)
+
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce(mockQuestionsResponse()) // attempt 1 questions
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 5 }) }) // attempt 1 submit
+        .mockResolvedValueOnce(mockQuestionsResponse()) // attempt 2 (retake) questions
+
+      render(<TestPage />)
+      await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
+
+      // Attempt 1 — trigger is 6: answer through Q6, hit the interstitial at Q7, dismiss, finish.
+      for (let i = 0; i < 6; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+      }
+      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+      expect(screen.getByTestId('promo-interstitial')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Continue Quiz/i }))
+
+      for (let i = 7; i < 10; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+      }
+      await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+
+      // Retake
+      fireEvent.click(screen.getByText('Try Again'))
+      await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
+
+      // Attempt 2's trigger is now 7 (Q8) — Q7 (currentIndex 6) no longer fires it.
+      for (let i = 0; i < 7; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+      }
+      expect(screen.queryByTestId('promo-interstitial')).not.toBeInTheDocument()
+      expect(screen.getByText('Question 7?')).toBeInTheDocument()
+
+      // But Q8 (currentIndex 7) does fire it this time.
+      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+      expect(screen.getByTestId('promo-interstitial')).toBeInTheDocument()
     })
   })
 })
