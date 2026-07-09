@@ -56,6 +56,15 @@ export default function TestPage() {
   const interstitialShownRef = useRef(false)
   const interstitialTriggerRef = useRef(5)
 
+  // How long the interstitial was actually open, in ms — subtracted from the
+  // submitted time_taken_seconds so a user's recorded quiz time reflects
+  // only time spent on questions, not time spent looking at the promo.
+  // Without this, time_taken_seconds (pure Date.now() - startTime wall-clock
+  // math in submitTest) would silently absorb the pause and inflate every
+  // attempt's recorded completion time.
+  const pausedDurationRef = useRef(0)
+  const interstitialOpenedAtRef = useRef<number | null>(null)
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
@@ -79,6 +88,8 @@ export default function TestPage() {
       // one-time behavior, so a future edit to one should touch the other.
       interstitialShownRef.current = false
       setShowInterstitial(false)
+      pausedDurationRef.current = 0
+      interstitialOpenedAtRef.current = null
       setPhase('loading')
       setQuestions([])
       setCurrentIndex(0)
@@ -108,7 +119,9 @@ export default function TestPage() {
       if (hasSubmittedRef.current) return
       hasSubmittedRef.current = true
       setPhase('submitting')
-      const timeTaken = Math.round((Date.now() - (startTime ?? Date.now())) / 1000)
+      const timeTaken = Math.round(
+        (Date.now() - (startTime ?? Date.now()) - pausedDurationRef.current) / 1000
+      )
       try {
         const res = await fetch('/api/results', {
           method: 'POST',
@@ -152,6 +165,7 @@ export default function TestPage() {
       !interstitialShownRef.current
     ) {
       interstitialShownRef.current = true
+      interstitialOpenedAtRef.current = Date.now()
       setShowInterstitial(true)
       return // Continue Quiz (handleInterstitialContinue) advances currentIndex, not this click
     }
@@ -163,6 +177,10 @@ export default function TestPage() {
   }
 
   function handleInterstitialContinue() {
+    if (interstitialOpenedAtRef.current !== null) {
+      pausedDurationRef.current += Date.now() - interstitialOpenedAtRef.current
+      interstitialOpenedAtRef.current = null
+    }
     setShowInterstitial(false)
     setCurrentIndex((i) => i + 1)
   }
@@ -245,6 +263,11 @@ export default function TestPage() {
               Try Again
             </button>
           </div>
+          {PROMO_BADGE_ENABLED && (
+            <div className="mt-6 pt-4 border-t border-[var(--line)] flex justify-center">
+              <PromoBadge />
+            </div>
+          )}
         </div>
       </main>
     )

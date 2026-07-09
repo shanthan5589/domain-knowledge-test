@@ -231,6 +231,45 @@ describe('TestPage', () => {
       await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
     })
 
+    it('excludes time spent on the interstitial from the recorded time_taken_seconds', async () => {
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce(mockQuestionsResponse())
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 5 }) })
+
+      render(<TestPage />)
+      await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
+
+      // Reach the (mocked) trigger question as fast as possible
+      for (let i = 0; i < 6; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+      }
+      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
+      expect(screen.getByTestId('promo-interstitial')).toBeInTheDocument()
+
+      // A real, noticeable delay before dismissing — this is the "dead
+      // time" that must NOT leak into the recorded quiz duration.
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      fireEvent.click(screen.getByRole('button', { name: /Continue Quiz/i }))
+
+      // Finish the rest of the quiz as fast as possible
+      for (let i = 7; i < 10; i++) {
+        fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+        fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+      }
+
+      await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+
+      const resultsCall = (global.fetch as jest.Mock).mock.calls.find(([url]) => url === '/api/results')
+      const body = JSON.parse(resultsCall[1].body)
+      // Actual question-answering time in this test is near-instant, so
+      // once the ~1.5s interstitial pause is correctly excluded, the
+      // recorded duration should round to 0 — not 1-2, which is what it'd
+      // be if the pause leaked into the wall-clock time_taken calculation.
+      expect(body.time_taken_seconds).toBe(0)
+    }, 10000)
+
     it('re-triggers once on a Try Again retake, at a freshly resolved trigger point', async () => {
       mockPickTrigger.mockReturnValueOnce(6).mockReturnValueOnce(7)
 

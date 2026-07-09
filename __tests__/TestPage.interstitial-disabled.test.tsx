@@ -10,11 +10,14 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
-// Interstitial off, badge left at its real (enabled) default — proves the
-// two switches are independent, not one flag pretending to be two.
+// Interstitial off, badge explicitly on — proves the two switches are
+// independent, not one flag pretending to be two. Badge defaults to off in
+// lib/promo.ts, so this test opts it in explicitly rather than relying on
+// the real default.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_INTERSTITIAL_ENABLED: false,
+  PROMO_BADGE_ENABLED: true,
 }))
 
 import { useSession } from 'next-auth/react'
@@ -68,5 +71,6 @@ describe('TestPage with only the interstitial disabled', () => {
     }
 
     await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    expect(screen.getByText('Powered by Castor AI')).toBeInTheDocument()
   })
 })

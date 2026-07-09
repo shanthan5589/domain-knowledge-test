@@ -7,7 +7,7 @@
 // Flip either to false and that surface disappears completely, everywhere,
 // with zero other code changes.
 export const PROMO_INTERSTITIAL_ENABLED = true
-export const PROMO_BADGE_ENABLED = true
+export const PROMO_BADGE_ENABLED = false
 
 function buildCastorUrl(utmMedium: string): string {
   const url = new URL('https://castorai.in')
@@ -21,12 +21,12 @@ function buildCastorUrl(utmMedium: string): string {
 export const PROMO_INTERSTITIAL_URL = buildCastorUrl('quiz_interstitial')
 export const PROMO_BADGE_URL = buildCastorUrl('quiz_badge')
 
-// Copy for the one-time mid-quiz interstitial card.
-export const PROMO_EYEBROW = 'A quick break'
-export const PROMO_HEADLINE = "You've got a few questions left."
+// Copy for the one-time mid-quiz interstitial card. Kept short and scannable
+// — this interrupts an in-progress quiz, so it's one line, not a paragraph.
+export const PROMO_EYEBROW = 'A quick read'
 export const PROMO_BODY =
-  'Edu is built by Castor AI — we help teams actually use AI well and build custom software around how they work. Free initial consultation, no pitch deck required.'
-export const PROMO_LINK_LABEL = 'See how Castor AI helps teams'
+  'At Castor AI, we provide AI Workforce Training and Software & Automation Solutions.'
+export const PROMO_LINK_LABEL = 'See how'
 export const PROMO_CTA_LABEL = 'Continue Quiz'
 
 // Copy for the passive, always-visible header badge.

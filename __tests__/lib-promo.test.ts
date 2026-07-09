@@ -5,7 +5,6 @@ import {
   PROMO_BODY,
   PROMO_CTA_LABEL,
   PROMO_EYEBROW,
-  PROMO_HEADLINE,
   PROMO_INTERSTITIAL_ENABLED,
   PROMO_INTERSTITIAL_URL,
   PROMO_LINK_LABEL,
@@ -21,7 +20,6 @@ describe('lib/promo', () => {
   it('has non-empty copy for every field', () => {
     for (const value of [
       PROMO_EYEBROW,
-      PROMO_HEADLINE,
       PROMO_BODY,
       PROMO_LINK_LABEL,
       PROMO_CTA_LABEL,

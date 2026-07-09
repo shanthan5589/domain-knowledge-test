@@ -52,8 +52,10 @@ describe('TestPage with only the badge disabled', () => {
     global.fetch = jest.fn()
   })
 
-  it('never shows the badge, but still shows the interstitial once at its trigger', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce(mockQuestionsResponse())
+  it('never shows the badge (header or results screen), but still shows the interstitial once at its trigger', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockQuestionsResponse())
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 3 }) })
 
     render(<TestPage />)
     await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
@@ -68,6 +70,15 @@ describe('TestPage with only the badge disabled', () => {
     fireEvent.click(screen.getByRole('button', { name: /Next Question/i }))
 
     expect(screen.getByTestId('promo-interstitial')).toBeInTheDocument()
+    expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Continue Quiz/i }))
+    for (let i = 6; i < 10; i++) {
+      fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
+    }
+
+    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
     expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
   })
 })

@@ -1,17 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import PromoInterstitial from '@/components/PromoInterstitial'
-import {
-  PROMO_BODY,
-  PROMO_CTA_LABEL,
-  PROMO_HEADLINE,
-  PROMO_INTERSTITIAL_URL,
-  PROMO_LINK_LABEL,
-} from '@/lib/promo'
+import { PROMO_BODY, PROMO_CTA_LABEL, PROMO_EYEBROW, PROMO_INTERSTITIAL_URL, PROMO_LINK_LABEL } from '@/lib/promo'
 
 describe('PromoInterstitial', () => {
-  it('renders the headline, body, and CTA from lib/promo', () => {
+  it('renders the eyebrow, body, and CTA from lib/promo', () => {
     render(<PromoInterstitial onContinue={jest.fn()} />)
-    expect(screen.getByText(PROMO_HEADLINE)).toBeInTheDocument()
+    expect(screen.getByText(PROMO_EYEBROW)).toBeInTheDocument()
     expect(screen.getByText(PROMO_BODY)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: PROMO_CTA_LABEL })).toBeInTheDocument()
   })
