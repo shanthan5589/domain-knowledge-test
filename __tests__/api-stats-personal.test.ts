@@ -37,14 +37,14 @@ function mockMyResultsQuery(data: unknown, error: unknown = null) {
   })
 }
 
-// The cross-domain crowd query: .select().in('domain', ...).order().limit()
+// The cross-domain crowd query now delegates to latestResultsForAllDomains,
+// so .in('domain', ...) is gone — .select().order().limit() in test env
+// (a Postgres RPC in production).
 function mockCrowdResultsQuery(data: unknown, error: unknown = null) {
   mockFrom.mockReturnValueOnce({
     select: jest.fn().mockReturnValue({
-      in: jest.fn().mockReturnValue({
-        order: jest.fn().mockReturnValue({
-          limit: jest.fn().mockResolvedValue({ data, error }),
-        }),
+      order: jest.fn().mockReturnValue({
+        limit: jest.fn().mockResolvedValue({ data, error }),
       }),
     }),
   })

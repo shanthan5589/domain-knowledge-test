@@ -24,11 +24,16 @@ function makeRequest(query: string) {
   return new NextRequest(`http://localhost/api/stats/leaderboard${query}`)
 }
 
+// The domain results query now chains .limit() because the route delegates
+// to latestResultsForDomain, which uses .eq().order().limit() in test env
+// (and a Postgres RPC in production).
 function mockResultsQuery(data: unknown, error: unknown = null) {
   mockFrom.mockReturnValueOnce({
     select: jest.fn().mockReturnValue({
       eq: jest.fn().mockReturnValue({
-        order: jest.fn().mockResolvedValue({ data, error }),
+        order: jest.fn().mockReturnValue({
+          limit: jest.fn().mockResolvedValue({ data, error }),
+        }),
       }),
     }),
   })

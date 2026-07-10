@@ -24,13 +24,15 @@ function makeRequest(query = '') {
   return new NextRequest(`http://localhost/api/stats/overview${query}`)
 }
 
+// The cross-domain results query no longer chains .in('domain', ...) —
+// the route delegates to latestResultsForAllDomains, which is a Postgres
+// RPC in production and .select().order().limit() in test env (with the
+// domain filter dropped, since the caller wants every domain anyway).
 function mockResultsQuery(data: unknown, error: unknown = null) {
   mockFrom.mockReturnValueOnce({
     select: jest.fn().mockReturnValue({
-      in: jest.fn().mockReturnValue({
-        order: jest.fn().mockReturnValue({
-          limit: jest.fn().mockResolvedValue({ data, error }),
-        }),
+      order: jest.fn().mockReturnValue({
+        limit: jest.fn().mockResolvedValue({ data, error }),
       }),
     }),
   })
