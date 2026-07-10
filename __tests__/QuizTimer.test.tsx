@@ -99,4 +99,48 @@ describe('QuizTimer', () => {
     rerender(<QuizTimer totalSeconds={1} onExpire={onExpire} />)
     expect(onExpire).toHaveBeenCalledTimes(1)
   })
+
+  describe('paused', () => {
+    it('does not count down while paused', () => {
+      render(<QuizTimer totalSeconds={300} onExpire={jest.fn()} paused />)
+      advanceSeconds(5)
+      expect(screen.getByTestId('quiz-timer')).toHaveTextContent('5:00')
+    })
+
+    it('resumes from the same value (not reset) when unpaused', () => {
+      const { rerender } = render(<QuizTimer totalSeconds={300} onExpire={jest.fn()} />)
+      advanceSeconds(10)
+      expect(screen.getByTestId('quiz-timer')).toHaveTextContent('4:50')
+
+      rerender(<QuizTimer totalSeconds={300} onExpire={jest.fn()} paused />)
+      advanceSeconds(5)
+      expect(screen.getByTestId('quiz-timer')).toHaveTextContent('4:50')
+
+      rerender(<QuizTimer totalSeconds={300} onExpire={jest.fn()} paused={false} />)
+      advanceSeconds(3)
+      expect(screen.getByTestId('quiz-timer')).toHaveTextContent('4:47')
+    })
+
+    it('shows the paused label only while paused', () => {
+      const { rerender } = render(<QuizTimer totalSeconds={300} onExpire={jest.fn()} />)
+      expect(screen.queryByTestId('quiz-timer-paused-label')).not.toBeInTheDocument()
+
+      rerender(<QuizTimer totalSeconds={300} onExpire={jest.fn()} paused />)
+      expect(screen.getByTestId('quiz-timer-paused-label')).toHaveTextContent('Paused')
+
+      rerender(<QuizTimer totalSeconds={300} onExpire={jest.fn()} paused={false} />)
+      expect(screen.queryByTestId('quiz-timer-paused-label')).not.toBeInTheDocument()
+    })
+
+    it('does not call onExpire while paused even past the would-be-zero point, then calls it once after unpausing', () => {
+      const onExpire = jest.fn()
+      const { rerender } = render(<QuizTimer totalSeconds={2} onExpire={onExpire} paused />)
+      advanceSeconds(5)
+      expect(onExpire).not.toHaveBeenCalled()
+
+      rerender(<QuizTimer totalSeconds={2} onExpire={onExpire} paused={false} />)
+      advanceSeconds(2)
+      expect(onExpire).toHaveBeenCalledTimes(1)
+    })
+  })
 })

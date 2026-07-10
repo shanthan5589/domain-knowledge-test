@@ -37,7 +37,10 @@ export interface TestResult {
 
 export interface SubmitResultPayload {
   domain: Domain
-  score: number
-  time_taken_seconds: number
+  attempt_id: string
   answers: Record<string, CorrectAnswer> // question_id -> chosen answer
+  // Client-computed elapsed test time in seconds, already reduced by any
+  // paused (interstitial-open) duration. Server clamps into a wall-clock
+  // sanity window before recording it.
+  time_taken_seconds?: number
 }

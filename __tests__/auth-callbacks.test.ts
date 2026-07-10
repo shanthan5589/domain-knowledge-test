@@ -11,7 +11,7 @@ type ProfilesQuery = {
   select: jest.Mock
   eq: jest.Mock
   single: jest.Mock
-  insert: jest.Mock
+  upsert: jest.Mock
 }
 
 function makeProfilesMock() {
@@ -19,7 +19,7 @@ function makeProfilesMock() {
   query.single = jest.fn()
   query.eq = jest.fn().mockReturnValue({ single: query.single })
   query.select = jest.fn().mockReturnValue({ eq: query.eq })
-  query.insert = jest.fn().mockResolvedValue({ error: null })
+  query.upsert = jest.fn().mockResolvedValue({ error: null })
   return query as ProfilesQuery
 }
 
@@ -82,35 +82,37 @@ describe('auth.ts callbacks', () => {
   })
 
   describe('signIn callback (Google)', () => {
-    it('lowercases the email when looking up an existing profile', async () => {
+    it('upserts the profile with a lowercased email', async () => {
       const config = await loadConfig()
-      profilesMock.single.mockResolvedValue({ data: { id: 'existing' }, error: null })
 
       await config.callbacks.signIn({
         user: { email: 'User@Gmail.com', name: 'User' },
         account: { provider: 'google' },
       })
 
-      expect(profilesMock.eq).toHaveBeenCalledWith('email', 'user@gmail.com')
+      expect(profilesMock.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'user@gmail.com', full_name: 'User' }),
+        expect.objectContaining({ onConflict: 'email', ignoreDuplicates: true })
+      )
     })
 
-    it('lowercases the email when inserting a new profile', async () => {
+    it('never runs the old select-then-insert dance (a single round-trip is the whole point)', async () => {
       const config = await loadConfig()
-      profilesMock.single.mockResolvedValue({ data: null, error: null })
 
       await config.callbacks.signIn({
-        user: { email: 'User@Gmail.com', name: 'User' },
+        user: { email: 'user@gmail.com', name: 'User' },
         account: { provider: 'google' },
       })
 
-      expect(profilesMock.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ email: 'user@gmail.com' })
-      )
+      // Old shape: .from('profiles').select('id').eq('email', ...).single()
+      // followed by a conditional .insert(). The refactor is only a win if the
+      // SELECT is gone — assert both to lock that in.
+      expect(profilesMock.select).not.toHaveBeenCalled()
+      expect(profilesMock.eq).not.toHaveBeenCalled()
     })
 
     it('returns true to allow sign-in', async () => {
       const config = await loadConfig()
-      profilesMock.single.mockResolvedValue({ data: { id: 'existing' }, error: null })
 
       const result = await config.callbacks.signIn({
         user: { email: 'user@gmail.com', name: 'User' },
@@ -118,6 +120,17 @@ describe('auth.ts callbacks', () => {
       })
 
       expect(result).toBe(true)
+    })
+
+    it('does not upsert on non-google providers', async () => {
+      const config = await loadConfig()
+
+      await config.callbacks.signIn({
+        user: { email: 'user@gmail.com', name: 'User' },
+        account: { provider: 'credentials' },
+      })
+
+      expect(profilesMock.upsert).not.toHaveBeenCalled()
     })
   })
 

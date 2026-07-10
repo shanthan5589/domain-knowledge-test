@@ -4,8 +4,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { isRateLimited } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  try {
+    if (await isRateLimited(req, 'signup', 5, 3600)) {
+      return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Unable to create account' }, { status: 503 })
+  }
+
   let body: { firstName?: string; lastName?: string; email?: string; password?: string }
   try {
     body = await req.json()
@@ -44,6 +53,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
   }
 
+  // Deliberately vague email-taken response: confirming the email is already
+  // registered would let an attacker enumerate accounts by mass-probing here.
+  const EMAIL_TAKEN_RESPONSE = NextResponse.json(
+    { error: 'Unable to create account with these details. If you already have an account, try logging in or resetting your password.' },
+    { status: 409 }
+  )
+
+  // Fast path: check for an existing email up front so the happy-path
+  // duplicate short-circuits before we spend ~100ms on bcrypt. The follow-up
+  // INSERT is what closes the TOCTOU race — profiles.email has a UNIQUE
+  // constraint, so if a second signup with the same email lands between the
+  // SELECT here and the INSERT below, Postgres returns error code 23505 and
+  // we return the same email-taken response.
   const { data: existing, error: lookupError } = await supabaseAdmin
     .from('profiles')
     .select('id')
@@ -54,26 +76,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create account' }, { status: 500 })
   }
 
-  if (existing) {
-    // Deliberately vague: confirming the email is already registered would let
-    // an attacker enumerate valid accounts by mass-probing this endpoint.
-    return NextResponse.json(
-      { error: 'Unable to create account with these details. If you already have an account, try logging in or resetting your password.' },
-      { status: 409 }
-    )
-  }
+  if (existing) return EMAIL_TAKEN_RESPONSE
 
   const password_hash = await bcrypt.hash(password, 12)
 
+  const trimmedFirst = firstName.trim()
+  const trimmedLast = lastName.trim()
   const { error: insertError } = await supabaseAdmin.from('profiles').insert({
     email: email.toLowerCase(),
-    first_name: firstName.trim(),
-    last_name: lastName.trim(),
-    full_name: `${firstName.trim()} ${lastName.trim()}`,
+    first_name: trimmedFirst,
+    last_name: trimmedLast,
+    full_name: `${trimmedFirst} ${trimmedLast}`,
     password_hash,
   })
 
   if (insertError) {
+    // 23505 = Postgres unique_violation — the SELECT above raced another
+    // concurrent signup for the same email. Same generic response as the
+    // fast-path branch so behavior looks identical from the outside.
+    if (insertError.code === '23505') return EMAIL_TAKEN_RESPONSE
     return NextResponse.json({ error: 'Failed to create account' }, { status: 500 })
   }
 

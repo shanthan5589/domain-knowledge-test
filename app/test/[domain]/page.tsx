@@ -5,10 +5,13 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import QuizTimer from '@/components/QuizTimer'
 import QuizQuestion from '@/components/QuizQuestion'
+import PromoInterstitial from '@/components/PromoInterstitial'
+import PromoBadge from '@/components/PromoBadge'
 import ScoreGauge from '@/components/ui/ScoreGauge'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { antiCheatHandlers } from '@/lib/anti-cheat'
+import { PROMO_BADGE_ENABLED, PROMO_INTERSTITIAL_ENABLED, pickInterstitialTriggerIndex } from '@/lib/promo'
 
 const TOTAL_SECONDS = 300 // 5 minutes
 
@@ -32,19 +35,44 @@ export default function TestPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, CorrectAnswer>>({})
   const [score, setScore] = useState<number | null>(null)
-  const [startTime, setStartTime] = useState<number | null>(null)
+  const [attemptId, setAttemptId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
   // Bumped every time the user clicks "Try Again" on the results screen so a
   // same-domain retake (which doesn't change `domain`, `status`, or `router`)
   // still forces the data-fetching effect below to re-run and fully reset
-  // questions/currentIndex/answers/score/startTime/phase/errorMessage.
+  // questions/currentIndex/answers/score/attemptId/phase/errorMessage.
   const [resetKey, setResetKey] = useState(0)
 
   // Guards submitTest so it's a no-op after the first call — protects against
   // the timer firing its expire callback twice, or a manual Submit click
   // landing at nearly the same instant the timer expires.
   const hasSubmittedRef = useRef(false)
+
+  // Mid-quiz Castor AI promo: shown once per attempt, at a randomized
+  // question index re-rolled alongside hasSubmittedRef below so retakes get
+  // a fresh (and unpredictable) trigger point each time.
+  const [showInterstitial, setShowInterstitial] = useState(false)
+  const interstitialShownRef = useRef(false)
+  const interstitialTriggerRef = useRef(5)
+
+  // Client-side wall-clock start of the current attempt (captured once
+  // questions are ready). Used with pausedDurationMsRef below to compute an
+  // adjusted time_taken_seconds so the mid-quiz interstitial pause does not
+  // leak into recorded quiz duration. A ref (not state) so nothing re-renders
+  // on capture.
+  const startTimeMsRef = useRef<number | null>(null)
+  // Total time the interstitial was actually open across this attempt, in ms.
+  // Subtracted from wall-clock elapsed in the submit body so a user's recorded
+  // quiz time reflects only time spent on questions. Without this, the raw
+  // Date.now() - startTime math absorbs the pause and inflates every attempt's
+  // recorded completion time (and can also push wall-clock past the server's
+  // expires_at grace).
+  const pausedDurationMsRef = useRef(0)
+  // Timestamp of the currently-open interstitial (null when it isn't open).
+  // Written on show, cleared on Continue; the delta between the two is added
+  // to pausedDurationMsRef.
+  const interstitialOpenedAtRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -65,20 +93,34 @@ export default function TestPage() {
     // external system (the API), not a cascading-render anti-pattern.
     async function fetchQuestions() {
       hasSubmittedRef.current = false
+      // Reset together with hasSubmittedRef above — both guard per-attempt
+      // one-time behavior, so a future edit to one should touch the other.
+      interstitialShownRef.current = false
+      setShowInterstitial(false)
+      startTimeMsRef.current = null
+      pausedDurationMsRef.current = 0
+      interstitialOpenedAtRef.current = null
       setPhase('loading')
       setQuestions([])
       setCurrentIndex(0)
       setAnswers({})
       setScore(null)
-      setStartTime(null)
+      setAttemptId(null)
       setErrorMessage('')
 
       try {
         const res = await fetch(`/api/questions/${domain}`)
         if (!res.ok) throw new Error('Failed to load questions')
         const data = await res.json()
+        if (!data.attemptId || !Array.isArray(data.questions) || data.questions.length !== 10) {
+          throw new Error('Invalid quiz attempt')
+        }
+        interstitialTriggerRef.current = pickInterstitialTriggerIndex(data.questions.length)
         setQuestions(data.questions)
-        setStartTime(Date.now()) // start timer only when questions are ready
+        setAttemptId(data.attemptId)
+        // Capture wall-clock start only after we have a usable attempt so the
+        // recorded time doesn't include the initial fetch or any auth wait.
+        startTimeMsRef.current = Date.now()
         setPhase('quiz')
       } catch {
         setErrorMessage('Could not load questions. Please try again.')
@@ -93,16 +135,24 @@ export default function TestPage() {
       if (hasSubmittedRef.current) return
       hasSubmittedRef.current = true
       setPhase('submitting')
-      const timeTaken = Math.round((Date.now() - (startTime ?? Date.now())) / 1000)
+      if (!attemptId) throw new Error('Missing quiz attempt')
+      // Wall-clock elapsed minus any interstitial-open time. Clamped to
+      // [0, TOTAL_SECONDS]; server clamps to a wall-clock sanity window too.
+      const startTimeMs = startTimeMsRef.current ?? Date.now()
+      const elapsedMs = Date.now() - startTimeMs - pausedDurationMsRef.current
+      const timeTakenSeconds = Math.max(
+        0,
+        Math.min(TOTAL_SECONDS, Math.round(elapsedMs / 1000))
+      )
       try {
         const res = await fetch('/api/results', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             domain,
-            score: 0, // server calculates actual score
-            time_taken_seconds: Math.min(timeTaken, TOTAL_SECONDS),
+            attempt_id: attemptId,
             answers: finalAnswers,
+            time_taken_seconds: timeTakenSeconds,
           }),
         })
         if (!res.ok) throw new Error('Failed to save results')
@@ -114,7 +164,7 @@ export default function TestPage() {
         setPhase('error')
       }
     },
-    [domain, startTime]
+    [attemptId, domain]
   )
 
   function handleTimerExpire() {
@@ -131,11 +181,30 @@ export default function TestPage() {
   }
 
   function handleNext() {
+    if (
+      PROMO_INTERSTITIAL_ENABLED &&
+      currentIndex === interstitialTriggerRef.current &&
+      !interstitialShownRef.current
+    ) {
+      interstitialShownRef.current = true
+      interstitialOpenedAtRef.current = Date.now()
+      setShowInterstitial(true)
+      return // Continue Quiz (handleInterstitialContinue) advances currentIndex, not this click
+    }
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((i) => i + 1)
     } else {
       submitTest({ ...answers })
     }
+  }
+
+  function handleInterstitialContinue() {
+    if (interstitialOpenedAtRef.current !== null) {
+      pausedDurationMsRef.current += Date.now() - interstitialOpenedAtRef.current
+      interstitialOpenedAtRef.current = null
+    }
+    setShowInterstitial(false)
+    setCurrentIndex((i) => i + 1)
   }
 
   const currentQuestion = questions[currentIndex]
@@ -216,6 +285,11 @@ export default function TestPage() {
               Try Again
             </button>
           </div>
+          {PROMO_BADGE_ENABLED && (
+            <div className="mt-6 pt-4 border-t border-[var(--line)] flex justify-center">
+              <PromoBadge />
+            </div>
+          )}
         </div>
       </main>
     )
@@ -234,17 +308,26 @@ export default function TestPage() {
   return (
     <main className="min-h-screen bg-[var(--paper)]" {...antiCheatHandlers}>
       {/* Header bar */}
-      <div className="sticky top-0 z-10 bg-[var(--surface)] border-b border-[var(--line)] px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-[var(--ink)] hidden sm:inline">
-            {DOMAIN_LABELS[domain]}
-          </span>
-          <span className="font-mono text-sm text-[var(--ink-soft)]">
-            {currentIndex + 1} / {questions.length}
-          </span>
+      <div className="sticky top-0 z-10 bg-[var(--surface)] border-b border-[var(--line)]">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-[var(--ink)] hidden sm:inline">
+              {DOMAIN_LABELS[domain]}
+            </span>
+            <span className="font-mono text-sm text-[var(--ink-soft)]">
+              {currentIndex + 1} / {questions.length}
+            </span>
+          </div>
+          <QuizTimer totalSeconds={TOTAL_SECONDS} onExpire={handleTimerExpire} paused={showInterstitial} />
         </div>
-        <QuizTimer totalSeconds={TOTAL_SECONDS} onExpire={handleTimerExpire} />
+        {PROMO_BADGE_ENABLED && (
+          <div className="px-4 pb-1.5 flex justify-center sm:justify-end">
+            <PromoBadge />
+          </div>
+        )}
       </div>
+
+      {showInterstitial && <PromoInterstitial onContinue={handleInterstitialContinue} />}
 
       {/* Progress bar */}
       <div className="h-1 bg-[var(--line)]">

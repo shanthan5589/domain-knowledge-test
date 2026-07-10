@@ -205,4 +205,20 @@ describe('POST /api/auth/signup', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 409 when INSERT loses the TOCTOU race and Postgres raises 23505', async () => {
+    // A concurrent signup for the same email races between the existence
+    // check and the INSERT here. The initial SELECT sees no row, but Postgres
+    // rejects the INSERT with unique_violation (23505). We must return the
+    // same generic 409 as the fast-path branch, not a leaky 500.
+    mockNoExisting()
+    mockFrom.mockReturnValueOnce({
+      insert: jest.fn().mockResolvedValue({
+        error: { code: '23505', message: 'duplicate key value violates unique constraint "profiles_email_key"' },
+      }),
+    })
+    const res = await POST(makeRequest(validBody))
+    expect(res.status).toBe(409)
+    const { error } = await res.json()
+    expect(error).not.toMatch(/already exists/i)
+  })
 })

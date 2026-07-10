@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { isRateLimited } from '@/lib/rate-limit'
+import { latestResultsForAllDomains } from '@/lib/latest-results'
 import { latestByKey } from '@/lib/latest-by-key'
 import {
   buildActivityCalendar,
@@ -27,6 +29,14 @@ const RESULTS_QUERY_LIMIT = 5000
 export async function GET(req: NextRequest) {
   const { session, unauthorizedResponse } = await requireSession()
   if (!session) return unauthorizedResponse
+
+  try {
+    if (await isRateLimited(req, 'stats-personal', 120, 60, session.user.email)) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Unable to fetch personal stats' }, { status: 503 })
+  }
 
   const { data: myResults, error: myError } = await supabaseAdmin
     .from('test_results')
@@ -58,12 +68,7 @@ export async function GET(req: NextRequest) {
   const city = req.nextUrl.searchParams.get('city')
   const country = req.nextUrl.searchParams.get('country')
 
-  const { data: crowdResults, error: crowdError } = await supabaseAdmin
-    .from('test_results')
-    .select('user_email, score, time_taken_seconds, completed_at, domain')
-    .in('domain', VALID_DOMAINS)
-    .order('completed_at', { ascending: false })
-    .limit(RESULTS_QUERY_LIMIT * VALID_DOMAINS.length)
+  const { data: crowdResults, error: crowdError } = await latestResultsForAllDomains()
 
   if (crowdError || !crowdResults) {
     return NextResponse.json({ error: 'Failed to fetch personal stats' }, { status: 500 })
