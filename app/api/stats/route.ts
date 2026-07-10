@@ -4,6 +4,8 @@ import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { isRateLimited } from '@/lib/rate-limit'
+import { latestResultsForDomain } from '@/lib/latest-results'
 import { latestByKey } from '@/lib/latest-by-key'
 import {
   MIN_COHORT_SIZE,
@@ -45,17 +47,20 @@ export async function GET(req: NextRequest) {
   const { session, unauthorizedResponse } = await requireSession()
   if (!session) return unauthorizedResponse
 
+  try {
+    if (await isRateLimited(req, 'stats', 120, 60, session.user.email)) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Unable to fetch stats' }, { status: 503 })
+  }
+
   const domain = req.nextUrl.searchParams.get('domain')
   if (!domain || !VALID_DOMAINS.includes(domain as Domain)) {
     return NextResponse.json({ error: 'Invalid domain' }, { status: 400 })
   }
 
-  const { data: results, error } = await supabaseAdmin
-    .from('test_results')
-    .select('user_email, score, time_taken_seconds, completed_at')
-    .eq('domain', domain)
-    .order('completed_at', { ascending: false })
-    .limit(RESULTS_QUERY_LIMIT)
+  const { data: results, error } = await latestResultsForDomain(domain)
 
   if (error || !results) {
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
@@ -67,20 +72,16 @@ export async function GET(req: NextRequest) {
   const userProgress = buildUserProgress(
     resultRows.filter((row) => row.user_email === session.user.email)
   )
+  const locationParams = readLocationParams(req)
+  const locationDimension = getLocationDimension(locationParams)
 
-  // Optionally restrict the crowd by any combination of profile attributes
-  const { emailFilter, error: filterError } = await resolveEmailFilter(req)
-  if (filterError) {
-    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
-  }
-
-  const matchingEmails = [...latestByEmail.keys()].filter((email) => matchesEmailFilter(emailFilter, email))
-
-  if (matchingEmails.length === 0) {
+  // Nobody has ever completed this domain — nothing to aggregate, and no
+  // profiles worth fetching.
+  if (latestByEmail.size === 0) {
     return NextResponse.json({
       histogram: new Array(11).fill(0),
       totalUsers: 0,
-      yourScore: latestByEmail.get(session.user.email)?.score ?? null,
+      yourScore: null,
       yourRank: null,
       percentile: null,
       averageScore: null,
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
       experienceDistribution: [],
       locationDistribution: [],
       locationAverageScores: [],
-      locationDistributionLabel: getLocationDimension(readLocationParams(req)).label,
+      locationDistributionLabel: locationDimension.label,
       locationComparisons: [],
       userProgress,
       rankLadder: [],
@@ -110,6 +111,19 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // The full crowd: every filter (designation, experience, country, state,
+  // city) narrows this down. Drives the score distribution, percentile,
+  // role/experience/location breakdowns, and "where you stand" widgets.
+  const { emailFilter, error: filterError } = await resolveEmailFilter(req)
+  if (filterError) {
+    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
+  }
+  const matchingEmails = [...latestByEmail.keys()].filter((email) => matchesEmailFilter(emailFilter, email))
+
+  // Profiles for every attempter, not just the ones matching the active
+  // filters — needed so the domain+country-only widgets below (Top cities,
+  // Average/test-takers by state, Peer groups) can build their own broader
+  // cohort from the same fetch, without a second round trip.
   const { data: profiles, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('email, full_name, designation, years_of_experience, country, state_region, city')
@@ -123,23 +137,41 @@ export async function GET(req: NextRequest) {
     (profiles as ProfileRow[]).map((profile) => [profile.email, profile])
   )
 
-  // Ignore result rows whose profile has been deleted so community numbers
-  // reflect real users, not old test data.
-  const entries: ScoreEntry[] = matchingEmails
-    .map((email) => {
-      const profile = profileByEmail.get(email)
-      const latest = latestByEmail.get(email)
-      if (!profile) return null
-      if (!latest) return null
-      return {
-        email,
-        score: latest.score,
-        time_taken_seconds: latest.time_taken_seconds,
-        completed_at: latest.completed_at,
-        profile,
-      }
-    })
-    .filter((entry): entry is ScoreEntry => entry !== null)
+  function buildEntries(emails: string[]): ScoreEntry[] {
+    // Ignore result rows whose profile has been deleted so community numbers
+    // reflect real users, not old test data.
+    return emails
+      .map((email) => {
+        const profile = profileByEmail.get(email)
+        const latest = latestByEmail.get(email)
+        if (!profile) return null
+        if (!latest) return null
+        return {
+          email,
+          score: latest.score,
+          time_taken_seconds: latest.time_taken_seconds,
+          completed_at: latest.completed_at,
+          profile,
+        }
+      })
+      .filter((entry): entry is ScoreEntry => entry !== null)
+  }
+
+  const entries = buildEntries(matchingEmails)
+
+  // A broader crowd scoped to domain + country only — designation, experience,
+  // state, and city never narrow this one. Top cities, Average/test-takers by
+  // state, and Peer groups all read from this instead of `entries`: those
+  // widgets exist to show a state/city leaderboard or a peer breakdown, which
+  // collapses to "just you" the moment city/state/designation/experience
+  // filters apply to them too. Country is kept so a state/city leaderboard
+  // doesn't mix places from different countries into one ranking.
+  const countryParam = locationParams.country?.trim()
+  const countryFilterActive = !!countryParam && countryParam !== 'all'
+  const countryMatchingEmails = countryFilterActive
+    ? [...latestByEmail.keys()].filter((email) => profileByEmail.get(email)?.country === countryParam)
+    : [...latestByEmail.keys()]
+  const countryEntries = buildEntries(countryMatchingEmails)
 
   const histogram = new Array(11).fill(0)
   let scoreSum = 0
@@ -199,28 +231,31 @@ export async function GET(req: NextRequest) {
       ? entries.filter((entry) => entry.score > yourScore).length + 1
       : null
 
-  const locationParams = readLocationParams(req)
-  const locationDimension = getLocationDimension(locationParams)
+  // City/state rankings feed both the "Top cities" and "Average/test-takers by
+  // state" widgets. Computed once here from `countryEntries`, then re-sorted
+  // per widget so a city that's below the cohort floor never appears in any
+  // of them. "isYou" is resolved straight from the profile map so it's never
+  // affected by which filters happen to be active.
+  const userCity = profileByEmail.get(session.user.email)?.city ?? null
+  const userState = profileByEmail.get(session.user.email)?.state_region ?? null
 
-  // City rankings feed both the "Top cities" and "Average/test-takers by
-  // state" widgets. Computed once here, then re-sorted per widget so a city
-  // that's below the cohort floor never appears in any of them.
-  const userCity = entries.find((entry) => entry.email === session.user.email)?.profile.city ?? null
-  const userState = entries.find((entry) => entry.email === session.user.email)?.profile.state_region ?? null
-
-  const cityGroupsByScore = withMinCohortSize(toAverageScoreByGroup(entries, (entry) => entry.profile.city))
+  const cityGroupsByScore = withMinCohortSize(
+    toAverageScoreByGroup(countryEntries, (entry) => entry.profile.city)
+  )
   const cityGroupsByParticipation = [...cityGroupsByScore].sort(
     (a, b) => b.count - a.count || b.averageScore - a.averageScore
   )
 
   const stateGroupsByScore = withMinCohortSize(
-    toAverageScoreByGroup(entries, (entry) => entry.profile.state_region)
+    toAverageScoreByGroup(countryEntries, (entry) => entry.profile.state_region)
   )
   const stateGroupsByParticipation = [...stateGroupsByScore].sort(
     (a, b) => b.count - a.count || b.averageScore - a.averageScore
   )
 
-  const STATE_LEADERBOARD_SIZE = 15
+  // Both leaderboards show the real top 10, plus a conditional extra row for
+  // your own place if it didn't already make the cut (see buildTopCities).
+  const LEADERBOARD_SIZE = 10
 
   return NextResponse.json({
     histogram,
@@ -258,17 +293,21 @@ export async function GET(req: NextRequest) {
     locationComparisons: buildLocationComparisons(locationParams, entries),
     userProgress,
     rankLadder: buildRankLadder(locationParams, entries, session.user.email),
-    peerGroupRanks: buildPeerGroupRanks(entries, session.user.email, [
+    // Domain + country scoped (see countryEntries above) — a peer group like
+    // "Role: Data Scientist" should compare against every Data Scientist in
+    // (your country's) crowd, not just the ones who also happen to match
+    // whatever Designation/Experience/City/State filters are active.
+    peerGroupRanks: buildPeerGroupRanks(countryEntries, session.user.email, [
       { dimension: 'Role', getLabel: (entry) => entry.profile.designation },
       { dimension: 'Experience', getLabel: (entry) => entry.profile.years_of_experience },
       { dimension: 'City', getLabel: (entry) => entry.profile.city },
       { dimension: 'State / Region', getLabel: (entry) => entry.profile.state_region },
       { dimension: 'Country', getLabel: (entry) => entry.profile.country },
     ]),
-    topCitiesByScore: buildTopCities(cityGroupsByScore, userCity),
-    topCitiesByParticipation: buildTopCities(cityGroupsByParticipation, userCity),
-    averageScoreByState: buildTopCities(stateGroupsByScore, userState, STATE_LEADERBOARD_SIZE),
-    testTakersByState: buildTopCities(stateGroupsByParticipation, userState, STATE_LEADERBOARD_SIZE),
+    topCitiesByScore: buildTopCities(cityGroupsByScore, userCity, LEADERBOARD_SIZE),
+    topCitiesByParticipation: buildTopCities(cityGroupsByParticipation, userCity, LEADERBOARD_SIZE),
+    averageScoreByState: buildTopCities(stateGroupsByScore, userState, LEADERBOARD_SIZE),
+    testTakersByState: buildTopCities(stateGroupsByParticipation, userState, LEADERBOARD_SIZE),
     neighbors: buildNeighbors(entries, session.user.email),
   })
 }

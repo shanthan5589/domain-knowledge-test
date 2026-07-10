@@ -35,13 +35,13 @@ export default function TestPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, CorrectAnswer>>({})
   const [score, setScore] = useState<number | null>(null)
-  const [startTime, setStartTime] = useState<number | null>(null)
+  const [attemptId, setAttemptId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
   // Bumped every time the user clicks "Try Again" on the results screen so a
   // same-domain retake (which doesn't change `domain`, `status`, or `router`)
   // still forces the data-fetching effect below to re-run and fully reset
-  // questions/currentIndex/answers/score/startTime/phase/errorMessage.
+  // questions/currentIndex/answers/score/attemptId/phase/errorMessage.
   const [resetKey, setResetKey] = useState(0)
 
   // Guards submitTest so it's a no-op after the first call — protects against
@@ -56,13 +56,22 @@ export default function TestPage() {
   const interstitialShownRef = useRef(false)
   const interstitialTriggerRef = useRef(5)
 
-  // How long the interstitial was actually open, in ms — subtracted from the
-  // submitted time_taken_seconds so a user's recorded quiz time reflects
-  // only time spent on questions, not time spent looking at the promo.
-  // Without this, time_taken_seconds (pure Date.now() - startTime wall-clock
-  // math in submitTest) would silently absorb the pause and inflate every
-  // attempt's recorded completion time.
-  const pausedDurationRef = useRef(0)
+  // Client-side wall-clock start of the current attempt (captured once
+  // questions are ready). Used with pausedDurationMsRef below to compute an
+  // adjusted time_taken_seconds so the mid-quiz interstitial pause does not
+  // leak into recorded quiz duration. A ref (not state) so nothing re-renders
+  // on capture.
+  const startTimeMsRef = useRef<number | null>(null)
+  // Total time the interstitial was actually open across this attempt, in ms.
+  // Subtracted from wall-clock elapsed in the submit body so a user's recorded
+  // quiz time reflects only time spent on questions. Without this, the raw
+  // Date.now() - startTime math absorbs the pause and inflates every attempt's
+  // recorded completion time (and can also push wall-clock past the server's
+  // expires_at grace).
+  const pausedDurationMsRef = useRef(0)
+  // Timestamp of the currently-open interstitial (null when it isn't open).
+  // Written on show, cleared on Continue; the delta between the two is added
+  // to pausedDurationMsRef.
   const interstitialOpenedAtRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -88,23 +97,30 @@ export default function TestPage() {
       // one-time behavior, so a future edit to one should touch the other.
       interstitialShownRef.current = false
       setShowInterstitial(false)
-      pausedDurationRef.current = 0
+      startTimeMsRef.current = null
+      pausedDurationMsRef.current = 0
       interstitialOpenedAtRef.current = null
       setPhase('loading')
       setQuestions([])
       setCurrentIndex(0)
       setAnswers({})
       setScore(null)
-      setStartTime(null)
+      setAttemptId(null)
       setErrorMessage('')
 
       try {
         const res = await fetch(`/api/questions/${domain}`)
         if (!res.ok) throw new Error('Failed to load questions')
         const data = await res.json()
+        if (!data.attemptId || !Array.isArray(data.questions) || data.questions.length !== 10) {
+          throw new Error('Invalid quiz attempt')
+        }
         interstitialTriggerRef.current = pickInterstitialTriggerIndex(data.questions.length)
         setQuestions(data.questions)
-        setStartTime(Date.now()) // start timer only when questions are ready
+        setAttemptId(data.attemptId)
+        // Capture wall-clock start only after we have a usable attempt so the
+        // recorded time doesn't include the initial fetch or any auth wait.
+        startTimeMsRef.current = Date.now()
         setPhase('quiz')
       } catch {
         setErrorMessage('Could not load questions. Please try again.')
@@ -119,8 +135,14 @@ export default function TestPage() {
       if (hasSubmittedRef.current) return
       hasSubmittedRef.current = true
       setPhase('submitting')
-      const timeTaken = Math.round(
-        (Date.now() - (startTime ?? Date.now()) - pausedDurationRef.current) / 1000
+      if (!attemptId) throw new Error('Missing quiz attempt')
+      // Wall-clock elapsed minus any interstitial-open time. Clamped to
+      // [0, TOTAL_SECONDS]; server clamps to a wall-clock sanity window too.
+      const startTimeMs = startTimeMsRef.current ?? Date.now()
+      const elapsedMs = Date.now() - startTimeMs - pausedDurationMsRef.current
+      const timeTakenSeconds = Math.max(
+        0,
+        Math.min(TOTAL_SECONDS, Math.round(elapsedMs / 1000))
       )
       try {
         const res = await fetch('/api/results', {
@@ -128,9 +150,9 @@ export default function TestPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             domain,
-            score: 0, // server calculates actual score
-            time_taken_seconds: Math.min(timeTaken, TOTAL_SECONDS),
+            attempt_id: attemptId,
             answers: finalAnswers,
+            time_taken_seconds: timeTakenSeconds,
           }),
         })
         if (!res.ok) throw new Error('Failed to save results')
@@ -142,7 +164,7 @@ export default function TestPage() {
         setPhase('error')
       }
     },
-    [domain, startTime]
+    [attemptId, domain]
   )
 
   function handleTimerExpire() {
@@ -178,7 +200,7 @@ export default function TestPage() {
 
   function handleInterstitialContinue() {
     if (interstitialOpenedAtRef.current !== null) {
-      pausedDurationRef.current += Date.now() - interstitialOpenedAtRef.current
+      pausedDurationMsRef.current += Date.now() - interstitialOpenedAtRef.current
       interstitialOpenedAtRef.current = null
     }
     setShowInterstitial(false)

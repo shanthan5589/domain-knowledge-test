@@ -4,6 +4,8 @@ import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { isRateLimited } from '@/lib/rate-limit'
+import { latestResultsForDomain } from '@/lib/latest-results'
 import { latestByKey } from '@/lib/latest-by-key'
 
 const DEFAULT_LIMIT = 5
@@ -18,6 +20,14 @@ export async function GET(req: NextRequest) {
   const { session, unauthorizedResponse } = await requireSession()
   if (!session) return unauthorizedResponse
 
+  try {
+    if (await isRateLimited(req, 'leaderboard', 60, 60, session.user.email)) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Unable to fetch leaderboard' }, { status: 503 })
+  }
+
   const domain = req.nextUrl.searchParams.get('domain')
   if (!domain || !VALID_DOMAINS.includes(domain as Domain)) {
     return NextResponse.json({ error: 'Invalid domain' }, { status: 400 })
@@ -26,11 +36,7 @@ export async function GET(req: NextRequest) {
   const rawLimit = parseInt(req.nextUrl.searchParams.get('limit') ?? '', 10)
   const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : DEFAULT_LIMIT, 1), MAX_LIMIT)
 
-  const { data: results, error } = await supabaseAdmin
-    .from('test_results')
-    .select('user_email, score, completed_at')
-    .eq('domain', domain)
-    .order('completed_at', { ascending: false })
+  const { data: results, error } = await latestResultsForDomain(domain)
 
   if (error || !results) {
     return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 })

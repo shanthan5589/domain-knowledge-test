@@ -4,6 +4,8 @@ import { matchesEmailFilter, resolveEmailFilter } from '@/lib/stats-filters'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS } from '@/lib/domains'
 import { requireSession } from '@/lib/session'
+import { isRateLimited } from '@/lib/rate-limit'
+import { latestResultsForAllDomains } from '@/lib/latest-results'
 import { latestByKey } from '@/lib/latest-by-key'
 
 // Cap on how many result rows we pull before aggregating in memory — keeps a
@@ -19,12 +21,15 @@ export async function GET(req: NextRequest) {
   const { session, unauthorizedResponse } = await requireSession()
   if (!session) return unauthorizedResponse
 
-  const { data: results, error } = await supabaseAdmin
-    .from('test_results')
-    .select('domain, user_email, score, completed_at')
-    .in('domain', VALID_DOMAINS)
-    .order('completed_at', { ascending: false })
-    .limit(RESULTS_QUERY_LIMIT)
+  try {
+    if (await isRateLimited(req, 'stats-overview', 120, 60, session.user.email)) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Unable to fetch overview' }, { status: 503 })
+  }
+
+  const { data: results, error } = await latestResultsForAllDomains()
 
   if (error || !results) {
     return NextResponse.json({ error: 'Failed to fetch overview' }, { status: 500 })

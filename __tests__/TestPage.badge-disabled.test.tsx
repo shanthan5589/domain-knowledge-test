@@ -11,11 +11,14 @@ jest.mock('next/navigation', () => ({
 }))
 
 // Badge off, interstitial left at its real (enabled) default, trigger index
-// pinned for determinism — proves the two switches are independent.
+// pinned for determinism — proves the two switches are independent. Continue
+// delay zeroed out since this test uses real timers and isn't testing the
+// gating countdown itself.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_BADGE_ENABLED: false,
   pickInterstitialTriggerIndex: jest.fn(() => 5),
+  PROMO_CONTINUE_DELAY_SECONDS: 0,
 }))
 
 import { useSession } from 'next-auth/react'
@@ -39,7 +42,10 @@ function makeQuestion(i: number) {
 function mockQuestionsResponse(count = 10) {
   return {
     ok: true,
-    json: async () => ({ questions: Array.from({ length: count }, (_, i) => makeQuestion(i)) }),
+    json: async () => ({
+      attemptId: 'attempt-1',
+      questions: Array.from({ length: count }, (_, i) => makeQuestion(i)),
+    }),
   }
 }
 

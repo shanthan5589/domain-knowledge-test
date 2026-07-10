@@ -13,11 +13,15 @@ jest.mock('next/navigation', () => ({
 }))
 
 // The interstitial's trigger question is randomized per attempt — mock it to
-// a fixed value so tests are deterministic instead of flaky. Everything else
-// from lib/promo (copy, URLs, both enabled flags) stays real.
+// a fixed value so tests are deterministic instead of flaky. The continue
+// delay is zeroed out too — these tests use real timers and only care about
+// quiz flow/wiring, not the gating countdown itself (covered separately in
+// PromoInterstitial.test.tsx). Everything else from lib/promo (copy, URLs,
+// both enabled flags) stays real.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   pickInterstitialTriggerIndex: jest.fn(),
+  PROMO_CONTINUE_DELAY_SECONDS: 0,
 }))
 
 import { useSession } from 'next-auth/react'
@@ -45,7 +49,10 @@ function makeQuestion(i: number) {
 function mockQuestionsResponse(count = 10) {
   return {
     ok: true,
-    json: async () => ({ questions: Array.from({ length: count }, (_, i) => makeQuestion(i)) }),
+    json: async () => ({
+      attemptId: 'attempt-1',
+      questions: Array.from({ length: count }, (_, i) => makeQuestion(i)),
+    }),
   }
 }
 

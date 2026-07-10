@@ -41,7 +41,10 @@ function makeQuestion(i: number) {
 function mockQuestionsResponse(count = 10) {
   return {
     ok: true,
-    json: async () => ({ questions: Array.from({ length: count }, (_, i) => makeQuestion(i)) }),
+    json: async () => ({
+      attemptId: 'attempt-1',
+      questions: Array.from({ length: count }, (_, i) => makeQuestion(i)),
+    }),
   }
 }
 
