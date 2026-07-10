@@ -1,13 +1,15 @@
 import {
+  PROMO_AD_TAG_LABEL,
   PROMO_BADGE_ENABLED,
   PROMO_BADGE_LABEL,
   PROMO_BADGE_URL,
   PROMO_BODY,
+  PROMO_BRAND_NAME,
+  PROMO_CONTINUE_DELAY_SECONDS,
+  PROMO_CONTINUE_LABEL,
   PROMO_CTA_LABEL,
-  PROMO_EYEBROW,
   PROMO_INTERSTITIAL_ENABLED,
   PROMO_INTERSTITIAL_URL,
-  PROMO_LINK_LABEL,
   pickInterstitialTriggerIndex,
 } from '@/lib/promo'
 
@@ -19,10 +21,11 @@ describe('lib/promo', () => {
 
   it('has non-empty copy for every field', () => {
     for (const value of [
-      PROMO_EYEBROW,
+      PROMO_BRAND_NAME,
+      PROMO_AD_TAG_LABEL,
       PROMO_BODY,
-      PROMO_LINK_LABEL,
       PROMO_CTA_LABEL,
+      PROMO_CONTINUE_LABEL,
       PROMO_BADGE_LABEL,
     ]) {
       expect(typeof value).toBe('string')
@@ -47,6 +50,11 @@ describe('lib/promo', () => {
     const interstitialMedium = new URL(PROMO_INTERSTITIAL_URL).searchParams.get('utm_medium')
     const badgeMedium = new URL(PROMO_BADGE_URL).searchParams.get('utm_medium')
     expect(interstitialMedium).not.toBe(badgeMedium)
+  })
+
+  it('gates continue behind a positive, whole number of seconds', () => {
+    expect(Number.isInteger(PROMO_CONTINUE_DELAY_SECONDS)).toBe(true)
+    expect(PROMO_CONTINUE_DELAY_SECONDS).toBeGreaterThan(0)
   })
 
   describe('pickInterstitialTriggerIndex', () => {

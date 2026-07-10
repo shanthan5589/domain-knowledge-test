@@ -1,47 +1,72 @@
-import { PROMO_BODY, PROMO_CTA_LABEL, PROMO_EYEBROW, PROMO_INTERSTITIAL_URL, PROMO_LINK_LABEL } from '@/lib/promo'
+'use client'
+
+import { useEffect, useState } from 'react'
+import {
+  PROMO_AD_TAG_LABEL,
+  PROMO_BODY,
+  PROMO_BRAND_NAME,
+  PROMO_CONTINUE_DELAY_SECONDS,
+  PROMO_CONTINUE_LABEL,
+  PROMO_CTA_LABEL,
+  PROMO_INTERSTITIAL_URL,
+} from '@/lib/promo'
 
 interface PromoInterstitialProps {
   onContinue: () => void
 }
 
 // One-time mid-quiz overlay promoting Castor AI, shown at a randomized point
-// between question 6 and the second-to-last question. Toast/notification
-// style: white card, left-aligned, thick signal-colored left edge — a
-// distinct silhouette from the app's centered confirmation modals.
+// between question 6 and the second-to-last question. Deliberately styled to
+// read as a real ad unit (brand chip + "Ad" tag + one strong CTA) rather than
+// an in-app dialog — a single dark button is the only prominent action; the
+// way back into the quiz is a quiet text link, not a competing button.
 export default function PromoInterstitial({ onContinue }: PromoInterstitialProps) {
+  // Continue is locked for a few seconds (like a skippable video ad) so the
+  // user has to at least glance at the ad before leaving. The outbound CTA
+  // has no such gate — it's clickable the instant the card appears.
+  const [secondsLeft, setSecondsLeft] = useState(PROMO_CONTINUE_DELAY_SECONDS)
+  const canContinue = secondsLeft <= 0
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return
+    const id = setTimeout(() => setSecondsLeft((s) => s - 1), 1000)
+    return () => clearTimeout(id)
+  }, [secondsLeft])
+
   return (
     <div
       data-testid="promo-interstitial"
       className="fixed inset-0 bg-[var(--ink)]/60 flex items-center justify-center z-50 px-4"
     >
-      <div className="bg-[var(--surface)] rounded-xl border-l-4 border-[var(--signal)] shadow-2xl max-w-sm w-full p-6 text-left">
-        <div className="flex items-center gap-2 mb-3">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-[var(--signal)]" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-          </svg>
-          <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[var(--signal)]">
-            {PROMO_EYEBROW}
-          </p>
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl max-w-sm w-full p-5 text-left">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-7 h-7 rounded-full bg-[var(--action)] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            C
+          </div>
+          <span className="text-sm font-medium text-[var(--ink)]">{PROMO_BRAND_NAME}</span>
+          <span className="ml-auto text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+            {PROMO_AD_TAG_LABEL}
+          </span>
         </div>
-        <h2 className="text-base font-bold text-[var(--ink)] leading-snug mb-5">{PROMO_BODY}</h2>
 
-        <div className="flex items-center justify-between gap-3">
-          <a
-            href={PROMO_INTERSTITIAL_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-[var(--signal)] hover:text-[var(--action)] transition-colors whitespace-nowrap"
-          >
-            {PROMO_LINK_LABEL} →
-          </a>
+        <p className="text-[15px] font-medium text-[var(--ink)] leading-snug mb-4">{PROMO_BODY}</p>
 
-          <button
-            onClick={onContinue}
-            className="flex-shrink-0 bg-[var(--action)] text-white rounded-md px-5 py-2.5 font-semibold hover:bg-[var(--action-hover)] transition-colors"
-          >
-            {PROMO_CTA_LABEL}
-          </button>
-        </div>
+        <a
+          href={PROMO_INTERSTITIAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center bg-[var(--action)] text-white rounded-md py-3 font-medium hover:bg-[var(--action-hover)] transition-colors"
+        >
+          {PROMO_CTA_LABEL} →
+        </a>
+
+        <button
+          onClick={onContinue}
+          disabled={!canContinue}
+          className="block w-full text-center text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--action)] transition-colors mt-3 py-2 disabled:opacity-50 disabled:hover:text-[var(--ink-soft)] disabled:cursor-not-allowed"
+        >
+          {canContinue ? PROMO_CONTINUE_LABEL : `${PROMO_CONTINUE_LABEL} (${secondsLeft}s)`}
+        </button>
       </div>
     </div>
   )

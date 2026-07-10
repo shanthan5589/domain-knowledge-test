@@ -23,11 +23,22 @@ export const PROMO_BADGE_URL = buildCastorUrl('quiz_badge')
 
 // Copy for the one-time mid-quiz interstitial card. Kept short and scannable
 // — this interrupts an in-progress quiz, so it's one line, not a paragraph.
-export const PROMO_EYEBROW = 'A quick read'
+export const PROMO_BRAND_NAME = 'Castor AI'
+export const PROMO_AD_TAG_LABEL = 'Ad'
 export const PROMO_BODY =
-  'At Castor AI, we provide AI Workforce Training and Software & Automation Solutions.'
-export const PROMO_LINK_LABEL = 'See how'
-export const PROMO_CTA_LABEL = 'Continue Quiz'
+  'We provide AI Workforce Training and Software Automation Solutions built around your workflow.'
+// Outbound CTA — the only prominent button on the card, matching how a real
+// ad reads (one strong call to action, not two competing buttons).
+export const PROMO_CTA_LABEL = 'See how'
+// Quiet, low-emphasis way back into the quiz — a text link, not a button of
+// equal weight to the CTA, so the card still reads as an ad rather than a
+// dialog with two equally-weighted choices.
+export const PROMO_CONTINUE_LABEL = 'Continue quiz'
+// Continue stays disabled for this many seconds after the card appears,
+// mirroring a skippable video ad — it guarantees at least a brief look at
+// the ad before the user can leave. Does not affect the outbound CTA, which
+// is clickable immediately.
+export const PROMO_CONTINUE_DELAY_SECONDS = 5
 
 // Copy for the passive, always-visible header badge.
 export const PROMO_BADGE_LABEL = 'Powered by Castor AI'
