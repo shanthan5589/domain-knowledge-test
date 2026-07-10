@@ -13,6 +13,13 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
 ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_created ON quiz_attempts (user_email, started_at DESC);
 
+-- RLS is enabled with zero policies, so only a role that bypasses RLS (or is
+-- explicitly granted) can touch this table. All access goes through
+-- supabaseAdmin (service_role) from server routes — never directly from the
+-- client — so grant it table privileges and leave anon/authenticated with
+-- none, matching how the functions below are locked down.
+GRANT SELECT, INSERT, UPDATE ON quiz_attempts TO service_role;
+
 ALTER TABLE test_results ADD COLUMN IF NOT EXISTS quiz_attempt_id UUID;
 DO $$
 BEGIN
