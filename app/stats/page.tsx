@@ -165,7 +165,7 @@ function StatsContent() {
     <main className="min-h-screen bg-[var(--paper)]">
       <AppHeader right={<UserMenu />} />
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <Link
           href="/dashboard"
           className="inline-flex items-center gap-1 text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors mb-6"
@@ -180,7 +180,7 @@ function StatsContent() {
 
         {/* Domain + Designation share a row so the chart doesn't get pushed below the fold */}
         <div className="flex flex-wrap items-end gap-4 mb-4">
-          <div className="w-full sm:flex-1 sm:min-w-[140px]">
+          <div className="w-full sm:flex-1 sm:min-w-[140px] sm:max-w-xs">
             <label htmlFor="stats-domain" className="block text-sm font-medium text-[var(--ink)] mb-1">
               Domain
             </label>
@@ -199,7 +199,7 @@ function StatsContent() {
             </select>
           </div>
 
-          <div className="w-full sm:flex-1 sm:min-w-[140px]">
+          <div className="w-full sm:flex-1 sm:min-w-[140px] sm:max-w-xs">
             <label htmlFor="stats-designation" className="block text-sm font-medium text-[var(--ink)] mb-1">
               Designation
             </label>
@@ -219,7 +219,7 @@ function StatsContent() {
             </select>
           </div>
 
-          <div className="w-full sm:flex-1 sm:min-w-[140px]">
+          <div className="w-full sm:flex-1 sm:min-w-[140px] sm:max-w-xs">
             <label htmlFor="stats-experience" className="block text-sm font-medium text-[var(--ink)] mb-1">
               Experience
             </label>

@@ -10,13 +10,15 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
-// Badge off, interstitial left at its real (enabled) default, trigger index
-// pinned for determinism — proves the two switches are independent. Continue
+// Badge off, interstitial explicitly pinned on, trigger index pinned for
+// determinism — proves the two switches are independent regardless of
+// whatever PROMO_INTERSTITIAL_ENABLED happens to be set to live. Continue
 // delay zeroed out since this test uses real timers and isn't testing the
 // gating countdown itself.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_BADGE_ENABLED: false,
+  PROMO_INTERSTITIAL_ENABLED: true,
   pickInterstitialTriggerIndex: jest.fn(() => 5),
   PROMO_CONTINUE_DELAY_SECONDS: 0,
 }))

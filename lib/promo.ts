@@ -6,7 +6,7 @@
 
 // Flip either to false and that surface disappears completely, everywhere,
 // with zero other code changes.
-export const PROMO_INTERSTITIAL_ENABLED = true
+export const PROMO_INTERSTITIAL_ENABLED = false
 export const PROMO_BADGE_ENABLED = false
 
 function buildCastorUrl(utmMedium: string): string {

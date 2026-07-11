@@ -51,14 +51,17 @@ export default function DomainOverview({ designation, experience, country, state
   if (!data) return <p className="text-[var(--ink-soft)] text-sm animate-pulse">Loading domain averages…</p>
 
   return (
-    <div data-testid="domain-overview" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    // Flex-wrap (not a fixed-column grid) so five domain cards never leave a
+    // ragged, half-empty trailing row — whatever doesn't fit on a line grows
+    // to fill it evenly, at every viewport width.
+    <div data-testid="domain-overview" className="flex flex-wrap gap-4">
       {ALL_DOMAINS.map((d) => {
         const avg = data.averageScoreByDomain[d]
         const count = data.attemptCounts[d] ?? 0
         const isMostAttempted = data.mostAttemptedDomain === d
 
         return (
-          <div key={d} className="bg-[var(--surface)] rounded-lg border border-[var(--line)] p-4">
+          <div key={d} className="min-w-[220px] flex-1 bg-[var(--surface)] rounded-lg border border-[var(--line)] p-4">
             <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-xs font-medium text-[var(--ink-soft)] uppercase tracking-wide">{DOMAIN_LABELS[d]}</p>
               {isMostAttempted && (
