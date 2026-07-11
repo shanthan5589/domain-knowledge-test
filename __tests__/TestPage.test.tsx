@@ -16,10 +16,13 @@ jest.mock('next/navigation', () => ({
 // a fixed value so tests are deterministic instead of flaky. The continue
 // delay is zeroed out too — these tests use real timers and only care about
 // quiz flow/wiring, not the gating countdown itself (covered separately in
-// PromoInterstitial.test.tsx). Everything else from lib/promo (copy, URLs,
-// both enabled flags) stays real.
+// PromoInterstitial.test.tsx). PROMO_INTERSTITIAL_ENABLED is pinned to true
+// here rather than left to fall through from the real module: this suite
+// exercises the interstitial's own wiring, so it shouldn't silently start
+// skipping that coverage whenever the live kill-switch happens to be off.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
+  PROMO_INTERSTITIAL_ENABLED: true,
   pickInterstitialTriggerIndex: jest.fn(),
   PROMO_CONTINUE_DELAY_SECONDS: 0,
 }))
