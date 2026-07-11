@@ -24,22 +24,36 @@ function makeRequest(query: string) {
   return new NextRequest(`http://localhost/api/stats${query}`)
 }
 
-function mockResultsQuery(data: unknown, error: unknown = null) {
-  const rows = Array.isArray(data)
+function normalizeRows(data: unknown) {
+  return Array.isArray(data)
     ? data.map((row) => ({
         time_taken_seconds: 240,
         ...row,
       }))
     : data
+}
+
+function queueResultsChain(rows: unknown, error: unknown) {
+  const chain: { eq: jest.Mock; order: jest.Mock; limit: jest.Mock } = {
+    eq: jest.fn(() => chain),
+    order: jest.fn(() => chain),
+    limit: jest.fn().mockResolvedValue({ data: rows, error }),
+  }
   mockFrom.mockReturnValueOnce({
-    select: jest.fn().mockReturnValue({
-      eq: jest.fn().mockReturnValue({
-        order: jest.fn().mockReturnValue({
-          limit: jest.fn().mockResolvedValue({ data: rows, error }),
-        }),
-      }),
-    }),
+    select: jest.fn().mockReturnValue(chain),
   })
+}
+
+// The route issues two "test_results" queries back to back: the
+// community-wide (deduped) results, then a direct fetch of the current
+// user's own full history (see app/api/stats/route.ts). Both chain zero or
+// more .eq() calls before .order().limit(), so one queued chain per call
+// covers either. `myResultsData` defaults to the same rows as `data` since
+// most tests don't care about the second query's contents — only the
+// user-progress test needs it to genuinely differ.
+function mockResultsQuery(data: unknown, error: unknown = null, myResultsData: unknown = data) {
+  queueResultsChain(normalizeRows(data), error)
+  queueResultsChain(normalizeRows(myResultsData), error)
 }
 
 // The real profiles query chains .eq() once per active filter before being awaited,
@@ -87,7 +101,13 @@ function emails(prefix: string, count: number) {
 
 describe('GET /api/stats', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    // resetAllMocks (not clearAllMocks) matters here: mockResultsQuery always
+    // queues two chained .from() responses (community + my-results), but a
+    // test whose route call errors out after the first one never consumes
+    // the second. clearAllMocks leaves unconsumed mockReturnValueOnce queue
+    // entries in place, so that leftover would silently bleed into the next
+    // test's first .from() call. resetAllMocks wipes the queue clean.
+    jest.resetAllMocks()
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -388,12 +408,23 @@ describe('GET /api/stats', () => {
 
   it('returns user progress, time efficiency, and consistency for the selected domain', async () => {
     mockAuth.mockResolvedValue({ user: { email: 'me@test.com' } })
-    mockResultsQuery([
-      { user_email: 'a@test.com', score: 7, time_taken_seconds: 260, completed_at: '2026-01-04' },
-      { user_email: 'me@test.com', score: 8, time_taken_seconds: 220, completed_at: '2026-01-03' },
-      { user_email: 'me@test.com', score: 6, time_taken_seconds: 250, completed_at: '2026-01-02' },
-      { user_email: 'me@test.com', score: 7, time_taken_seconds: 240, completed_at: '2026-01-01' },
-    ])
+    // Community query: deduped to one (latest) row per user, matching what the
+    // real latest_results_for_domain RPC returns in production. My-results
+    // query: my full history for this domain — this is what userProgress must
+    // be built from, since the deduped community rows alone could never show
+    // more than my single latest attempt.
+    mockResultsQuery(
+      [
+        { user_email: 'a@test.com', score: 7, time_taken_seconds: 260, completed_at: '2026-01-04' },
+        { user_email: 'me@test.com', score: 8, time_taken_seconds: 220, completed_at: '2026-01-03' },
+      ],
+      null,
+      [
+        { user_email: 'me@test.com', score: 8, time_taken_seconds: 220, completed_at: '2026-01-03' },
+        { user_email: 'me@test.com', score: 6, time_taken_seconds: 250, completed_at: '2026-01-02' },
+        { user_email: 'me@test.com', score: 7, time_taken_seconds: 240, completed_at: '2026-01-01' },
+      ]
+    )
     mockCommunityProfilesQuery(profileRows(['a@test.com', 'me@test.com']))
 
     const res = await GET(makeRequest('?domain=ai'))

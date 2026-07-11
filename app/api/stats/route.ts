@@ -69,9 +69,26 @@ export async function GET(req: NextRequest) {
   // Keep only each user's most recent attempt for this domain (rows already ordered newest-first)
   const resultRows = results as ResultRow[]
   const latestByEmail = latestByKey(resultRows, (row) => row.user_email)
-  const userProgress = buildUserProgress(
-    resultRows.filter((row) => row.user_email === session.user.email)
-  )
+
+  // `latestResultsForDomain` is already deduped to one row per user (a
+  // Postgres DISTINCT ON in production — see lib/latest-results.ts), so
+  // filtering it down to "just me" can only ever surface a single row:
+  // attemptCount and scoreChange would be permanently stuck at 1/null no
+  // matter how many times you've actually taken this domain. Fetch your own
+  // full history directly instead, the same way /api/stats/personal does.
+  const { data: myResults, error: myResultsError } = await supabaseAdmin
+    .from('test_results')
+    .select('user_email, score, time_taken_seconds, completed_at')
+    .eq('user_email', session.user.email)
+    .eq('domain', domain)
+    .order('completed_at', { ascending: false })
+    .limit(RESULTS_QUERY_LIMIT)
+
+  if (myResultsError || !myResults) {
+    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
+  }
+
+  const userProgress = buildUserProgress(myResults as ResultRow[])
   const locationParams = readLocationParams(req)
   const locationDimension = getLocationDimension(locationParams)
 
