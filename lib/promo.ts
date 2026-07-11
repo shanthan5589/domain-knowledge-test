@@ -8,6 +8,11 @@
 // with zero other code changes.
 export const PROMO_INTERSTITIAL_ENABLED = false
 export const PROMO_BADGE_ENABLED = false
+// In-quiz "ad slide": a promo shown as if it were the next question (same
+// card container, no question/options/counter) instead of the interstitial's
+// full-screen modal. Independent of PROMO_INTERSTITIAL_ENABLED — either can be
+// flipped on its own without affecting the other.
+export const PROMO_AD_SLIDE_ENABLED = true
 
 function buildCastorUrl(utmMedium: string): string {
   const url = new URL('https://castorai.in')
@@ -16,10 +21,11 @@ function buildCastorUrl(utmMedium: string): string {
   return url.toString()
 }
 
-// Distinct utm_medium per surface so badge vs. interstitial clicks can be
-// told apart later in analytics.
+// Distinct utm_medium per surface so badge vs. interstitial vs. ad-slide
+// clicks can be told apart later in analytics.
 export const PROMO_INTERSTITIAL_URL = buildCastorUrl('quiz_interstitial')
 export const PROMO_BADGE_URL = buildCastorUrl('quiz_badge')
+export const PROMO_AD_SLIDE_URL = buildCastorUrl('quiz_ad_slide')
 
 // Copy for the one-time mid-quiz interstitial card. Kept short and scannable
 // — this interrupts an in-progress quiz, so it's one line, not a paragraph.
@@ -43,6 +49,26 @@ export const PROMO_CONTINUE_DELAY_SECONDS = 5
 // Copy for the passive, always-visible header badge.
 export const PROMO_BADGE_LABEL = 'Powered by Castor AI'
 
+// Label for the ad slide's primary action — occupies the same button slot
+// "Next Question" would, so it reads as an escape hatch rather than a
+// meaningful quiz choice. Unlike the interstitial's Continue link, this is
+// clickable immediately (no forced delay).
+export const PROMO_SKIP_AD_LABEL = 'Skip Ad'
+
+// Content for the ad slide's rotating fact strip — a short auto-advancing
+// carousel (with dot indicators, also clickable to jump manually) instead of
+// a single static line, so the card has some life to it while it's up.
+// Order matters a little (leads with the broadest claim) but there's no
+// "correct" one — Skip Ad and the CTA both work regardless of which fact is
+// currently showing.
+export const PROMO_AD_SLIDE_FACTS: string[] = [
+  'Structured AI training for your whole team',
+  'Hands-on AI workshops — on-site or remote',
+  'Software solutions built specifically around your workflow',
+]
+// How long each fact stays on screen before crossfading to the next, in ms.
+export const PROMO_FACT_ROTATE_INTERVAL_MS = 3500
+
 // Picks the (0-indexed) question index after which the interstitial fires,
 // randomized fresh per attempt. Valid range is strictly between question 5
 // and the last question — i.e. after Q6, Q7, Q8, or Q9 for a 10-question
@@ -56,6 +82,18 @@ export const PROMO_BADGE_LABEL = 'Powered by Castor AI'
 export function pickInterstitialTriggerIndex(totalQuestions: number): number {
   const min = 5 // index 5 = "just answered Q6"
   const max = totalQuestions - 2 // "just answered second-to-last question"
+  if (max < min) return -1
+  return min + Math.floor(Math.random() * (max - min + 1))
+}
+
+// Same trigger-window algorithm as pickInterstitialTriggerIndex, kept as its
+// own independent function (rather than a shared call) so the ad slide's
+// random trigger point is rolled separately from the interstitial's — the
+// two surfaces stay fully decoupled even if both flags were ever enabled at
+// once.
+export function pickAdSlideTriggerIndex(totalQuestions: number): number {
+  const min = 5
+  const max = totalQuestions - 2
   if (max < min) return -1
   return min + Math.floor(Math.random() * (max - min + 1))
 }

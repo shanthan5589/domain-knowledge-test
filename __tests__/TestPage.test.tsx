@@ -20,11 +20,14 @@ jest.mock('next/navigation', () => ({
 // here rather than left to fall through from the real module: this suite
 // exercises the interstitial's own wiring, so it shouldn't silently start
 // skipping that coverage whenever the live kill-switch happens to be off.
+// Ad slide is pinned off so its own independent randomized trigger can't
+// collide with the interstitial trigger this suite fixes.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_INTERSTITIAL_ENABLED: true,
   pickInterstitialTriggerIndex: jest.fn(),
   PROMO_CONTINUE_DELAY_SECONDS: 0,
+  PROMO_AD_SLIDE_ENABLED: false,
 }))
 
 import { useSession } from 'next-auth/react'
