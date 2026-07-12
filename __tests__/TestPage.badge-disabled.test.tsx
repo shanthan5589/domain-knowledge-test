@@ -14,13 +14,16 @@ jest.mock('next/navigation', () => ({
 // determinism — proves the two switches are independent regardless of
 // whatever PROMO_INTERSTITIAL_ENABLED happens to be set to live. Continue
 // delay zeroed out since this test uses real timers and isn't testing the
-// gating countdown itself.
+// gating countdown itself. Ad slide is also pinned off so its independent
+// randomized trigger can't interfere with this suite's fixed interstitial
+// trigger index.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_BADGE_ENABLED: false,
   PROMO_INTERSTITIAL_ENABLED: true,
   pickInterstitialTriggerIndex: jest.fn(() => 5),
   PROMO_CONTINUE_DELAY_SECONDS: 0,
+  PROMO_AD_SLIDE_ENABLED: false,
 }))
 
 import { useSession } from 'next-auth/react'
