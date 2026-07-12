@@ -10,14 +10,10 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
-// All promo surfaces off — proves the kill switches actually reach the
-// rendered page, not just the components in isolation. Ad slide is pinned
-// off explicitly (rather than left to the live default) so this suite stays
-// deterministic regardless of whatever PROMO_AD_SLIDE_ENABLED is set to.
+// Ad slide off (its real default) — proves the flag actually gates the
+// surface rather than it always rendering regardless.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
-  PROMO_INTERSTITIAL_ENABLED: false,
-  PROMO_BADGE_ENABLED: false,
   PROMO_AD_SLIDE_ENABLED: false,
 }))
 
@@ -49,7 +45,7 @@ function mockQuestionsResponse(count = 10) {
   }
 }
 
-describe('TestPage with both promo surfaces disabled', () => {
+describe('TestPage with the ad slide disabled', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseSession.mockReturnValue({ status: 'authenticated' })
@@ -58,24 +54,21 @@ describe('TestPage with both promo surfaces disabled', () => {
     global.fetch = jest.fn()
   })
 
-  it('never shows the interstitial or the badge across a full attempt, and behaves like the pre-promo quiz', async () => {
+  it('never shows the ad slide across a full attempt', async () => {
     ;(global.fetch as jest.Mock)
       .mockResolvedValueOnce(mockQuestionsResponse())
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 8 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ score: 4 }) })
 
     render(<TestPage />)
     await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
 
-    expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
-
     for (let i = 0; i < 10; i++) {
       fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
       fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
-      expect(screen.queryByTestId('promo-interstitial')).not.toBeInTheDocument()
-      expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('promo-ad-slide')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Skip Ad/i })).not.toBeInTheDocument()
     }
 
     await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
-    expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
   })
 })

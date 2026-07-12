@@ -13,11 +13,13 @@ jest.mock('next/navigation', () => ({
 // Interstitial off, badge explicitly on — proves the two switches are
 // independent, not one flag pretending to be two. Badge defaults to off in
 // lib/promo.ts, so this test opts it in explicitly rather than relying on
-// the real default.
+// the real default. Ad slide pinned off so it can't randomly interrupt this
+// suite's plain click-through regardless of its live default.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_INTERSTITIAL_ENABLED: false,
   PROMO_BADGE_ENABLED: true,
+  PROMO_AD_SLIDE_ENABLED: false,
 }))
 
 import { useSession } from 'next-auth/react'

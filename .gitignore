@@ -78,6 +78,6 @@ CLAUDE.md
 AGENTS.md
 .claude/
 
-# stray local files
+# stray local scratch files
 conversation-transcript.txt
 real_demo.fixed.html
