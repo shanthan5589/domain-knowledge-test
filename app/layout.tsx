@@ -24,6 +24,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Edu | Castor AI",
   description: "Test your knowledge across AI, Cloud, Cybersecurity, DevOps, and Data Science",
+  openGraph: {
+    title: "Edu | Castor AI",
+    description: "Test your knowledge across AI, Cloud, Cybersecurity, DevOps, and Data Science",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
 };
 
 export default function RootLayout({
