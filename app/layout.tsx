@@ -22,6 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://edu.castorai.in"),
   title: "Edu | Castor AI",
   description: "Test your knowledge across AI, Cloud, Cybersecurity, DevOps, and Data Science",
   openGraph: {
