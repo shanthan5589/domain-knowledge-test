@@ -113,7 +113,7 @@ describe('TestPage ad slide', () => {
       fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
       expect(screen.queryByTestId('promo-ad-slide')).not.toBeInTheDocument()
     }
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
   })
 
   it('excludes time spent on the ad slide from the recorded time_taken_seconds', async () => {
@@ -144,7 +144,7 @@ describe('TestPage ad slide', () => {
       fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
     }
 
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
 
     const resultsCall = (global.fetch as jest.Mock).mock.calls.find(([url]) => url === '/api/results')
     const body = JSON.parse(resultsCall[1].body)
@@ -156,7 +156,7 @@ describe('TestPage ad slide', () => {
     expect(body.time_taken_seconds).toBeLessThanOrEqual(1)
   }, 10000)
 
-  it('re-triggers once on a Try Again retake, at a freshly resolved trigger point', async () => {
+  it('re-triggers once on a Try again retake, at a freshly resolved trigger point', async () => {
     mockPickTrigger.mockReturnValueOnce(6).mockReturnValueOnce(7)
 
     ;(global.fetch as jest.Mock)
@@ -181,10 +181,10 @@ describe('TestPage ad slide', () => {
       fireEvent.click(screen.getByRole('button', { name: /Option A/i }))
       fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
     }
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
 
     // Retake
-    fireEvent.click(screen.getByText('Try Again'))
+    fireEvent.click(screen.getByText('Try again'))
     await waitFor(() => expect(screen.getByText('Question 0?')).toBeInTheDocument())
 
     // Attempt 2's trigger is now 7 (Q8) — Q7 (currentIndex 6) no longer fires it.

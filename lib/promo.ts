@@ -11,8 +11,11 @@ export const PROMO_BADGE_ENABLED = false
 // In-quiz "ad slide": a promo shown as if it were the next question (same
 // card container, no question/options/counter) instead of the interstitial's
 // full-screen modal. Independent of PROMO_INTERSTITIAL_ENABLED — either can be
-// flipped on its own without affecting the other.
-export const PROMO_AD_SLIDE_ENABLED = true
+// flipped on its own without affecting the other. Disabled because
+// interrupting a timed assessment reads as spammy to senior IT professionals;
+// the Castor promo now lives on the post-quiz results screen (see
+// components/ResultsScreen.tsx) where the user's guard is down.
+export const PROMO_AD_SLIDE_ENABLED = false
 
 function buildCastorUrl(utmMedium: string): string {
   const url = new URL('https://castorai.in')

@@ -75,7 +75,7 @@ describe('TestPage with both promo surfaces disabled', () => {
       expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
     }
 
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
     expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
   })
 })
