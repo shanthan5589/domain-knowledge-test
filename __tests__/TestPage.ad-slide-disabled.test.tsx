@@ -10,8 +10,9 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
-// Ad slide off (its real default) — proves the flag actually gates the
-// surface rather than it always rendering regardless.
+// Ad slide off (its real default since the promo moved to the results
+// screen) — proves the flag actually gates the surface rather than it
+// always rendering regardless.
 jest.mock('@/lib/promo', () => ({
   ...jest.requireActual('@/lib/promo'),
   PROMO_AD_SLIDE_ENABLED: false,
@@ -69,6 +70,6 @@ describe('TestPage with the ad slide disabled', () => {
       expect(screen.queryByRole('button', { name: /Skip Ad/i })).not.toBeInTheDocument()
     }
 
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
   })
 })

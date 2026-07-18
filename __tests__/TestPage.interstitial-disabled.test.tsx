@@ -75,7 +75,11 @@ describe('TestPage with only the interstitial disabled', () => {
       expect(screen.queryByTestId('promo-interstitial')).not.toBeInTheDocument()
     }
 
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
-    expect(screen.getByText('Powered by Castor AI')).toBeInTheDocument()
+    // The results screen has its own dedicated Castor CTA card (see
+    // components/ResultsScreen.tsx) so the passive badge is no longer
+    // rendered there — the big CTA card would make it redundant.
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
+    expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
+    expect(screen.getByTestId('results-castor-cta')).toBeInTheDocument()
   })
 })

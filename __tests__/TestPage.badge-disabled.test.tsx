@@ -89,7 +89,7 @@ describe('TestPage with only the badge disabled', () => {
       fireEvent.click(screen.getByRole('button', { name: /Next Question|Submit Test/i }))
     }
 
-    await waitFor(() => expect(screen.getByText('Test Complete!')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Your benchmark')).toBeInTheDocument())
     expect(screen.queryByText('Powered by Castor AI')).not.toBeInTheDocument()
   })
 })

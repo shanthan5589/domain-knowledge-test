@@ -8,7 +8,7 @@ import QuizQuestion from '@/components/QuizQuestion'
 import PromoInterstitial from '@/components/PromoInterstitial'
 import PromoAdSlide from '@/components/PromoAdSlide'
 import PromoBadge from '@/components/PromoBadge'
-import ScoreGauge from '@/components/ui/ScoreGauge'
+import ResultsScreen from '@/components/ResultsScreen'
 import type { ClientQuestion, CorrectAnswer, Domain } from '@/lib/types'
 import { ALL_DOMAINS as VALID_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { antiCheatHandlers } from '@/lib/anti-cheat'
@@ -22,13 +22,6 @@ import {
 } from '@/lib/promo'
 
 const TOTAL_SECONDS = 300 // 5 minutes
-
-function getScoreTier(score: number) {
-  if (score >= 9) return { label: 'Excellent', color: '#15803D' }
-  if (score >= 7) return { label: 'Good', color: '#4338CA' }
-  if (score >= 5) return { label: 'Average', color: 'var(--signal)' }
-  return { label: 'Needs improvement', color: '#B42318' }
-}
 
 type Phase = 'loading' | 'quiz' | 'submitting' | 'results' | 'error'
 
@@ -293,51 +286,7 @@ export default function TestPage() {
 
   // Results
   if (phase === 'results' && score !== null) {
-    const { label, color } = getScoreTier(score)
-    const messages: Record<string, string> = {
-      Excellent: 'Outstanding! You have mastered this domain.',
-      Good: 'Great job! You have a solid understanding of this domain.',
-      Average: 'Not bad — a bit more practice and you will nail it.',
-      'Needs improvement': 'Keep going — review the concepts and try again!',
-    }
-    return (
-      <main className="min-h-screen bg-[var(--paper)] flex items-center justify-center px-4">
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--line)] shadow-xl p-6 sm:p-10 max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-[var(--ink)] mb-1">Test Complete!</h1>
-          <p className="text-[var(--ink-soft)] mb-6">{DOMAIN_LABELS[domain]}</p>
-          <div className="mb-3">
-            <span className="font-mono text-7xl font-bold" style={{ color }}>{score}</span>
-            <span className="text-3xl font-bold text-[var(--ink-soft)]"> / 10</span>
-          </div>
-          <div className="flex justify-center mb-5">
-            <ScoreGauge score={score} size="lg" />
-          </div>
-          <p className="text-sm font-semibold mb-6" style={{ color }}>{label}</p>
-          <p className="text-[var(--ink-soft)] mb-8">{messages[label]}</p>
-          {/* Stacked on phones so the button labels don't wrap into a squeezed
-              two-column row; unchanged side-by-side layout from sm: up. */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex-1 border border-[var(--line)] rounded-md py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors"
-            >
-              Back to Dashboard
-            </button>
-            <button
-              onClick={handleTryAgain}
-              className="flex-1 bg-[var(--action)] text-white rounded-md py-3 font-medium hover:bg-[var(--action-hover)] transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-          {PROMO_BADGE_ENABLED && (
-            <div className="mt-6 pt-4 border-t border-[var(--line)] flex justify-center">
-              <PromoBadge />
-            </div>
-          )}
-        </div>
-      </main>
-    )
+    return <ResultsScreen domain={domain} score={score} onTryAgain={handleTryAgain} />
   }
 
   // Submitting
