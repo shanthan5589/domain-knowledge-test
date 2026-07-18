@@ -84,8 +84,11 @@ describe('ResultsScreen', () => {
     const tierFingerprints: Record<number, RegExp> = {
       10: /bring your whole team to this level/i,
       8: /take the next step with castor ai/i,
-      6: /turn practice into pattern/i,
-      3: /close this gap/i,
+      // Average and Needs improvement deliberately share a pitch — the
+      // "close this gap with hands-on AI training" line lands the same way
+      // for both bands, so we don't split them.
+      6: /close this gap with hands-on AI training/i,
+      3: /close this gap with hands-on AI training/i,
     }
 
     it('renders the tier-specific pitch for each score band', () => {

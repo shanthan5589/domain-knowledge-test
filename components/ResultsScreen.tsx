@@ -56,8 +56,8 @@ type TierKey = 'excellent' | 'good' | 'average' | 'needs-improvement'
 const CTA_PITCH: Record<TierKey, string> = {
   excellent: 'Bring your whole team to this level with Castor AI.',
   good: 'Take the next step with Castor AI.',
-  average: 'Turn practice into pattern with Castor AI.',
-  'needs-improvement': 'Close this gap with Castor AI.',
+  average: 'Close this gap with hands-on AI training from Castor AI.',
+  'needs-improvement': 'Close this gap with hands-on AI training from Castor AI.',
 }
 
 // Button label follows the domain variant (destination differs), so it stays
