@@ -45,18 +45,26 @@ const DOMAIN_CTA_VARIANT: Record<Domain, CtaVariant> = {
   cybersecurity: 'automation',
 }
 
-// Compact per-variant copy — the CTA now lives inline at the bottom of the
-// score card (not a standalone ad block), so it needs one taut line + a
-// button, not a headline+body pair.
-const CTA_COPY: Record<CtaVariant, { pitch: string; button: string }> = {
-  training: {
-    pitch: 'Close this gap with hands-on AI training from Castor AI.',
-    button: 'See training programs',
-  },
-  automation: {
-    pitch: 'Automate this work with a custom solution from Castor AI.',
-    button: 'See automation solutions',
-  },
+type TierKey = 'excellent' | 'good' | 'average' | 'needs-improvement'
+
+// Pitch line is tier-only (score-driven, not domain-driven). The user's
+// *feeling about their score* is what should shape the emotional copy —
+// telling a senior engineer who aced the quiz to "close this gap" reads as
+// patronizing regardless of which domain they took. The button below carries
+// the domain routing (training vs. automation), so the two concerns stay
+// cleanly split: pitch = how you feel; button = where you go next.
+const CTA_PITCH: Record<TierKey, string> = {
+  excellent: 'Bring your whole team to this level with Castor AI.',
+  good: 'Take the next step with Castor AI.',
+  average: 'Turn practice into pattern with Castor AI.',
+  'needs-improvement': 'Close this gap with Castor AI.',
+}
+
+// Button label follows the domain variant (destination differs), so it stays
+// separate from the pitch and swaps independently.
+const CTA_BUTTON: Record<CtaVariant, string> = {
+  training: 'See training programs',
+  automation: 'See automation solutions',
 }
 
 // utm-tagged so results-screen conversions can be told apart from any other
@@ -74,7 +82,8 @@ export default function ResultsScreen({ domain, score, onTryAgain }: ResultsScre
   const tier = getScoreTier(score)
   const diagnosis = TIER_DIAGNOSIS[tier.key]
   const ctaVariant = DOMAIN_CTA_VARIANT[domain]
-  const cta = CTA_COPY[ctaVariant]
+  const ctaPitch = CTA_PITCH[tier.key as TierKey]
+  const ctaButton = CTA_BUTTON[ctaVariant]
   const ctaUrl = buildCtaUrl(domain, ctaVariant)
 
   return (
@@ -120,7 +129,7 @@ export default function ResultsScreen({ domain, score, onTryAgain }: ResultsScre
                 <p className="font-mono text-[11px] uppercase tracking-widest text-[var(--ink-soft)] mb-0.5">
                   {PROMO_BRAND_NAME}
                 </p>
-                <p className="text-sm text-[var(--ink)] leading-snug">{cta.pitch}</p>
+                <p className="text-sm text-[var(--ink)] leading-snug">{ctaPitch}</p>
               </div>
             </div>
             <a
@@ -130,7 +139,7 @@ export default function ResultsScreen({ domain, score, onTryAgain }: ResultsScre
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-[var(--action)] text-white rounded-md px-5 py-2.5 text-sm font-semibold whitespace-nowrap hover:bg-[var(--action-hover)] transition-colors flex-shrink-0"
             >
-              {cta.button}
+              {ctaButton}
               <span aria-hidden="true">→</span>
             </a>
           </div>

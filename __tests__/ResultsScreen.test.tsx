@@ -50,18 +50,17 @@ describe('ResultsScreen', () => {
   })
 
   describe('domain-based CTA routing', () => {
-    it('shows the training CTA for AI domain', () => {
+    it('shows the training CTA button for AI domain', () => {
       render(<ResultsScreen domain="ai" score={7} onTryAgain={onTryAgain} />)
-      expect(screen.getByText(/hands-on AI training/i)).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /See training programs/i })).toBeInTheDocument()
     })
 
-    it('shows the training CTA for Data Science domain', () => {
+    it('shows the training CTA button for Data Science domain', () => {
       render(<ResultsScreen domain="data_science" score={7} onTryAgain={onTryAgain} />)
       expect(screen.getByRole('link', { name: /See training programs/i })).toBeInTheDocument()
     })
 
-    it('shows the automation CTA for ops-heavy domains', () => {
+    it('shows the automation CTA button for every ops-heavy domain', () => {
       const opsDomains: Domain[] = ['cloud', 'devops', 'cybersecurity']
       for (const domain of opsDomains) {
         const { unmount } = render(
@@ -72,6 +71,54 @@ describe('ResultsScreen', () => {
         ).toBeInTheDocument()
         unmount()
       }
+    })
+  })
+
+  describe('tier-aware pitch copy', () => {
+    // Pitch line changes with the score so a high scorer doesn't get told
+    // to "close this gap" after being told they're ahead of most peers.
+    // Pitch is score-only (not domain-tied), so the button below carries
+    // the domain routing on its own — the two concerns stay cleanly split.
+    // Each snippet is unique to its tier so tests can fingerprint it
+    // without hard-coding the whole sentence.
+    const tierFingerprints: Record<number, RegExp> = {
+      10: /bring your whole team to this level/i,
+      8: /take the next step with castor ai/i,
+      6: /turn practice into pattern/i,
+      3: /close this gap/i,
+    }
+
+    it('renders the tier-specific pitch for each score band', () => {
+      for (const [score, pattern] of Object.entries(tierFingerprints)) {
+        const { unmount } = render(
+          <ResultsScreen domain="ai" score={Number(score)} onTryAgain={onTryAgain} />
+        )
+        expect(screen.getByText(pattern)).toBeInTheDocument()
+        unmount()
+      }
+    })
+
+    it('uses the same pitch line regardless of domain, for a given score', () => {
+      // Domain drives the button destination, not the pitch — so an AI
+      // quiz and a DevOps quiz at the same score must produce the same
+      // pitch line. Pins the "pitch is score-only" contract so a future
+      // edit re-tying it to domain will fail loudly.
+      const domains: Domain[] = ['ai', 'data_science', 'cloud', 'devops', 'cybersecurity']
+      for (const domain of domains) {
+        const { unmount } = render(
+          <ResultsScreen domain={domain} score={10} onTryAgain={onTryAgain} />
+        )
+        expect(screen.getByText(/bring your whole team to this level/i)).toBeInTheDocument()
+        unmount()
+      }
+    })
+
+    it('does NOT show the "close this gap" line to a high scorer', () => {
+      // Regression pin: the original single-pitch copy told excellent
+      // scorers to close a gap that didn't exist, which read as patronizing
+      // and hurt trust with senior engineers. Never do that again.
+      render(<ResultsScreen domain="ai" score={10} onTryAgain={onTryAgain} />)
+      expect(screen.queryByText(/close this gap/i)).not.toBeInTheDocument()
     })
   })
 
