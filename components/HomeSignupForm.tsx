@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { trackEvent } from '@/lib/analytics'
 
 export default function HomeSignupForm() {
   const router = useRouter()
@@ -16,6 +17,7 @@ export default function HomeSignupForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    trackEvent('signup_started', { method: 'credentials', location: 'landing' })
     setLoading(true)
     setError('')
 
@@ -60,7 +62,10 @@ export default function HomeSignupForm() {
       {/* Google */}
       <button
         type="button"
-        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        onClick={() => {
+          trackEvent('signup_started', { method: 'google', location: 'landing' })
+          signIn('google', { callbackUrl: '/dashboard' })
+        }}
         className="w-full flex items-center justify-center gap-3 border border-[var(--line)] rounded-md px-4 py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors mb-5"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">

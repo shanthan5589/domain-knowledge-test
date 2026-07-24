@@ -14,6 +14,7 @@ import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
 import { DESIGNATION_OPTIONS, EXPERIENCE_OPTIONS } from '@/lib/profile-options'
 import { crowdFilterParams } from '@/lib/crowd-filter-params'
 import type { PersonalStatsResponse, StatsResponse } from '@/lib/stats-types'
+import { trackEvent } from '@/lib/analytics'
 
 const TABS = [
   { id: 'performance', label: 'Community Insights' },
@@ -59,6 +60,15 @@ function StatsContent() {
 
   const countryName = countryCode ? Country.getCountryByCode(countryCode)?.name ?? '' : ''
   const stateName = stateCode ? State.getStateByCodeAndCountry(stateCode, countryCode)?.name ?? '' : ''
+
+  // Fire stats_viewed once when the stats page mounts. Uses `domain` (the
+  // sanitized state), not `initialDomain` (the raw query param), so an
+  // invalid ?domain= value doesn't pollute analytics with a domain string
+  // that was never actually valid or shown to the user.
+  useEffect(() => {
+    trackEvent('stats_viewed', { domain })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     let cancelled = false

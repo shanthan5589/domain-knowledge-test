@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function LoginPage() {
 
   async function handleCredentialsLogin(e: React.FormEvent) {
     e.preventDefault()
+    trackEvent('signup_started', { method: 'credentials', location: 'login_page' })
     setLoading(true)
     setError('')
 
@@ -40,6 +42,7 @@ export default function LoginPage() {
   }
 
   async function handleGoogleLogin() {
+    trackEvent('signup_started', { method: 'google', location: 'login_page' })
     await signIn('google', { callbackUrl: '/dashboard' })
   }
 

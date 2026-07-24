@@ -9,6 +9,7 @@ import {
   PROMO_CTA_LABEL,
   PROMO_FACT_ROTATE_INTERVAL_MS,
 } from '@/lib/promo'
+import { trackEvent } from '@/lib/analytics'
 
 // How long the crossfade itself takes, in ms — purely a visual timing
 // constant, not content, so it stays local rather than living in lib/promo.ts.
@@ -22,6 +23,7 @@ const FADE_DURATION_MS = 200
 // Modifier-key and non-primary clicks (ctrl/cmd/shift/middle-click) are left
 // alone so the browser's native "open in new tab/window" still works.
 function openInNewTab(e: MouseEvent<HTMLAnchorElement>) {
+  trackEvent('cta_clicked', { location: 'quiz_ad_slide', brand: 'castor' })
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
   e.preventDefault()
   window.open(e.currentTarget.href, '_blank', 'noopener,noreferrer')

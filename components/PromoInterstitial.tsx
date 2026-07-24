@@ -10,6 +10,7 @@ import {
   PROMO_CTA_LABEL,
   PROMO_INTERSTITIAL_URL,
 } from '@/lib/promo'
+import { trackEvent } from '@/lib/analytics'
 
 interface PromoInterstitialProps {
   onContinue: () => void
@@ -55,6 +56,7 @@ export default function PromoInterstitial({ onContinue }: PromoInterstitialProps
           href={PROMO_INTERSTITIAL_URL}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackEvent('cta_clicked', { location: 'quiz_interstitial', brand: 'castor' })}
           className="block w-full text-center bg-[var(--action)] text-white rounded-md py-3 font-medium hover:bg-[var(--action-hover)] transition-colors"
         >
           {PROMO_CTA_LABEL} →
