@@ -18,12 +18,15 @@ jest.mock('@/components/stats/CommunityInsights', () => ({ __esModule: true, def
 import { render, waitFor } from '@testing-library/react'
 import StatsPage from '@/app/stats/page'
 import { trackEvent } from '@/lib/analytics'
+import { useSearchParams } from 'next/navigation'
 
 const mockTrackEvent = trackEvent as jest.Mock
+const mockUseSearchParams = useSearchParams as jest.Mock
 
 describe('Stats page tracking', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUseSearchParams.mockReturnValue(new URLSearchParams())
     // Fail both fetches fast so StatsContent settles without needing real data.
     global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
   })
@@ -33,6 +36,23 @@ describe('Stats page tracking', () => {
     render(<StatsPage />)
     await waitFor(() =>
       expect(mockTrackEvent).toHaveBeenCalledWith('stats_viewed', { domain: 'ai' })
+    )
+  })
+
+  it('fires stats_viewed with the sanitized fallback, not a raw invalid domain param', async () => {
+    mockUseSearchParams.mockReturnValue(new URLSearchParams({ domain: 'not-a-real-domain' }))
+    render(<StatsPage />)
+    await waitFor(() =>
+      expect(mockTrackEvent).toHaveBeenCalledWith('stats_viewed', { domain: 'ai' })
+    )
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('stats_viewed', { domain: 'not-a-real-domain' })
+  })
+
+  it('fires stats_viewed with a valid domain param as-is', async () => {
+    mockUseSearchParams.mockReturnValue(new URLSearchParams({ domain: 'cloud' }))
+    render(<StatsPage />)
+    await waitFor(() =>
+      expect(mockTrackEvent).toHaveBeenCalledWith('stats_viewed', { domain: 'cloud' })
     )
   })
 })
