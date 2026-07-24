@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import HomeSignupForm from '@/components/HomeSignupForm'
+import PageViewTracker from '@/components/analytics/PageViewTracker'
 import Logo from '@/components/Logo'
 import Reveal from '@/components/home/Reveal'
 import ScrollCta from '@/components/home/ScrollCta'
@@ -24,6 +25,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--paper)]">
+      <PageViewTracker event="landing_viewed" />
       {/* Nav — scrolls away as the hero card takes over, unchanged from before */}
       <header className="px-4 sm:px-8 py-4 bg-[var(--surface)] border-b border-[var(--line)] flex items-center justify-between">
         <Logo />
