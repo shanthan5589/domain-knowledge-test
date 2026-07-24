@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Domain } from '@/lib/types'
 import { ALL_DOMAINS, DOMAIN_LABELS } from '@/lib/domains'
+import { trackEvent } from '@/lib/analytics'
 
 // Marketing-style blurbs shown under each domain name — not duplicated
 // anywhere else, so they stay local to this component.
@@ -38,6 +39,7 @@ export default function DomainSelector() {
   }
 
   function handleConfirm() {
+    if (selected) trackEvent('domain_selected', { domain: selected })
     router.push(`/test/${selected}`)
   }
 
