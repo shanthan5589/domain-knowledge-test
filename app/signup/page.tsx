@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn, useSession } from 'next-auth/react'
+import { trackEvent } from '@/lib/analytics'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -23,6 +24,7 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    trackEvent('signup_started', { method: 'credentials', location: 'signup_page' })
     setLoading(true)
     setError('')
 
@@ -69,7 +71,10 @@ export default function SignupPage() {
         {/* Google Sign-up */}
         <button
           type="button"
-          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+          onClick={() => {
+            trackEvent('signup_started', { method: 'google', location: 'signup_page' })
+            signIn('google', { callbackUrl: '/dashboard' })
+          }}
           className="w-full flex items-center justify-center gap-3 border border-[var(--line)] rounded-md px-4 py-3 text-[var(--ink)] font-medium hover:border-[var(--ink)] transition-colors mb-6"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">

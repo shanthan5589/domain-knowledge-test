@@ -1,7 +1,13 @@
 'use client'
 
 import { SessionProvider } from 'next-auth/react'
+import AuthTracker from '@/components/analytics/AuthTracker'
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>
+  return (
+    <SessionProvider>
+      <AuthTracker />
+      {children}
+    </SessionProvider>
+  )
 }
